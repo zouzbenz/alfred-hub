@@ -490,10 +490,10 @@
 
     <script>
         // ===== SUPABASE CONFIG =====
-        const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+        const SUPABASE_URL = 'https://wxhlstificzqovfcumop.db.co';
         const SUPABASE_KEY = 'sb_publishable_K61f_02n9QXePpRt6KMhog_mtnD1E1V';
         
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const db = window.db.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // ===== DATA =====
         let selectedDateStr = "";
@@ -525,7 +525,7 @@
         // ===== TASKS =====
         async function loadTasks() {
             updateSyncStatus('syncing');
-            const { data, error } = await supabase
+            const { data, error } = await db
                 .from('tasks')
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -560,7 +560,7 @@
             if (!task) return;
             
             updateSyncStatus('syncing');
-            const { error } = await supabase
+            const { error } = await db
                 .from('tasks')
                 .update({ done: !task.done })
                 .eq('id', id);
@@ -578,7 +578,7 @@
             if (!input.value.trim()) return;
             
             updateSyncStatus('syncing');
-            const { error } = await supabase
+            const { error } = await db
                 .from('tasks')
                 .insert([{ text: input.value.trim(), done: false }]);
             
@@ -593,7 +593,7 @@
 
         async function deleteTask(id) {
             updateSyncStatus('syncing');
-            const { error } = await supabase
+            const { error } = await db
                 .from('tasks')
                 .delete()
                 .eq('id', id);
@@ -608,7 +608,7 @@
 
         // ===== EVENTS =====
         async function loadEvents() {
-            const { data, error } = await supabase
+            const { data, error } = await db
                 .from('events')
                 .select('*');
             
@@ -676,7 +676,7 @@
             if (!selectedDateStr || !input.value.trim()) return;
             
             updateSyncStatus('syncing');
-            const { error } = await supabase
+            const { error } = await db
                 .from('events')
                 .insert([{ date: selectedDateStr, title: input.value.trim() }]);
             
@@ -693,7 +693,7 @@
 
         async function deleteEvent(id) {
             updateSyncStatus('syncing');
-            const { error } = await supabase
+            const { error } = await db
                 .from('events')
                 .delete()
                 .eq('id', id);
@@ -710,7 +710,7 @@
 
         // ===== PROJECTS =====
         async function loadProjects() {
-            const { data, error } = await supabase
+            const { data, error } = await db
                 .from('projects')
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -744,7 +744,7 @@
             if (!name.value.trim()) return;
             
             updateSyncStatus('syncing');
-            const { error } = await supabase
+            const { error } = await db
                 .from('projects')
                 .insert([{ 
                     name: name.value.trim(), 
@@ -764,7 +764,7 @@
 
         async function deleteProject(id) {
             updateSyncStatus('syncing');
-            const { error } = await supabase
+            const { error } = await db
                 .from('projects')
                 .delete()
                 .eq('id', id);
@@ -780,7 +780,7 @@
 
         // ===== UPCOMING =====
         async function loadUpcoming() {
-            const { data, error } = await supabase
+            const { data, error } = await db
                 .from('upcoming')
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -814,7 +814,7 @@
             if (!name.value.trim()) return;
             
             updateSyncStatus('syncing');
-            const { error } = await supabase
+            const { error } = await db
                 .from('upcoming')
                 .insert([{ 
                     name: name.value.trim(), 
@@ -834,7 +834,7 @@
 
         async function deleteUpcoming(id) {
             updateSyncStatus('syncing');
-            const { error } = await supabase
+            const { error } = await db
                 .from('upcoming')
                 .delete()
                 .eq('id', id);
