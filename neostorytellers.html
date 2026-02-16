@@ -17,6 +17,8 @@
             --text-dim: #a0a0a0;
             --border-color: #2a2a2a;
             --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
         }
 
         * {
@@ -48,7 +50,7 @@
 
         .dashboard {
             width: 100%; 
-            max-width: 1000px;
+            max-width: 1200px;
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -125,7 +127,47 @@
             font-size: 0.85rem; 
             color: var(--accent-color); 
             text-transform: uppercase; 
-            letter-spacing: 1px; 
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section h3 .counter {
+            background: var(--accent-color);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+
+        .section h3 .counter.complete {
+            background: var(--success);
+        }
+
+        /* Progress bar */
+        .progress-container {
+            margin-bottom: 15px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success);
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 5px;
+            text-align: right;
         }
 
         /* Tasks */
@@ -135,7 +177,7 @@
             padding: 12px 0;
             border-bottom: 1px solid var(--border-color);
             font-size: 0.9rem; 
-            cursor: pointer; 
+            gap: 10px;
         }
 
         .task-item:last-child {
@@ -147,13 +189,13 @@
             height: 22px; 
             border: 2px solid var(--border-color); 
             border-radius: 6px; 
-            margin-right: 12px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
             font-size: 14px; 
             flex-shrink: 0;
             transition: 0.2s;
+            cursor: pointer;
         }
         
         .task-item.done .checkbox { 
@@ -163,23 +205,64 @@
         }
         
         .task-item.done .checkbox::after { content: "✓"; }
-        .task-item.done span { 
+        .task-item.done .task-text { 
             text-decoration: line-through; 
             color: var(--text-dim); 
         }
 
-        .task-item .delete-btn {
-            margin-left: auto;
+        .task-text {
+            flex: 1;
+        }
+
+        .task-date {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            background: rgba(255,255,255,0.05);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .task-btn {
             background: none;
             border: none;
             color: var(--text-dim);
             cursor: pointer;
-            padding: 5px 10px;
-            font-size: 1rem;
+            padding: 5px;
+            font-size: 0.85rem;
+            border-radius: 4px;
+            transition: 0.2s;
         }
 
-        .task-item .delete-btn:hover {
-            color: var(--accent-color);
+        .task-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .task-btn.postpone:hover {
+            color: var(--warning);
+        }
+
+        .task-btn.delete:hover {
+            color: var(--danger);
+        }
+
+        /* Overdue tasks */
+        .section.overdue {
+            border-color: var(--danger);
+            background: rgba(231, 76, 60, 0.05);
+        }
+
+        .section.overdue h3 {
+            color: var(--danger);
+        }
+
+        .task-item.overdue .task-date {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--danger);
         }
 
         /* Input row */
@@ -339,6 +422,27 @@
             color: var(--accent-color);
         }
 
+        /* Collapsible sections */
+        .section-header {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .section-header::after {
+            content: '▼';
+            font-size: 0.7rem;
+            margin-left: 10px;
+            transition: transform 0.2s;
+        }
+
+        .section.collapsed .section-header::after {
+            transform: rotate(-90deg);
+        }
+
+        .section.collapsed .section-content {
+            display: none;
+        }
+
         /* Grid layout for tablet/desktop */
         @media (min-width: 600px) {
             .main-wrapper {
@@ -358,6 +462,12 @@
                 grid-template-columns: 1fr 1fr;
                 gap: 20px;
             }
+
+            .tasks-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
         }
 
         @media (min-width: 900px) {
@@ -366,6 +476,10 @@
             }
 
             .header h1 { font-size: 2.5rem; }
+
+            .tasks-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
         }
 
         /* Sync indicator */
@@ -410,6 +524,12 @@
             padding: 20px;
             color: var(--text-dim);
         }
+
+        .empty-state {
+            color: var(--text-dim);
+            padding: 10px 0;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -429,16 +549,55 @@
                 </div>
             </div>
 
-            <div class="sections-grid">
-                <div class="section">
-                    <h3>📋 Tâches du jour</h3>
-                    <div id="task-list"><div class="loading">Chargement...</div></div>
-                    <div class="input-row">
-                        <input type="text" id="new-task" placeholder="Nouvelle tâche...">
-                        <button onclick="addTask()">+</button>
+            <!-- Tâches en retard -->
+            <div class="section overdue" id="overdue-section" style="display: none;">
+                <h3>
+                    <span>⚠️ TÂCHES EN RETARD</span>
+                    <span class="counter" id="overdue-counter">0</span>
+                </h3>
+                <div id="overdue-list"></div>
+            </div>
+
+            <!-- Tâches du jour -->
+            <div class="section">
+                <h3>
+                    <span>📋 TÂCHES DU JOUR</span>
+                    <span class="counter" id="today-counter">0/0</span>
+                </h3>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="today-progress" style="width: 0%"></div>
                     </div>
+                    <div class="progress-text" id="today-progress-text">0% complété</div>
+                </div>
+                <div id="today-task-list"></div>
+                <div class="input-row">
+                    <input type="text" id="new-task" placeholder="Nouvelle tâche pour aujourd'hui...">
+                    <button onclick="addTask()">+</button>
+                </div>
+            </div>
+
+            <div class="tasks-grid">
+                <!-- Tâches de la semaine -->
+                <div class="section">
+                    <h3 class="section-header" onclick="toggleSection(this)">
+                        <span>📅 CETTE SEMAINE</span>
+                        <span class="counter" id="week-counter">0</span>
+                    </h3>
+                    <div class="section-content" id="week-task-list"></div>
                 </div>
 
+                <!-- Tâches du mois -->
+                <div class="section">
+                    <h3 class="section-header" onclick="toggleSection(this)">
+                        <span>📆 CE MOIS</span>
+                        <span class="counter" id="month-counter">0</span>
+                    </h3>
+                    <div class="section-content" id="month-task-list"></div>
+                </div>
+            </div>
+
+            <div class="sections-grid">
                 <div class="section">
                     <h3>📅 Calendrier</h3>
                     <div class="calendar-grid">
@@ -495,6 +654,35 @@
         
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // ===== DATE HELPERS =====
+        function getToday() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function getWeekAgo() {
+            const date = new Date();
+            date.setDate(date.getDate() - 7);
+            return date.toISOString().split('T')[0];
+        }
+
+        function getMonthAgo() {
+            const date = new Date();
+            date.setDate(date.getDate() - 30);
+            return date.toISOString().split('T')[0];
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const today = new Date();
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (dateStr === getToday()) return "Aujourd'hui";
+            if (dateStr === yesterday.toISOString().split('T')[0]) return "Hier";
+            
+            return date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+        }
+
         // ===== DATA =====
         let selectedDateStr = "";
         let events = [];
@@ -522,6 +710,11 @@
             }
         }
 
+        // ===== TOGGLE SECTION =====
+        function toggleSection(header) {
+            header.closest('.section').classList.toggle('collapsed');
+        }
+
         // ===== TASKS =====
         async function loadTasks() {
             updateSyncStatus('syncing');
@@ -536,23 +729,108 @@
                 return;
             }
             tasks = data || [];
-            renderTasks();
+            renderAllTasks();
             updateSyncStatus('synced');
         }
 
-        function renderTasks() {
-            const container = document.getElementById('task-list');
-            if (tasks.length === 0) {
-                container.innerHTML = '<div style="color: var(--text-dim); padding: 10px 0;">Aucune tâche</div>';
+        function renderAllTasks() {
+            const today = getToday();
+            const weekAgo = getWeekAgo();
+            const monthAgo = getMonthAgo();
+
+            // Séparer les tâches
+            const overdueTasks = tasks.filter(t => !t.done && t.due_date < today);
+            const todayTasks = tasks.filter(t => t.due_date === today);
+            const weekTasks = tasks.filter(t => t.due_date < today && t.due_date >= weekAgo);
+            const monthTasks = tasks.filter(t => t.due_date < weekAgo && t.due_date >= monthAgo);
+
+            // Render chaque section
+            renderOverdueTasks(overdueTasks);
+            renderTodayTasks(todayTasks);
+            renderWeekTasks(weekTasks);
+            renderMonthTasks(monthTasks);
+        }
+
+        function renderOverdueTasks(overdueTasks) {
+            const section = document.getElementById('overdue-section');
+            const container = document.getElementById('overdue-list');
+            const counter = document.getElementById('overdue-counter');
+
+            if (overdueTasks.length === 0) {
+                section.style.display = 'none';
                 return;
             }
-            container.innerHTML = tasks.map(t => `
-                <div class="task-item ${t.done ? 'done' : ''}" onclick="toggleTask(${t.id})">
-                    <div class="checkbox"></div>
-                    <span>${t.text}</span>
-                    <button class="delete-btn" onclick="event.stopPropagation(); deleteTask(${t.id})">×</button>
+
+            section.style.display = 'block';
+            counter.textContent = overdueTasks.length;
+            container.innerHTML = overdueTasks.map(t => renderTaskItem(t, true)).join('');
+        }
+
+        function renderTodayTasks(todayTasks) {
+            const container = document.getElementById('today-task-list');
+            const counter = document.getElementById('today-counter');
+            const progress = document.getElementById('today-progress');
+            const progressText = document.getElementById('today-progress-text');
+
+            const done = todayTasks.filter(t => t.done).length;
+            const total = todayTasks.length;
+            const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+
+            counter.textContent = `${done}/${total}`;
+            counter.className = 'counter' + (done === total && total > 0 ? ' complete' : '');
+            progress.style.width = `${percent}%`;
+            progressText.textContent = `${percent}% complété`;
+
+            if (todayTasks.length === 0) {
+                container.innerHTML = '<div class="empty-state">Aucune tâche pour aujourd\'hui. Ajoutez-en une !</div>';
+                return;
+            }
+
+            container.innerHTML = todayTasks.map(t => renderTaskItem(t, false)).join('');
+        }
+
+        function renderWeekTasks(weekTasks) {
+            const container = document.getElementById('week-task-list');
+            const counter = document.getElementById('week-counter');
+
+            const done = weekTasks.filter(t => t.done).length;
+            counter.textContent = `${done}/${weekTasks.length}`;
+
+            if (weekTasks.length === 0) {
+                container.innerHTML = '<div class="empty-state">Aucune tâche cette semaine</div>';
+                return;
+            }
+
+            container.innerHTML = weekTasks.map(t => renderTaskItem(t, false, true)).join('');
+        }
+
+        function renderMonthTasks(monthTasks) {
+            const container = document.getElementById('month-task-list');
+            const counter = document.getElementById('month-counter');
+
+            const done = monthTasks.filter(t => t.done).length;
+            counter.textContent = `${done}/${monthTasks.length}`;
+
+            if (monthTasks.length === 0) {
+                container.innerHTML = '<div class="empty-state">Aucune tâche ce mois</div>';
+                return;
+            }
+
+            container.innerHTML = monthTasks.map(t => renderTaskItem(t, false, true)).join('');
+        }
+
+        function renderTaskItem(task, isOverdue = false, showDate = false) {
+            return `
+                <div class="task-item ${task.done ? 'done' : ''} ${isOverdue ? 'overdue' : ''}">
+                    <div class="checkbox" onclick="toggleTask(${task.id})"></div>
+                    <span class="task-text">${task.text}</span>
+                    ${showDate || isOverdue ? `<span class="task-date">${formatDate(task.due_date)}</span>` : ''}
+                    <div class="task-actions">
+                        ${!task.done ? `<button class="task-btn postpone" onclick="postponeTask(${task.id})" title="Reporter à demain">↷</button>` : ''}
+                        <button class="task-btn delete" onclick="deleteTask(${task.id})" title="Supprimer">×</button>
+                    </div>
                 </div>
-            `).join('');
+            `;
         }
 
         async function toggleTask(id) {
@@ -580,7 +858,11 @@
             updateSyncStatus('syncing');
             const { error } = await db
                 .from('tasks')
-                .insert([{ text: input.value.trim(), done: false }]);
+                .insert([{ 
+                    text: input.value.trim(), 
+                    done: false,
+                    due_date: getToday()
+                }]);
             
             if (error) {
                 console.error('Error adding task:', error);
@@ -588,6 +870,25 @@
                 return;
             }
             input.value = '';
+            await loadTasks();
+        }
+
+        async function postponeTask(id) {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            
+            updateSyncStatus('syncing');
+            const { error } = await db
+                .from('tasks')
+                .update({ due_date: tomorrowStr })
+                .eq('id', id);
+            
+            if (error) {
+                console.error('Error postponing task:', error);
+                updateSyncStatus('error');
+                return;
+            }
             await loadTasks();
         }
 
@@ -726,7 +1027,7 @@
         function renderProjects() {
             const container = document.getElementById('projects-list');
             if (projects.length === 0) {
-                container.innerHTML = '<div style="color: var(--text-dim); padding: 10px 0;">Aucun projet</div>';
+                container.innerHTML = '<div class="empty-state">Aucun projet</div>';
                 return;
             }
             container.innerHTML = projects.map(p => `
@@ -796,7 +1097,7 @@
         function renderUpcoming() {
             const container = document.getElementById('upcoming-list');
             if (upcoming.length === 0) {
-                container.innerHTML = '<div style="color: var(--text-dim); padding: 10px 0;">Rien à venir</div>';
+                container.innerHTML = '<div class="empty-state">Rien à venir</div>';
                 return;
             }
             container.innerHTML = upcoming.map(u => `
@@ -861,26 +1162,22 @@
 
         // ===== REAL-TIME SYNC =====
         function setupRealtimeSync() {
-            supabase
-                .channel('public:tasks')
+            db.channel('public:tasks')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => loadTasks())
                 .subscribe();
 
-            supabase
-                .channel('public:events')
+            db.channel('public:events')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
                     loadEvents();
                     if (selectedDateStr) renderEvents(selectedDateStr);
                 })
                 .subscribe();
 
-            supabase
-                .channel('public:projects')
+            db.channel('public:projects')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => loadProjects())
                 .subscribe();
 
-            supabase
-                .channel('public:upcoming')
+            db.channel('public:upcoming')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'upcoming' }, () => loadUpcoming())
                 .subscribe();
         }
