@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <meta name="theme-color" content="#0d0d0d">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --bg-color: #0d0d0d;
@@ -167,6 +168,20 @@
             color: var(--text-dim); 
         }
 
+        .task-item .delete-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 5px 10px;
+            font-size: 1rem;
+        }
+
+        .task-item .delete-btn:hover {
+            color: var(--accent-color);
+        }
+
         /* Input row */
         .input-row {
             display: flex;
@@ -268,7 +283,8 @@
         .event-list-item { 
             padding: 8px 0;
             display: flex; 
-            align-items: flex-start;
+            align-items: center;
+            justify-content: space-between;
             border-bottom: 1px solid var(--border-color);
         }
 
@@ -276,7 +292,7 @@
             border-bottom: none;
         }
         
-        .event-list-item::before { 
+        .event-list-item span::before { 
             content: "•"; 
             color: var(--accent-color); 
             margin-right: 10px;
@@ -308,6 +324,19 @@
             background: rgba(255,255,255,0.05);
             padding: 4px 10px;
             border-radius: 20px;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 0.9rem;
+        }
+
+        .delete-btn:hover {
+            color: var(--accent-color);
         }
 
         /* Grid layout for tablet/desktop */
@@ -352,6 +381,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            z-index: 100;
         }
 
         .sync-dot {
@@ -373,6 +403,12 @@
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-dim);
         }
     </style>
 </head>
@@ -396,7 +432,7 @@
             <div class="sections-grid">
                 <div class="section">
                     <h3>📋 Tâches du jour</h3>
-                    <div id="task-list"></div>
+                    <div id="task-list"><div class="loading">Chargement...</div></div>
                     <div class="input-row">
                         <input type="text" id="new-task" placeholder="Nouvelle tâche...">
                         <button onclick="addTask()">+</button>
@@ -426,7 +462,7 @@
 
                 <div class="section">
                     <h3>🎬 Projets en cours</h3>
-                    <div id="projects-list"></div>
+                    <div id="projects-list"><div class="loading">Chargement...</div></div>
                     <div class="input-row">
                         <input type="text" id="new-project-name" placeholder="Projet...">
                         <input type="text" id="new-project-status" placeholder="Statut...">
@@ -436,7 +472,7 @@
 
                 <div class="section">
                     <h3>📆 À Venir</h3>
-                    <div id="upcoming-list"></div>
+                    <div id="upcoming-list"><div class="loading">Chargement...</div></div>
                     <div class="input-row">
                         <input type="text" id="new-upcoming-name" placeholder="Événement...">
                         <input type="text" id="new-upcoming-date" placeholder="Date...">
@@ -449,103 +485,141 @@
 
     <div class="sync-status">
         <div class="sync-dot" id="sync-dot"></div>
-        <span id="sync-text">Local</span>
+        <span id="sync-text">Connexion...</span>
     </div>
 
     <script>
-        // ===== CONFIGURATION =====
-        // TODO: Replace with your Supabase credentials
-        const SUPABASE_URL = '';
-        const SUPABASE_KEY = '';
-        const USE_SUPABASE = SUPABASE_URL && SUPABASE_KEY;
+        // ===== SUPABASE CONFIG =====
+        const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_K61f_02n9QXePpRt6KMhog_mtnD1E1V';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // ===== DATA =====
         let selectedDateStr = "";
-        let events = {};
+        let events = [];
         let tasks = [];
         let projects = [];
         let upcoming = [];
 
-        // ===== STORAGE =====
-        function loadData() {
-            events = JSON.parse(localStorage.getItem('alfred_events_v4')) || {
-                "2026-02-17": ["TOURNAGE Le Méridien"],
-                "2026-02-18": ["TOURNAGE Rym Lamrani"],
-            };
-            tasks = JSON.parse(localStorage.getItem('alfred_tasks_v4')) || [
-                { id: 1, text: "Repérage Le Méridien", done: true },
-                { id: 2, text: "Envoyer prix final", done: false }
-            ];
-            projects = JSON.parse(localStorage.getItem('alfred_projects_v4')) || [
-                { id: 1, name: "Le Méridien", status: "Mardi - Tournage" },
-                { id: 2, name: "Rym Lamrani", status: "Mercredi - Tournage" }
-            ];
-            upcoming = JSON.parse(localStorage.getItem('alfred_upcoming_v4')) || [
-                { id: 1, name: "Diar Construction", date: "À confirmer" },
-                { id: 2, name: "RDV Papa", date: "Vendredi 13:00" }
-            ];
-        }
-
-        function saveData() {
-            localStorage.setItem('alfred_events_v4', JSON.stringify(events));
-            localStorage.setItem('alfred_tasks_v4', JSON.stringify(tasks));
-            localStorage.setItem('alfred_projects_v4', JSON.stringify(projects));
-            localStorage.setItem('alfred_upcoming_v4', JSON.stringify(upcoming));
-            updateSyncStatus('saved');
-        }
-
+        // ===== SYNC STATUS =====
         function updateSyncStatus(status) {
             const dot = document.getElementById('sync-dot');
             const text = document.getElementById('sync-text');
             
             if (status === 'syncing') {
                 dot.className = 'sync-dot syncing';
-                text.textContent = 'Syncing...';
-            } else if (status === 'saved') {
+                text.textContent = 'Sync...';
+            } else if (status === 'synced') {
                 dot.className = 'sync-dot';
-                text.textContent = USE_SUPABASE ? 'Synced' : 'Local';
+                text.textContent = 'Synced ✓';
             } else if (status === 'offline') {
                 dot.className = 'sync-dot offline';
                 text.textContent = 'Offline';
+            } else if (status === 'error') {
+                dot.className = 'sync-dot offline';
+                text.textContent = 'Erreur';
             }
         }
 
         // ===== TASKS =====
+        async function loadTasks() {
+            updateSyncStatus('syncing');
+            const { data, error } = await supabase
+                .from('tasks')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                console.error('Error loading tasks:', error);
+                updateSyncStatus('error');
+                return;
+            }
+            tasks = data || [];
+            renderTasks();
+            updateSyncStatus('synced');
+        }
+
         function renderTasks() {
             const container = document.getElementById('task-list');
             if (tasks.length === 0) {
                 container.innerHTML = '<div style="color: var(--text-dim); padding: 10px 0;">Aucune tâche</div>';
                 return;
             }
-            container.innerHTML = tasks.map((t, i) => `
-                <div class="task-item ${t.done ? 'done' : ''}" onclick="toggleTask(${i})">
+            container.innerHTML = tasks.map(t => `
+                <div class="task-item ${t.done ? 'done' : ''}" onclick="toggleTask(${t.id})">
                     <div class="checkbox"></div>
                     <span>${t.text}</span>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteTask(${t.id})">×</button>
                 </div>
             `).join('');
         }
 
-        function toggleTask(index) {
-            tasks[index].done = !tasks[index].done;
-            saveData();
-            renderTasks();
-        }
-
-        function addTask() {
-            const input = document.getElementById('new-task');
-            if (input.value.trim()) {
-                tasks.push({ 
-                    id: Date.now(), 
-                    text: input.value.trim(), 
-                    done: false 
-                });
-                input.value = '';
-                saveData();
-                renderTasks();
+        async function toggleTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            
+            updateSyncStatus('syncing');
+            const { error } = await supabase
+                .from('tasks')
+                .update({ done: !task.done })
+                .eq('id', id);
+            
+            if (error) {
+                console.error('Error updating task:', error);
+                updateSyncStatus('error');
+                return;
             }
+            await loadTasks();
         }
 
-        // ===== CALENDAR =====
+        async function addTask() {
+            const input = document.getElementById('new-task');
+            if (!input.value.trim()) return;
+            
+            updateSyncStatus('syncing');
+            const { error } = await supabase
+                .from('tasks')
+                .insert([{ text: input.value.trim(), done: false }]);
+            
+            if (error) {
+                console.error('Error adding task:', error);
+                updateSyncStatus('error');
+                return;
+            }
+            input.value = '';
+            await loadTasks();
+        }
+
+        async function deleteTask(id) {
+            updateSyncStatus('syncing');
+            const { error } = await supabase
+                .from('tasks')
+                .delete()
+                .eq('id', id);
+            
+            if (error) {
+                console.error('Error deleting task:', error);
+                updateSyncStatus('error');
+                return;
+            }
+            await loadTasks();
+        }
+
+        // ===== EVENTS =====
+        async function loadEvents() {
+            const { data, error } = await supabase
+                .from('events')
+                .select('*');
+            
+            if (error) {
+                console.error('Error loading events:', error);
+                return;
+            }
+            events = data || [];
+            initCalendar();
+        }
+
         function initCalendar() {
             const now = new Date();
             const year = now.getFullYear();
@@ -563,7 +637,7 @@
             for (let i = 1; i <= daysInMonth; i++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
                 const isToday = i === today;
-                const hasEvent = events[dateStr] && events[dateStr].length > 0;
+                const hasEvent = events.some(e => e.date === dateStr);
                 const isSelected = dateStr === selectedDateStr;
                 
                 const dayDiv = document.createElement('div');
@@ -583,29 +657,72 @@
 
         function renderEvents(dateStr) {
             const container = document.getElementById('event-text');
-            const list = events[dateStr];
-            if (list && list.length > 0) {
-                container.innerHTML = list.map(ev => 
-                    `<div class="event-list-item">${ev}</div>`
+            const dayEvents = events.filter(e => e.date === dateStr);
+            
+            if (dayEvents.length > 0) {
+                container.innerHTML = dayEvents.map(ev => 
+                    `<div class="event-list-item">
+                        <span>${ev.title}</span>
+                        <button class="delete-btn" onclick="deleteEvent(${ev.id})">×</button>
+                    </div>`
                 ).join('');
             } else {
                 container.innerHTML = '<div style="color: var(--text-dim);">Rien de prévu</div>';
             }
         }
 
-        function saveEvent() {
+        async function saveEvent() {
             const input = document.getElementById('event-input');
-            if (selectedDateStr && input.value.trim()) {
-                if (!events[selectedDateStr]) events[selectedDateStr] = [];
-                events[selectedDateStr].push(input.value.trim());
-                input.value = '';
-                saveData();
-                renderEvents(selectedDateStr);
-                initCalendar();
+            if (!selectedDateStr || !input.value.trim()) return;
+            
+            updateSyncStatus('syncing');
+            const { error } = await supabase
+                .from('events')
+                .insert([{ date: selectedDateStr, title: input.value.trim() }]);
+            
+            if (error) {
+                console.error('Error adding event:', error);
+                updateSyncStatus('error');
+                return;
             }
+            input.value = '';
+            await loadEvents();
+            renderEvents(selectedDateStr);
+            updateSyncStatus('synced');
+        }
+
+        async function deleteEvent(id) {
+            updateSyncStatus('syncing');
+            const { error } = await supabase
+                .from('events')
+                .delete()
+                .eq('id', id);
+            
+            if (error) {
+                console.error('Error deleting event:', error);
+                updateSyncStatus('error');
+                return;
+            }
+            await loadEvents();
+            renderEvents(selectedDateStr);
+            updateSyncStatus('synced');
         }
 
         // ===== PROJECTS =====
+        async function loadProjects() {
+            const { data, error } = await supabase
+                .from('projects')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                console.error('Error loading projects:', error);
+                return;
+            }
+            projects = data || [];
+            renderProjects();
+        }
+
         function renderProjects() {
             const container = document.getElementById('projects-list');
             if (projects.length === 0) {
@@ -616,27 +733,66 @@
                 <div class="project-item">
                     <span class="project-name">${p.name}</span>
                     <span class="project-status">${p.status}</span>
+                    <button class="delete-btn" onclick="deleteProject(${p.id})">×</button>
                 </div>
             `).join('');
         }
 
-        function addProject() {
+        async function addProject() {
             const name = document.getElementById('new-project-name');
             const status = document.getElementById('new-project-status');
-            if (name.value.trim()) {
-                projects.push({ 
-                    id: Date.now(),
+            if (!name.value.trim()) return;
+            
+            updateSyncStatus('syncing');
+            const { error } = await supabase
+                .from('projects')
+                .insert([{ 
                     name: name.value.trim(), 
-                    status: status.value.trim() || "En cours"
-                });
-                name.value = '';
-                status.value = '';
-                saveData();
-                renderProjects();
+                    status: status.value.trim() || 'En cours'
+                }]);
+            
+            if (error) {
+                console.error('Error adding project:', error);
+                updateSyncStatus('error');
+                return;
             }
+            name.value = '';
+            status.value = '';
+            await loadProjects();
+            updateSyncStatus('synced');
+        }
+
+        async function deleteProject(id) {
+            updateSyncStatus('syncing');
+            const { error } = await supabase
+                .from('projects')
+                .delete()
+                .eq('id', id);
+            
+            if (error) {
+                console.error('Error deleting project:', error);
+                updateSyncStatus('error');
+                return;
+            }
+            await loadProjects();
+            updateSyncStatus('synced');
         }
 
         // ===== UPCOMING =====
+        async function loadUpcoming() {
+            const { data, error } = await supabase
+                .from('upcoming')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                console.error('Error loading upcoming:', error);
+                return;
+            }
+            upcoming = data || [];
+            renderUpcoming();
+        }
+
         function renderUpcoming() {
             const container = document.getElementById('upcoming-list');
             if (upcoming.length === 0) {
@@ -647,24 +803,49 @@
                 <div class="project-item">
                     <span class="project-name">${u.name}</span>
                     <span class="project-status">${u.date}</span>
+                    <button class="delete-btn" onclick="deleteUpcoming(${u.id})">×</button>
                 </div>
             `).join('');
         }
 
-        function addUpcoming() {
+        async function addUpcoming() {
             const name = document.getElementById('new-upcoming-name');
             const date = document.getElementById('new-upcoming-date');
-            if (name.value.trim()) {
-                upcoming.push({ 
-                    id: Date.now(),
+            if (!name.value.trim()) return;
+            
+            updateSyncStatus('syncing');
+            const { error } = await supabase
+                .from('upcoming')
+                .insert([{ 
                     name: name.value.trim(), 
-                    date: date.value.trim() || "À définir"
-                });
-                name.value = '';
-                date.value = '';
-                saveData();
-                renderUpcoming();
+                    date: date.value.trim() || 'À définir'
+                }]);
+            
+            if (error) {
+                console.error('Error adding upcoming:', error);
+                updateSyncStatus('error');
+                return;
             }
+            name.value = '';
+            date.value = '';
+            await loadUpcoming();
+            updateSyncStatus('synced');
+        }
+
+        async function deleteUpcoming(id) {
+            updateSyncStatus('syncing');
+            const { error } = await supabase
+                .from('upcoming')
+                .delete()
+                .eq('id', id);
+            
+            if (error) {
+                console.error('Error deleting upcoming:', error);
+                updateSyncStatus('error');
+                return;
+            }
+            await loadUpcoming();
+            updateSyncStatus('synced');
         }
 
         // ===== CLOCK =====
@@ -678,14 +859,50 @@
             });
         }
 
+        // ===== REAL-TIME SYNC =====
+        function setupRealtimeSync() {
+            supabase
+                .channel('public:tasks')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => loadTasks())
+                .subscribe();
+
+            supabase
+                .channel('public:events')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
+                    loadEvents();
+                    if (selectedDateStr) renderEvents(selectedDateStr);
+                })
+                .subscribe();
+
+            supabase
+                .channel('public:projects')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => loadProjects())
+                .subscribe();
+
+            supabase
+                .channel('public:upcoming')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'upcoming' }, () => loadUpcoming())
+                .subscribe();
+        }
+
         // ===== INIT =====
-        loadData();
-        updateTime();
-        initCalendar();
-        renderTasks();
-        renderProjects();
-        renderUpcoming();
-        setInterval(updateTime, 1000);
+        async function init() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            // Load all data
+            await Promise.all([
+                loadTasks(),
+                loadEvents(),
+                loadProjects(),
+                loadUpcoming()
+            ]);
+            
+            // Setup real-time sync
+            setupRealtimeSync();
+        }
+
+        init();
 
         // Enter key support
         document.getElementById('new-task').addEventListener('keypress', e => { if (e.key === 'Enter') addTask(); });
@@ -694,7 +911,7 @@
         document.getElementById('new-upcoming-name').addEventListener('keypress', e => { if (e.key === 'Enter') addUpcoming(); });
 
         // Online/offline detection
-        window.addEventListener('online', () => updateSyncStatus('saved'));
+        window.addEventListener('online', () => { updateSyncStatus('synced'); init(); });
         window.addEventListener('offline', () => updateSyncStatus('offline'));
     </script>
 </body>
