@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Néo Storytellers - Dashboard Intégral</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d0d0d;
+            --card-bg: #161616;
+            --accent-color: #e63946;
+            --text-main: #ffffff;
+            --text-dim: #a0a0a0;
+            --border-color: #2a2a2a;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
+
+        body, html {
+            margin: 0; padding: 0; min-height: 100%; width: 100%;
+            background-color: var(--bg-color); color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .main-wrapper {
+            min-height: 100vh; overflow-y: auto; padding: 40px 20px;
+            display: flex; flex-direction: column; align-items: center;
+            box-sizing: border-box;
+        }
+
+        .dashboard {
+            width: 100%; max-width: 1000px;
+            display: grid; grid-template-columns: 1fr 1fr; grid-gap: 20px;
+            background: var(--card-bg); padding: 40px; border-radius: 24px;
+            border: 1px solid var(--border-color); box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+            margin-bottom: 40px; box-sizing: border-box;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard { grid-template-columns: 1fr; padding: 20px; }
+            .header { grid-column: span 1 !important; flex-direction: column; align-items: flex-start; }
+            .header > div:last-child { margin-top: 15px; text-align: left !important; }
+        }
+
+        .header {
+            grid-column: span 2; display: flex; justify-content: space-between; align-items: flex-end;
+            border-bottom: 2px solid var(--accent-color); padding-bottom: 20px; margin-bottom: 10px;
+        }
+
+        .header h1 { margin: 0; font-size: 2.5rem; font-weight: 800; }
+        .agency { color: var(--accent-color); font-size: 1.2rem; text-transform: uppercase; letter-spacing: 4px; font-weight: 600; }
+        .back-hub { text-decoration: none; color: var(--accent-color); font-size: 0.8rem; display: block; margin-bottom: 5px; transition: 0.3s; }
+        .back-hub:hover { opacity: 0.7; }
+
+        .section { background: rgba(255, 255, 255, 0.02); padding: 25px; border-radius: 16px; border: 1px solid var(--border-color); }
+        .section h3 { margin-top: 0; font-size: 1rem; color: var(--accent-color); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+
+        .task-list { list-style: none; padding: 0; margin: 0; }
+        .task-item { display: flex; align-items: center; margin-bottom: 15px; font-size: 1rem; cursor: pointer; }
+        .checkbox { width: 18px; height: 18px; border: 2px solid var(--border-color); border-radius: 4px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+        .task-item.done .checkbox { background: #2ecc71; border-color: #2ecc71; color: white; }
+        .task-item.done .checkbox::after { content: "✓"; }
+        .task-item.done span { text-decoration: line-through; color: var(--text-dim); }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 0.85rem; }
+        .day-name { font-weight: bold; color: var(--text-dim); padding-bottom: 10px; }
+        .day { padding: 8px; cursor: pointer; border-radius: 6px; transition: 0.2s; position: relative; }
+        .day:hover { background: rgba(255, 255, 255, 0.1); }
+        .day.today { color: var(--accent-color); font-weight: bold; background: rgba(230, 57, 70, 0.1); }
+        .day.has-event::after { content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: var(--accent-color); border-radius: 50%; }
+
+        #event-details {
+            margin-top: 15px; padding: 15px; border-left: 2px solid var(--accent-color);
+            background: rgba(255, 255, 255, 0.01); min-height: 40px; font-size: 0.9rem;
+        }
+        .event-list-item { margin-bottom: 5px; display: flex; align-items: flex-start; }
+        .event-list-item::before { content: "•"; color: var(--accent-color); margin-right: 8px; }
+
+        #event-input-container { margin-top: 10px; display: none; flex-wrap: wrap; gap: 10px; }
+        #event-input { background: #111; border: 1px solid var(--border-color); color: white; padding: 8px; border-radius: 4px; flex: 1; min-width: 150px; }
+        #save-event { background: var(--accent-color); border: none; color: white; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+        #save-event:hover { opacity: 0.9; }
+
+        .project-item { padding: 12px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 5px; }
+        .project-status { font-size: 0.85rem; color: var(--text-dim); }
+    </style>
+</head>
+<body>
+    <div class="main-wrapper">
+        <div class="dashboard">
+            <div class="header">
+                <div>
+                    <a href="./index.html" class="back-hub">← Retour au Hub</a>
+                    <span class="agency">Néo Storytellers</span>
+                    <h1>Zouhair Benazzouz</h1>
+                </div>
+                <div style="text-align: right;">
+                    <div id="clock" style="font-size: 2.2rem; font-weight: 700;">00:00:00</div>
+                    <div id="top-date" style="color: var(--text-dim); font-size: 1rem;">...</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Tâches du jour</h3>
+                <div class="task-list" id="task-list">
+                    <!-- Tasks will be loaded from localStorage -->
+                </div>
+                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                    <input type="text" id="new-task" placeholder="Nouvelle tâche..." style="flex: 1; background: #111; border: 1px solid var(--border-color); color: white; padding: 8px; border-radius: 4px;">
+                    <button onclick="addTask()" style="background: var(--accent-color); border: none; color: white; padding: 8px 12px; border-radius: 4px; cursor: pointer;">+</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Calendrier Interactif</h3>
+                <div class="calendar-grid">
+                    <div class="day-name">L</div><div class="day-name">M</div><div class="day-name">M</div><div class="day-name">J</div><div class="day-name">V</div><div class="day-name">S</div><div class="day-name">D</div>
+                </div>
+                <div class="calendar-grid" id="calendar-days"></div>
+                <div id="event-details">
+                    <div id="event-text" style="font-weight: 500;">Cliquez sur une date.</div>
+                    <div id="event-input-container">
+                        <input type="text" id="event-input" placeholder="Ajouter un événement...">
+                        <button id="save-event" onclick="saveEvent()">OK</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Projets en cours</h3>
+                <div id="projects-list">
+                    <!-- Projects loaded from localStorage -->
+                </div>
+                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" id="new-project-name" placeholder="Nom du projet..." style="flex: 1; min-width: 120px; background: #111; border: 1px solid var(--border-color); color: white; padding: 8px; border-radius: 4px;">
+                    <input type="text" id="new-project-status" placeholder="Statut..." style="flex: 1; min-width: 120px; background: #111; border: 1px solid var(--border-color); color: white; padding: 8px; border-radius: 4px;">
+                    <button onclick="addProject()" style="background: var(--accent-color); border: none; color: white; padding: 8px 12px; border-radius: 4px; cursor: pointer;">+</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>À Venir</h3>
+                <div id="upcoming-list">
+                    <!-- Upcoming loaded from localStorage -->
+                </div>
+                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" id="new-upcoming-name" placeholder="Événement..." style="flex: 1; min-width: 120px; background: #111; border: 1px solid var(--border-color); color: white; padding: 8px; border-radius: 4px;">
+                    <input type="text" id="new-upcoming-date" placeholder="Date..." style="flex: 1; min-width: 120px; background: #111; border: 1px solid var(--border-color); color: white; padding: 8px; border-radius: 4px;">
+                    <button onclick="addUpcoming()" style="background: var(--accent-color); border: none; color: white; padding: 8px 12px; border-radius: 4px; cursor: pointer;">+</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== DATA STORAGE =====
+        let selectedDateStr = "";
+        
+        let events = JSON.parse(localStorage.getItem('alfred_events_v3')) || {
+            "2026-02-17": ["TOURNAGE Le Méridien avec Taoufik"],
+            "2026-02-18": ["TOURNAGE Rym Lamrani"],
+            "2026-02-20": ["RDV Papa (13:00)"]
+        };
+
+        let tasks = JSON.parse(localStorage.getItem('alfred_tasks_v3')) || [
+            { text: "Repérage Le Méridien", done: true },
+            { text: "Récupérer voiture Père", done: true },
+            { text: "Envoyer prix final Méridien", done: false }
+        ];
+
+        let projects = JSON.parse(localStorage.getItem('alfred_projects_v3')) || [
+            { name: "Le Méridien", status: "Mardi - Tournage", color: "#ffcc00" },
+            { name: "Rym Lamrani", status: "Mercredi - Tournage", color: "#ffcc00" }
+        ];
+
+        let upcoming = JSON.parse(localStorage.getItem('alfred_upcoming_v3')) || [
+            { name: "Diar Construction", date: "Jeudi (?) - À confirmer" },
+            { name: "RDV Papa", date: "Vendredi - 13:00" }
+        ];
+
+        // ===== SAVE FUNCTIONS =====
+        function saveAll() {
+            localStorage.setItem('alfred_events_v3', JSON.stringify(events));
+            localStorage.setItem('alfred_tasks_v3', JSON.stringify(tasks));
+            localStorage.setItem('alfred_projects_v3', JSON.stringify(projects));
+            localStorage.setItem('alfred_upcoming_v3', JSON.stringify(upcoming));
+        }
+
+        // ===== TASKS =====
+        function renderTasks() {
+            const container = document.getElementById('task-list');
+            container.innerHTML = tasks.map((t, i) => `
+                <div class="task-item ${t.done ? 'done' : ''}" onclick="toggleTask(${i})">
+                    <div class="checkbox"></div>
+                    <span>${t.text}</span>
+                </div>
+            `).join('');
+        }
+
+        function toggleTask(index) {
+            tasks[index].done = !tasks[index].done;
+            saveAll();
+            renderTasks();
+        }
+
+        function addTask() {
+            const input = document.getElementById('new-task');
+            if (input.value.trim()) {
+                tasks.push({ text: input.value.trim(), done: false });
+                input.value = '';
+                saveAll();
+                renderTasks();
+            }
+        }
+
+        // ===== CALENDAR =====
+        function saveEvent() {
+            const input = document.getElementById('event-input');
+            if (selectedDateStr && input.value) {
+                if (!events[selectedDateStr]) events[selectedDateStr] = [];
+                events[selectedDateStr].push(input.value);
+                saveAll();
+                renderEvents(selectedDateStr);
+                initCalendar();
+                input.value = '';
+            }
+        }
+
+        function renderEvents(dateStr) {
+            const container = document.getElementById('event-text');
+            const list = events[dateStr];
+            if (list && list.length > 0) {
+                container.innerHTML = list.map(ev => `<div class="event-list-item">${ev}</div>`).join('');
+            } else {
+                container.textContent = "Rien de prévu.";
+            }
+        }
+
+        function initCalendar() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const today = now.getDate();
+            const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const grid = document.getElementById('calendar-days');
+            grid.innerHTML = '';
+            for (let i = 0; i < firstDay; i++) grid.innerHTML += '<div></div>';
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'day';
+                dayDiv.textContent = i;
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                if (i === today) dayDiv.classList.add('today');
+                if (events[dateStr] && events[dateStr].length > 0) dayDiv.classList.add('has-event');
+                dayDiv.onclick = () => {
+                    selectedDateStr = dateStr;
+                    document.querySelectorAll('.day').forEach(d => d.style.background = '');
+                    dayDiv.style.background = 'rgba(255, 255, 255, 0.1)';
+                    renderEvents(dateStr);
+                    document.getElementById('event-input-container').style.display = 'flex';
+                };
+                grid.appendChild(dayDiv);
+            }
+        }
+
+        // ===== PROJECTS =====
+        function renderProjects() {
+            const container = document.getElementById('projects-list');
+            container.innerHTML = projects.map((p, i) => `
+                <div class="project-item">
+                    <span class="project-name">${p.name}</span>
+                    <span class="project-status" style="color: ${p.color || '#ffcc00'}">${p.status}</span>
+                </div>
+            `).join('');
+        }
+
+        function addProject() {
+            const name = document.getElementById('new-project-name');
+            const status = document.getElementById('new-project-status');
+            if (name.value.trim()) {
+                projects.push({ name: name.value.trim(), status: status.value.trim() || "En cours", color: "#ffcc00" });
+                name.value = '';
+                status.value = '';
+                saveAll();
+                renderProjects();
+            }
+        }
+
+        // ===== UPCOMING =====
+        function renderUpcoming() {
+            const container = document.getElementById('upcoming-list');
+            container.innerHTML = upcoming.map((u, i) => `
+                <div class="project-item">
+                    <span class="project-name">${u.name}</span>
+                    <span class="project-status">${u.date}</span>
+                </div>
+            `).join('');
+        }
+
+        function addUpcoming() {
+            const name = document.getElementById('new-upcoming-name');
+            const date = document.getElementById('new-upcoming-date');
+            if (name.value.trim()) {
+                upcoming.push({ name: name.value.trim(), date: date.value.trim() || "À définir" });
+                name.value = '';
+                date.value = '';
+                saveAll();
+                renderUpcoming();
+            }
+        }
+
+        // ===== CLOCK =====
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('fr-FR');
+            document.getElementById('top-date').textContent = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+        }
+
+        // ===== INIT =====
+        updateTime();
+        initCalendar();
+        renderTasks();
+        renderProjects();
+        renderUpcoming();
+        setInterval(updateTime, 1000);
+
+        // Enter key support
+        document.getElementById('new-task').addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
+        document.getElementById('event-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') saveEvent(); });
+    </script>
+</body>
+</html>
