@@ -2,9 +2,11 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Néo Storytellers - Dashboard Intégral</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Néo Storytellers</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#0d0d0d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <style>
         :root {
             --bg-color: #0d0d0d;
@@ -13,186 +15,508 @@
             --text-main: #ffffff;
             --text-dim: #a0a0a0;
             --border-color: #2a2a2a;
+            --success: #2ecc71;
         }
 
-        ::-webkit-scrollbar { width: 6px; }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-color); }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
 
         body, html {
-            margin: 0; padding: 0; min-height: 100%; width: 100%;
-            background-color: var(--bg-color); color: var(--text-main);
+            margin: 0; 
+            padding: 0; 
+            min-height: 100%; 
+            width: 100%;
+            background-color: var(--bg-color); 
+            color: var(--text-main);
             font-family: 'Inter', sans-serif;
         }
 
         .main-wrapper {
-            min-height: 100vh; overflow-y: auto; padding: 40px 20px;
-            display: flex; flex-direction: column; align-items: center;
-            box-sizing: border-box;
+            min-height: 100vh; 
+            padding: 20px;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
         }
 
         .dashboard {
-            width: 100%; max-width: 1000px;
-            display: grid; grid-template-columns: 1fr 1fr; grid-gap: 20px;
-            background: var(--card-bg); padding: 40px; border-radius: 24px;
-            border: 1px solid var(--border-color); box-shadow: 0 30px 60px rgba(0,0,0,0.5);
-            margin-bottom: 40px; box-sizing: border-box;
+            width: 100%; 
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: var(--card-bg); 
+            padding: 20px; 
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
         }
 
-        @media (max-width: 768px) {
-            .dashboard { grid-template-columns: 1fr; padding: 20px; }
-            .header { grid-column: span 1 !important; flex-direction: column; align-items: flex-start; }
-            .header > div:last-child { margin-top: 15px; text-align: left !important; }
-        }
-
+        /* Header */
         .header {
-            grid-column: span 2; display: flex; justify-content: space-between; align-items: flex-end;
-            border-bottom: 2px solid var(--accent-color); padding-bottom: 20px; margin-bottom: 10px;
+            display: flex; 
+            flex-direction: column;
+            gap: 10px;
+            border-bottom: 2px solid var(--accent-color); 
+            padding-bottom: 15px;
         }
 
-        .header h1 { margin: 0; font-size: 2.5rem; font-weight: 800; }
-        .agency { color: var(--accent-color); font-size: 1.2rem; text-transform: uppercase; letter-spacing: 4px; font-weight: 600; }
-        .back-hub { text-decoration: none; color: var(--accent-color); font-size: 0.8rem; display: block; margin-bottom: 5px; transition: 0.3s; }
-        .back-hub:hover { opacity: 0.7; }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
 
-        .section { background: rgba(255, 255, 255, 0.02); padding: 25px; border-radius: 16px; border: 1px solid var(--border-color); }
-        .section h3 { margin-top: 0; font-size: 1rem; color: var(--accent-color); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+        .header h1 { 
+            margin: 0; 
+            font-size: 1.5rem; 
+            font-weight: 800; 
+        }
+        
+        .agency { 
+            color: var(--accent-color); 
+            font-size: 0.8rem; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            font-weight: 600; 
+        }
+        
+        .back-hub { 
+            text-decoration: none; 
+            color: var(--accent-color); 
+            font-size: 0.75rem; 
+            display: inline-block;
+            margin-bottom: 5px;
+            padding: 5px 0;
+        }
 
-        .task-list { list-style: none; padding: 0; margin: 0; }
-        .task-item { display: flex; align-items: center; margin-bottom: 15px; font-size: 1rem; cursor: pointer; }
-        .checkbox { width: 18px; height: 18px; border: 2px solid var(--border-color); border-radius: 4px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
-        .task-item.done .checkbox { background: #2ecc71; border-color: #2ecc71; color: white; }
+        .time-display {
+            text-align: right;
+        }
+
+        #clock { 
+            font-size: 1.5rem; 
+            font-weight: 700; 
+        }
+        
+        #top-date { 
+            color: var(--text-dim); 
+            font-size: 0.8rem; 
+        }
+
+        /* Sections */
+        .section { 
+            background: rgba(255, 255, 255, 0.02); 
+            padding: 15px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border-color); 
+        }
+        
+        .section h3 { 
+            margin: 0 0 15px 0; 
+            font-size: 0.85rem; 
+            color: var(--accent-color); 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+        }
+
+        /* Tasks */
+        .task-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem; 
+            cursor: pointer; 
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+        
+        .checkbox { 
+            width: 22px; 
+            height: 22px; 
+            border: 2px solid var(--border-color); 
+            border-radius: 6px; 
+            margin-right: 12px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 14px; 
+            flex-shrink: 0;
+            transition: 0.2s;
+        }
+        
+        .task-item.done .checkbox { 
+            background: var(--success); 
+            border-color: var(--success); 
+            color: white; 
+        }
+        
         .task-item.done .checkbox::after { content: "✓"; }
-        .task-item.done span { text-decoration: line-through; color: var(--text-dim); }
+        .task-item.done span { 
+            text-decoration: line-through; 
+            color: var(--text-dim); 
+        }
 
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 0.85rem; }
-        .day-name { font-weight: bold; color: var(--text-dim); padding-bottom: 10px; }
-        .day { padding: 8px; cursor: pointer; border-radius: 6px; transition: 0.2s; position: relative; }
-        .day:hover { background: rgba(255, 255, 255, 0.1); }
-        .day.today { color: var(--accent-color); font-weight: bold; background: rgba(230, 57, 70, 0.1); }
-        .day.has-event::after { content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: var(--accent-color); border-radius: 50%; }
+        /* Input row */
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .input-row input {
+            flex: 1;
+            min-width: 120px;
+            background: #111; 
+            border: 1px solid var(--border-color); 
+            color: white; 
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .input-row input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .input-row button {
+            background: var(--accent-color); 
+            border: none; 
+            color: white; 
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+
+        .input-row button:active {
+            transform: scale(0.95);
+        }
+
+        /* Calendar */
+        .calendar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            text-align: center; 
+            font-size: 0.8rem;
+            gap: 2px;
+        }
+        
+        .day-name { 
+            font-weight: bold; 
+            color: var(--text-dim); 
+            padding: 8px 0;
+        }
+        
+        .day { 
+            padding: 10px 5px;
+            cursor: pointer; 
+            border-radius: 8px; 
+            transition: 0.2s; 
+            position: relative; 
+        }
+        
+        .day:hover, .day:active { 
+            background: rgba(255, 255, 255, 0.1); 
+        }
+        
+        .day.today { 
+            color: var(--accent-color); 
+            font-weight: bold; 
+            background: rgba(230, 57, 70, 0.15); 
+        }
+
+        .day.selected {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .day.has-event::after { 
+            content: ''; 
+            position: absolute; 
+            bottom: 3px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 5px; 
+            height: 5px; 
+            background: var(--accent-color); 
+            border-radius: 50%; 
+        }
 
         #event-details {
-            margin-top: 15px; padding: 15px; border-left: 2px solid var(--accent-color);
-            background: rgba(255, 255, 255, 0.01); min-height: 40px; font-size: 0.9rem;
+            margin-top: 15px; 
+            padding: 12px;
+            border-left: 3px solid var(--accent-color);
+            background: rgba(255, 255, 255, 0.02); 
+            font-size: 0.85rem;
+            border-radius: 0 8px 8px 0;
         }
-        .event-list-item { margin-bottom: 5px; display: flex; align-items: flex-start; }
-        .event-list-item::before { content: "•"; color: var(--accent-color); margin-right: 8px; }
 
-        #event-input-container { margin-top: 10px; display: none; flex-wrap: wrap; gap: 10px; }
-        #event-input { background: #111; border: 1px solid var(--border-color); color: white; padding: 8px; border-radius: 4px; flex: 1; min-width: 150px; }
-        #save-event { background: var(--accent-color); border: none; color: white; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
-        #save-event:hover { opacity: 0.9; }
+        .event-list-item { 
+            padding: 8px 0;
+            display: flex; 
+            align-items: flex-start;
+            border-bottom: 1px solid var(--border-color);
+        }
 
-        .project-item { padding: 12px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 5px; }
-        .project-status { font-size: 0.85rem; color: var(--text-dim); }
+        .event-list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .event-list-item::before { 
+            content: "•"; 
+            color: var(--accent-color); 
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        /* Projects */
+        .project-item { 
+            padding: 12px 0; 
+            border-bottom: 1px solid var(--border-color); 
+            display: flex; 
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap; 
+            gap: 5px; 
+        }
+
+        .project-item:last-child {
+            border-bottom: none;
+        }
+
+        .project-name {
+            font-weight: 600;
+        }
+        
+        .project-status { 
+            font-size: 0.8rem; 
+            color: var(--text-dim);
+            background: rgba(255,255,255,0.05);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        /* Grid layout for tablet/desktop */
+        @media (min-width: 600px) {
+            .main-wrapper {
+                padding: 30px;
+            }
+
+            .dashboard {
+                padding: 30px;
+                gap: 20px;
+            }
+
+            .header h1 { font-size: 2rem; }
+            #clock { font-size: 2rem; }
+
+            .sections-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+        }
+
+        @media (min-width: 900px) {
+            .dashboard {
+                padding: 40px;
+            }
+
+            .header h1 { font-size: 2.5rem; }
+        }
+
+        /* Sync indicator */
+        .sync-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .sync-dot.offline {
+            background: #e74c3c;
+        }
+
+        .sync-dot.syncing {
+            background: var(--accent-color);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
     </style>
 </head>
 <body>
     <div class="main-wrapper">
         <div class="dashboard">
             <div class="header">
-                <div>
-                    <a href="./index.html" class="back-hub">← Retour au Hub</a>
-                    <span class="agency">Néo Storytellers</span>
-                    <h1>Zouhair Benazzouz</h1>
-                </div>
-                <div style="text-align: right;">
-                    <div id="clock" style="font-size: 2.2rem; font-weight: 700;">00:00:00</div>
-                    <div id="top-date" style="color: var(--text-dim); font-size: 1rem;">...</div>
-                </div>
-            </div>
-
-            <div class="section">
-                <h3>Tâches du jour</h3>
-                <div class="task-list" id="task-list">
-                    <!-- Tasks will be loaded from localStorage -->
-                </div>
-                <div style="margin-top: 15px; display: flex; gap: 10px;">
-                    <input type="text" id="new-task" placeholder="Nouvelle tâche..." style="flex: 1; background: #111; border: 1px solid var(--border-color); color: white; padding: 8px; border-radius: 4px;">
-                    <button onclick="addTask()" style="background: var(--accent-color); border: none; color: white; padding: 8px 12px; border-radius: 4px; cursor: pointer;">+</button>
-                </div>
-            </div>
-
-            <div class="section">
-                <h3>Calendrier Interactif</h3>
-                <div class="calendar-grid">
-                    <div class="day-name">L</div><div class="day-name">M</div><div class="day-name">M</div><div class="day-name">J</div><div class="day-name">V</div><div class="day-name">S</div><div class="day-name">D</div>
-                </div>
-                <div class="calendar-grid" id="calendar-days"></div>
-                <div id="event-details">
-                    <div id="event-text" style="font-weight: 500;">Cliquez sur une date.</div>
-                    <div id="event-input-container">
-                        <input type="text" id="event-input" placeholder="Ajouter un événement...">
-                        <button id="save-event" onclick="saveEvent()">OK</button>
+                <div class="header-top">
+                    <div>
+                        <a href="./index.html" class="back-hub">← Retour au Hub</a>
+                        <div class="agency">Néo Storytellers</div>
+                        <h1>Zouhair Benazzouz</h1>
+                    </div>
+                    <div class="time-display">
+                        <div id="clock">00:00:00</div>
+                        <div id="top-date">...</div>
                     </div>
                 </div>
             </div>
 
-            <div class="section">
-                <h3>Projets en cours</h3>
-                <div id="projects-list">
-                    <!-- Projects loaded from localStorage -->
+            <div class="sections-grid">
+                <div class="section">
+                    <h3>📋 Tâches du jour</h3>
+                    <div id="task-list"></div>
+                    <div class="input-row">
+                        <input type="text" id="new-task" placeholder="Nouvelle tâche...">
+                        <button onclick="addTask()">+</button>
+                    </div>
                 </div>
-                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-                    <input type="text" id="new-project-name" placeholder="Nom du projet..." style="flex: 1; min-width: 120px; background: #111; border: 1px solid var(--border-color); color: white; padding: 8px; border-radius: 4px;">
-                    <input type="text" id="new-project-status" placeholder="Statut..." style="flex: 1; min-width: 120px; background: #111; border: 1px solid var(--border-color); color: white; padding: 8px; border-radius: 4px;">
-                    <button onclick="addProject()" style="background: var(--accent-color); border: none; color: white; padding: 8px 12px; border-radius: 4px; cursor: pointer;">+</button>
-                </div>
-            </div>
 
-            <div class="section">
-                <h3>À Venir</h3>
-                <div id="upcoming-list">
-                    <!-- Upcoming loaded from localStorage -->
+                <div class="section">
+                    <h3>📅 Calendrier</h3>
+                    <div class="calendar-grid">
+                        <div class="day-name">L</div>
+                        <div class="day-name">M</div>
+                        <div class="day-name">M</div>
+                        <div class="day-name">J</div>
+                        <div class="day-name">V</div>
+                        <div class="day-name">S</div>
+                        <div class="day-name">D</div>
+                    </div>
+                    <div class="calendar-grid" id="calendar-days"></div>
+                    <div id="event-details">
+                        <div id="event-text">Cliquez sur une date</div>
+                    </div>
+                    <div class="input-row" id="event-input-container" style="display: none;">
+                        <input type="text" id="event-input" placeholder="Ajouter un événement...">
+                        <button onclick="saveEvent()">+</button>
+                    </div>
                 </div>
-                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-                    <input type="text" id="new-upcoming-name" placeholder="Événement..." style="flex: 1; min-width: 120px; background: #111; border: 1px solid var(--border-color); color: white; padding: 8px; border-radius: 4px;">
-                    <input type="text" id="new-upcoming-date" placeholder="Date..." style="flex: 1; min-width: 120px; background: #111; border: 1px solid var(--border-color); color: white; padding: 8px; border-radius: 4px;">
-                    <button onclick="addUpcoming()" style="background: var(--accent-color); border: none; color: white; padding: 8px 12px; border-radius: 4px; cursor: pointer;">+</button>
+
+                <div class="section">
+                    <h3>🎬 Projets en cours</h3>
+                    <div id="projects-list"></div>
+                    <div class="input-row">
+                        <input type="text" id="new-project-name" placeholder="Projet...">
+                        <input type="text" id="new-project-status" placeholder="Statut...">
+                        <button onclick="addProject()">+</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>📆 À Venir</h3>
+                    <div id="upcoming-list"></div>
+                    <div class="input-row">
+                        <input type="text" id="new-upcoming-name" placeholder="Événement...">
+                        <input type="text" id="new-upcoming-date" placeholder="Date...">
+                        <button onclick="addUpcoming()">+</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <div class="sync-status">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span id="sync-text">Local</span>
+    </div>
+
     <script>
-        // ===== DATA STORAGE =====
+        // ===== CONFIGURATION =====
+        // TODO: Replace with your Supabase credentials
+        const SUPABASE_URL = '';
+        const SUPABASE_KEY = '';
+        const USE_SUPABASE = SUPABASE_URL && SUPABASE_KEY;
+
+        // ===== DATA =====
         let selectedDateStr = "";
-        
-        let events = JSON.parse(localStorage.getItem('alfred_events_v3')) || {
-            "2026-02-17": ["TOURNAGE Le Méridien avec Taoufik"],
-            "2026-02-18": ["TOURNAGE Rym Lamrani"],
-            "2026-02-20": ["RDV Papa (13:00)"]
-        };
+        let events = {};
+        let tasks = [];
+        let projects = [];
+        let upcoming = [];
 
-        let tasks = JSON.parse(localStorage.getItem('alfred_tasks_v3')) || [
-            { text: "Repérage Le Méridien", done: true },
-            { text: "Récupérer voiture Père", done: true },
-            { text: "Envoyer prix final Méridien", done: false }
-        ];
+        // ===== STORAGE =====
+        function loadData() {
+            events = JSON.parse(localStorage.getItem('alfred_events_v4')) || {
+                "2026-02-17": ["TOURNAGE Le Méridien"],
+                "2026-02-18": ["TOURNAGE Rym Lamrani"],
+            };
+            tasks = JSON.parse(localStorage.getItem('alfred_tasks_v4')) || [
+                { id: 1, text: "Repérage Le Méridien", done: true },
+                { id: 2, text: "Envoyer prix final", done: false }
+            ];
+            projects = JSON.parse(localStorage.getItem('alfred_projects_v4')) || [
+                { id: 1, name: "Le Méridien", status: "Mardi - Tournage" },
+                { id: 2, name: "Rym Lamrani", status: "Mercredi - Tournage" }
+            ];
+            upcoming = JSON.parse(localStorage.getItem('alfred_upcoming_v4')) || [
+                { id: 1, name: "Diar Construction", date: "À confirmer" },
+                { id: 2, name: "RDV Papa", date: "Vendredi 13:00" }
+            ];
+        }
 
-        let projects = JSON.parse(localStorage.getItem('alfred_projects_v3')) || [
-            { name: "Le Méridien", status: "Mardi - Tournage", color: "#ffcc00" },
-            { name: "Rym Lamrani", status: "Mercredi - Tournage", color: "#ffcc00" }
-        ];
+        function saveData() {
+            localStorage.setItem('alfred_events_v4', JSON.stringify(events));
+            localStorage.setItem('alfred_tasks_v4', JSON.stringify(tasks));
+            localStorage.setItem('alfred_projects_v4', JSON.stringify(projects));
+            localStorage.setItem('alfred_upcoming_v4', JSON.stringify(upcoming));
+            updateSyncStatus('saved');
+        }
 
-        let upcoming = JSON.parse(localStorage.getItem('alfred_upcoming_v3')) || [
-            { name: "Diar Construction", date: "Jeudi (?) - À confirmer" },
-            { name: "RDV Papa", date: "Vendredi - 13:00" }
-        ];
-
-        // ===== SAVE FUNCTIONS =====
-        function saveAll() {
-            localStorage.setItem('alfred_events_v3', JSON.stringify(events));
-            localStorage.setItem('alfred_tasks_v3', JSON.stringify(tasks));
-            localStorage.setItem('alfred_projects_v3', JSON.stringify(projects));
-            localStorage.setItem('alfred_upcoming_v3', JSON.stringify(upcoming));
+        function updateSyncStatus(status) {
+            const dot = document.getElementById('sync-dot');
+            const text = document.getElementById('sync-text');
+            
+            if (status === 'syncing') {
+                dot.className = 'sync-dot syncing';
+                text.textContent = 'Syncing...';
+            } else if (status === 'saved') {
+                dot.className = 'sync-dot';
+                text.textContent = USE_SUPABASE ? 'Synced' : 'Local';
+            } else if (status === 'offline') {
+                dot.className = 'sync-dot offline';
+                text.textContent = 'Offline';
+            }
         }
 
         // ===== TASKS =====
         function renderTasks() {
             const container = document.getElementById('task-list');
+            if (tasks.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-dim); padding: 10px 0;">Aucune tâche</div>';
+                return;
+            }
             container.innerHTML = tasks.map((t, i) => `
                 <div class="task-item ${t.done ? 'done' : ''}" onclick="toggleTask(${i})">
                     <div class="checkbox"></div>
@@ -203,43 +527,25 @@
 
         function toggleTask(index) {
             tasks[index].done = !tasks[index].done;
-            saveAll();
+            saveData();
             renderTasks();
         }
 
         function addTask() {
             const input = document.getElementById('new-task');
             if (input.value.trim()) {
-                tasks.push({ text: input.value.trim(), done: false });
+                tasks.push({ 
+                    id: Date.now(), 
+                    text: input.value.trim(), 
+                    done: false 
+                });
                 input.value = '';
-                saveAll();
+                saveData();
                 renderTasks();
             }
         }
 
         // ===== CALENDAR =====
-        function saveEvent() {
-            const input = document.getElementById('event-input');
-            if (selectedDateStr && input.value) {
-                if (!events[selectedDateStr]) events[selectedDateStr] = [];
-                events[selectedDateStr].push(input.value);
-                saveAll();
-                renderEvents(selectedDateStr);
-                initCalendar();
-                input.value = '';
-            }
-        }
-
-        function renderEvents(dateStr) {
-            const container = document.getElementById('event-text');
-            const list = events[dateStr];
-            if (list && list.length > 0) {
-                container.innerHTML = list.map(ev => `<div class="event-list-item">${ev}</div>`).join('');
-            } else {
-                container.textContent = "Rien de prévu.";
-            }
-        }
-
         function initCalendar() {
             const now = new Date();
             const year = now.getFullYear();
@@ -249,32 +555,67 @@
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const grid = document.getElementById('calendar-days');
             grid.innerHTML = '';
-            for (let i = 0; i < firstDay; i++) grid.innerHTML += '<div></div>';
+            
+            for (let i = 0; i < firstDay; i++) {
+                grid.innerHTML += '<div></div>';
+            }
+            
             for (let i = 1; i <= daysInMonth; i++) {
-                const dayDiv = document.createElement('div');
-                dayDiv.className = 'day';
-                dayDiv.textContent = i;
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                if (i === today) dayDiv.classList.add('today');
-                if (events[dateStr] && events[dateStr].length > 0) dayDiv.classList.add('has-event');
-                dayDiv.onclick = () => {
-                    selectedDateStr = dateStr;
-                    document.querySelectorAll('.day').forEach(d => d.style.background = '');
-                    dayDiv.style.background = 'rgba(255, 255, 255, 0.1)';
-                    renderEvents(dateStr);
-                    document.getElementById('event-input-container').style.display = 'flex';
-                };
+                const isToday = i === today;
+                const hasEvent = events[dateStr] && events[dateStr].length > 0;
+                const isSelected = dateStr === selectedDateStr;
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = `day ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''} ${isSelected ? 'selected' : ''}`;
+                dayDiv.textContent = i;
+                dayDiv.onclick = () => selectDate(dateStr);
                 grid.appendChild(dayDiv);
+            }
+        }
+
+        function selectDate(dateStr) {
+            selectedDateStr = dateStr;
+            initCalendar();
+            renderEvents(dateStr);
+            document.getElementById('event-input-container').style.display = 'flex';
+        }
+
+        function renderEvents(dateStr) {
+            const container = document.getElementById('event-text');
+            const list = events[dateStr];
+            if (list && list.length > 0) {
+                container.innerHTML = list.map(ev => 
+                    `<div class="event-list-item">${ev}</div>`
+                ).join('');
+            } else {
+                container.innerHTML = '<div style="color: var(--text-dim);">Rien de prévu</div>';
+            }
+        }
+
+        function saveEvent() {
+            const input = document.getElementById('event-input');
+            if (selectedDateStr && input.value.trim()) {
+                if (!events[selectedDateStr]) events[selectedDateStr] = [];
+                events[selectedDateStr].push(input.value.trim());
+                input.value = '';
+                saveData();
+                renderEvents(selectedDateStr);
+                initCalendar();
             }
         }
 
         // ===== PROJECTS =====
         function renderProjects() {
             const container = document.getElementById('projects-list');
-            container.innerHTML = projects.map((p, i) => `
+            if (projects.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-dim); padding: 10px 0;">Aucun projet</div>';
+                return;
+            }
+            container.innerHTML = projects.map(p => `
                 <div class="project-item">
                     <span class="project-name">${p.name}</span>
-                    <span class="project-status" style="color: ${p.color || '#ffcc00'}">${p.status}</span>
+                    <span class="project-status">${p.status}</span>
                 </div>
             `).join('');
         }
@@ -283,10 +624,14 @@
             const name = document.getElementById('new-project-name');
             const status = document.getElementById('new-project-status');
             if (name.value.trim()) {
-                projects.push({ name: name.value.trim(), status: status.value.trim() || "En cours", color: "#ffcc00" });
+                projects.push({ 
+                    id: Date.now(),
+                    name: name.value.trim(), 
+                    status: status.value.trim() || "En cours"
+                });
                 name.value = '';
                 status.value = '';
-                saveAll();
+                saveData();
                 renderProjects();
             }
         }
@@ -294,7 +639,11 @@
         // ===== UPCOMING =====
         function renderUpcoming() {
             const container = document.getElementById('upcoming-list');
-            container.innerHTML = upcoming.map((u, i) => `
+            if (upcoming.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-dim); padding: 10px 0;">Rien à venir</div>';
+                return;
+            }
+            container.innerHTML = upcoming.map(u => `
                 <div class="project-item">
                     <span class="project-name">${u.name}</span>
                     <span class="project-status">${u.date}</span>
@@ -306,10 +655,14 @@
             const name = document.getElementById('new-upcoming-name');
             const date = document.getElementById('new-upcoming-date');
             if (name.value.trim()) {
-                upcoming.push({ name: name.value.trim(), date: date.value.trim() || "À définir" });
+                upcoming.push({ 
+                    id: Date.now(),
+                    name: name.value.trim(), 
+                    date: date.value.trim() || "À définir"
+                });
                 name.value = '';
                 date.value = '';
-                saveAll();
+                saveData();
                 renderUpcoming();
             }
         }
@@ -318,10 +671,15 @@
         function updateTime() {
             const now = new Date();
             document.getElementById('clock').textContent = now.toLocaleTimeString('fr-FR');
-            document.getElementById('top-date').textContent = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+            document.getElementById('top-date').textContent = now.toLocaleDateString('fr-FR', { 
+                weekday: 'long', 
+                day: 'numeric', 
+                month: 'long' 
+            });
         }
 
         // ===== INIT =====
+        loadData();
         updateTime();
         initCalendar();
         renderTasks();
@@ -330,8 +688,14 @@
         setInterval(updateTime, 1000);
 
         // Enter key support
-        document.getElementById('new-task').addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
-        document.getElementById('event-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') saveEvent(); });
+        document.getElementById('new-task').addEventListener('keypress', e => { if (e.key === 'Enter') addTask(); });
+        document.getElementById('event-input').addEventListener('keypress', e => { if (e.key === 'Enter') saveEvent(); });
+        document.getElementById('new-project-name').addEventListener('keypress', e => { if (e.key === 'Enter') addProject(); });
+        document.getElementById('new-upcoming-name').addEventListener('keypress', e => { if (e.key === 'Enter') addUpcoming(); });
+
+        // Online/offline detection
+        window.addEventListener('online', () => updateSyncStatus('saved'));
+        window.addEventListener('offline', () => updateSyncStatus('offline'));
     </script>
 </body>
 </html>
