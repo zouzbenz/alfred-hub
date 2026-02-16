@@ -491,9 +491,9 @@
     <script>
         // ===== SUPABASE CONFIG =====
         const SUPABASE_URL = 'https://wxhlstificzqovfcumop.db.co';
-        const SUPABASE_KEY = 'sb_publishable_K61f_02n9QXePpRt6KMhog_mtnD1E1V';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
         
-        const db = window.db.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // ===== DATA =====
         let selectedDateStr = "";
