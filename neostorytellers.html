@@ -265,6 +265,21 @@
             color: var(--danger);
         }
 
+        /* Postponed tasks */
+        .section.postponed {
+            border-color: var(--warning);
+            background: rgba(243, 156, 18, 0.05);
+        }
+
+        .section.postponed h3 {
+            color: var(--warning);
+        }
+
+        .task-item.postponed .task-date {
+            background: rgba(243, 156, 18, 0.2);
+            color: var(--warning);
+        }
+
         /* Input row */
         .input-row {
             display: flex;
@@ -443,7 +458,13 @@
             display: none;
         }
 
-        /* Grid layout for tablet/desktop */
+        /* Grid layouts */
+        .two-col-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
         @media (min-width: 600px) {
             .main-wrapper {
                 padding: 30px;
@@ -457,14 +478,7 @@
             .header h1 { font-size: 2rem; }
             #clock { font-size: 2rem; }
 
-            .sections-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 20px;
-            }
-
-            .tasks-grid {
-                display: grid;
+            .two-col-grid {
                 grid-template-columns: 1fr 1fr;
                 gap: 20px;
             }
@@ -476,10 +490,6 @@
             }
 
             .header h1 { font-size: 2.5rem; }
-
-            .tasks-grid {
-                grid-template-columns: 1fr 1fr 1fr;
-            }
         }
 
         /* Sync indicator */
@@ -535,6 +545,7 @@
 <body>
     <div class="main-wrapper">
         <div class="dashboard">
+            <!-- HEADER -->
             <div class="header">
                 <div class="header-top">
                     <div>
@@ -549,7 +560,7 @@
                 </div>
             </div>
 
-            <!-- Tâches en retard -->
+            <!-- 1. TÂCHES EN RETARD -->
             <div class="section overdue" id="overdue-section" style="display: none;">
                 <h3>
                     <span>⚠️ TÂCHES EN RETARD</span>
@@ -558,7 +569,7 @@
                 <div id="overdue-list"></div>
             </div>
 
-            <!-- Tâches du jour -->
+            <!-- 2. TÂCHES DU JOUR -->
             <div class="section">
                 <h3>
                     <span>📋 TÂCHES DU JOUR</span>
@@ -577,50 +588,41 @@
                 </div>
             </div>
 
-            <div class="tasks-grid">
-                <!-- Tâches de la semaine -->
-                <div class="section">
-                    <h3 class="section-header" onclick="toggleSection(this)">
-                        <span>📅 CETTE SEMAINE</span>
-                        <span class="counter" id="week-counter">0</span>
-                    </h3>
-                    <div class="section-content" id="week-task-list"></div>
-                </div>
+            <!-- 3. TÂCHES REPORTÉES (date future) -->
+            <div class="section postponed" id="postponed-section" style="display: none;">
+                <h3>
+                    <span>📅 TÂCHES REPORTÉES</span>
+                    <span class="counter" id="postponed-counter">0</span>
+                </h3>
+                <div id="postponed-list"></div>
+            </div>
 
-                <!-- Tâches du mois -->
-                <div class="section">
-                    <h3 class="section-header" onclick="toggleSection(this)">
-                        <span>📆 CE MOIS</span>
-                        <span class="counter" id="month-counter">0</span>
-                    </h3>
-                    <div class="section-content" id="month-task-list"></div>
+            <!-- 4. CALENDRIER -->
+            <div class="section">
+                <h3>📅 CALENDRIER</h3>
+                <div class="calendar-grid">
+                    <div class="day-name">L</div>
+                    <div class="day-name">M</div>
+                    <div class="day-name">M</div>
+                    <div class="day-name">J</div>
+                    <div class="day-name">V</div>
+                    <div class="day-name">S</div>
+                    <div class="day-name">D</div>
+                </div>
+                <div class="calendar-grid" id="calendar-days"></div>
+                <div id="event-details">
+                    <div id="event-text">Cliquez sur une date</div>
+                </div>
+                <div class="input-row" id="event-input-container" style="display: none;">
+                    <input type="text" id="event-input" placeholder="Ajouter un événement...">
+                    <button onclick="saveEvent()">+</button>
                 </div>
             </div>
 
-            <div class="sections-grid">
+            <!-- 5. PROJETS EN COURS & À VENIR (côte à côte) -->
+            <div class="two-col-grid">
                 <div class="section">
-                    <h3>📅 Calendrier</h3>
-                    <div class="calendar-grid">
-                        <div class="day-name">L</div>
-                        <div class="day-name">M</div>
-                        <div class="day-name">M</div>
-                        <div class="day-name">J</div>
-                        <div class="day-name">V</div>
-                        <div class="day-name">S</div>
-                        <div class="day-name">D</div>
-                    </div>
-                    <div class="calendar-grid" id="calendar-days"></div>
-                    <div id="event-details">
-                        <div id="event-text">Cliquez sur une date</div>
-                    </div>
-                    <div class="input-row" id="event-input-container" style="display: none;">
-                        <input type="text" id="event-input" placeholder="Ajouter un événement...">
-                        <button onclick="saveEvent()">+</button>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <h3>🎬 Projets en cours</h3>
+                    <h3>🎬 PROJETS EN COURS</h3>
                     <div id="projects-list"><div class="loading">Chargement...</div></div>
                     <div class="input-row">
                         <input type="text" id="new-project-name" placeholder="Projet...">
@@ -630,13 +632,32 @@
                 </div>
 
                 <div class="section">
-                    <h3>📆 À Venir</h3>
+                    <h3>📆 À VENIR</h3>
                     <div id="upcoming-list"><div class="loading">Chargement...</div></div>
                     <div class="input-row">
                         <input type="text" id="new-upcoming-name" placeholder="Événement...">
                         <input type="text" id="new-upcoming-date" placeholder="Date...">
                         <button onclick="addUpcoming()">+</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- 6. HISTORIQUE TÂCHES (semaine & mois côte à côte) -->
+            <div class="two-col-grid">
+                <div class="section">
+                    <h3 class="section-header" onclick="toggleSection(this)">
+                        <span>📅 CETTE SEMAINE</span>
+                        <span class="counter" id="week-counter">0</span>
+                    </h3>
+                    <div class="section-content" id="week-task-list"></div>
+                </div>
+
+                <div class="section">
+                    <h3 class="section-header" onclick="toggleSection(this)">
+                        <span>📆 CE MOIS</span>
+                        <span class="counter" id="month-counter">0</span>
+                    </h3>
+                    <div class="section-content" id="month-task-list"></div>
                 </div>
             </div>
         </div>
@@ -674,10 +695,13 @@
         function formatDate(dateStr) {
             const date = new Date(dateStr);
             const today = new Date();
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             
             if (dateStr === getToday()) return "Aujourd'hui";
+            if (dateStr === tomorrow.toISOString().split('T')[0]) return "Demain";
             if (dateStr === yesterday.toISOString().split('T')[0]) return "Hier";
             
             return date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
@@ -741,12 +765,14 @@
             // Séparer les tâches
             const overdueTasks = tasks.filter(t => !t.done && t.due_date < today);
             const todayTasks = tasks.filter(t => t.due_date === today);
+            const postponedTasks = tasks.filter(t => t.due_date > today); // Date future
             const weekTasks = tasks.filter(t => t.due_date < today && t.due_date >= weekAgo);
             const monthTasks = tasks.filter(t => t.due_date < weekAgo && t.due_date >= monthAgo);
 
             // Render chaque section
             renderOverdueTasks(overdueTasks);
             renderTodayTasks(todayTasks);
+            renderPostponedTasks(postponedTasks);
             renderWeekTasks(weekTasks);
             renderMonthTasks(monthTasks);
         }
@@ -763,7 +789,7 @@
 
             section.style.display = 'block';
             counter.textContent = overdueTasks.length;
-            container.innerHTML = overdueTasks.map(t => renderTaskItem(t, true)).join('');
+            container.innerHTML = overdueTasks.map(t => renderTaskItem(t, 'overdue')).join('');
         }
 
         function renderTodayTasks(todayTasks) {
@@ -786,7 +812,22 @@
                 return;
             }
 
-            container.innerHTML = todayTasks.map(t => renderTaskItem(t, false)).join('');
+            container.innerHTML = todayTasks.map(t => renderTaskItem(t, 'today')).join('');
+        }
+
+        function renderPostponedTasks(postponedTasks) {
+            const section = document.getElementById('postponed-section');
+            const container = document.getElementById('postponed-list');
+            const counter = document.getElementById('postponed-counter');
+
+            if (postponedTasks.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = 'block';
+            counter.textContent = postponedTasks.length;
+            container.innerHTML = postponedTasks.map(t => renderTaskItem(t, 'postponed')).join('');
         }
 
         function renderWeekTasks(weekTasks) {
@@ -801,7 +842,7 @@
                 return;
             }
 
-            container.innerHTML = weekTasks.map(t => renderTaskItem(t, false, true)).join('');
+            container.innerHTML = weekTasks.map(t => renderTaskItem(t, 'history')).join('');
         }
 
         function renderMonthTasks(monthTasks) {
@@ -816,17 +857,21 @@
                 return;
             }
 
-            container.innerHTML = monthTasks.map(t => renderTaskItem(t, false, true)).join('');
+            container.innerHTML = monthTasks.map(t => renderTaskItem(t, 'history')).join('');
         }
 
-        function renderTaskItem(task, isOverdue = false, showDate = false) {
+        function renderTaskItem(task, type = 'today') {
+            const showDate = type !== 'today';
+            const showPostpone = !task.done && (type === 'today' || type === 'overdue');
+            const cssClass = type === 'overdue' ? 'overdue' : (type === 'postponed' ? 'postponed' : '');
+            
             return `
-                <div class="task-item ${task.done ? 'done' : ''} ${isOverdue ? 'overdue' : ''}">
+                <div class="task-item ${task.done ? 'done' : ''} ${cssClass}">
                     <div class="checkbox" onclick="toggleTask(${task.id})"></div>
                     <span class="task-text">${task.text}</span>
-                    ${showDate || isOverdue ? `<span class="task-date">${formatDate(task.due_date)}</span>` : ''}
+                    ${showDate ? `<span class="task-date">${formatDate(task.due_date)}</span>` : ''}
                     <div class="task-actions">
-                        ${!task.done ? `<button class="task-btn postpone" onclick="postponeTask(${task.id})" title="Reporter à demain">↷</button>` : ''}
+                        ${showPostpone ? `<button class="task-btn postpone" onclick="postponeTask(${task.id})" title="Reporter à demain">↷</button>` : ''}
                         <button class="task-btn delete" onclick="deleteTask(${task.id})" title="Supprimer">×</button>
                     </div>
                 </div>
