@@ -120,6 +120,23 @@
             pointer-events: none; 
         }
 
+        .card.new {
+            border-color: #e63946;
+        }
+
+        .card.new::after {
+            content: 'NEW';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #e63946;
+            color: white;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 10px;
+        }
+
         /* Tablet */
         @media (min-width: 600px) {
             .header h1 { font-size: 3rem; }
@@ -172,9 +189,19 @@
                 <h3>NeoStorytellers</h3>
                 <p>Prod & Calendrier</p>
             </a>
+            <a href="./neo-projects.html" class="card new">
+                <i>🎥</i>
+                <h3>Neo Projects</h3>
+                <p>Suivi Projets</p>
+            </a>
+            <a href="./neo-backoffice.html" class="card new">
+                <i>⚙️</i>
+                <h3>Backoffice</h3>
+                <p>Admin Projets</p>
+            </a>
             <a href="#" class="card disabled">
-                <i>🍳</i>
-                <h3>FoodCost</h3>
+                <i>🏠</i>
+                <h3>Immo</h3>
                 <p>Bientôt</p>
             </a>
             <a href="#" class="card disabled">
@@ -183,18 +210,8 @@
                 <p>Bientôt</p>
             </a>
             <a href="#" class="card disabled">
-                <i>🏠</i>
-                <h3>Immo</h3>
-                <p>Bientôt</p>
-            </a>
-            <a href="#" class="card disabled">
                 <i>📝</i>
                 <h3>Journal</h3>
-                <p>Bientôt</p>
-            </a>
-            <a href="#" class="card disabled">
-                <i>🧘</i>
-                <h3>Perso</h3>
                 <p>Bientôt</p>
             </a>
         </div>

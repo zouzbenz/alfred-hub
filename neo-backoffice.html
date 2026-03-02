@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Backoffice - Neo Projects</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#0d0d0d">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d0d0d;
+            --card-bg: #161616;
+            --accent-color: #e63946;
+            --text-main: #ffffff;
+            --text-dim: #a0a0a0;
+            --border-color: #2a2a2a;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 2px solid var(--accent-color);
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+        }
+
+        .header h1 span {
+            color: var(--accent-color);
+        }
+
+        .header-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .header-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.85rem;
+            padding: 8px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+
+        .header-links a:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .header-links a.active {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        /* Login Screen */
+        .login-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 60vh;
+        }
+
+        .login-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-box h2 {
+            margin-bottom: 10px;
+        }
+
+        .login-box p {
+            color: var(--text-dim);
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 15px;
+            background: #111;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .login-box input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 15px;
+            background: var(--accent-color);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .login-box button:hover {
+            opacity: 0.9;
+        }
+
+        .login-error {
+            color: var(--danger);
+            margin-top: 15px;
+            font-size: 0.85rem;
+        }
+
+        /* Backoffice Content */
+        .backoffice-content {
+            display: none;
+        }
+
+        .backoffice-content.visible {
+            display: block;
+        }
+
+        /* Add Button */
+        .add-btn {
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+            transition: 0.2s;
+        }
+
+        .add-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Projects List */
+        .projects-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .project-row {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .project-row-info {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .project-row-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .project-row-meta {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        .project-row-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-edit {
+            background: var(--warning);
+            color: black;
+        }
+
+        .btn-delete {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: #111;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 500px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+            margin-top: 20px;
+        }
+
+        .form-section-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--accent-color);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .btn-cancel {
+            background: var(--border-color);
+            color: white;
+        }
+
+        .btn-save {
+            background: var(--success);
+            color: white;
+        }
+
+        /* Status badge */
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-en_cours { background: var(--accent-color); color: white; }
+        .status-a_venir { background: var(--warning); color: black; }
+        .status-complete { background: var(--success); color: white; }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-dim);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: var(--text-dim);
+            background: var(--card-bg);
+            border-radius: 15px;
+            border: 1px dashed var(--border-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Neo <span>Backoffice</span></h1>
+            <div class="header-links">
+                <a href="./index.html">Hub</a>
+                <a href="./neo-projects.html">Projects</a>
+                <a href="./neo-backoffice.html" class="active">Backoffice</a>
+            </div>
+        </header>
+
+        <!-- Login Screen -->
+        <div class="login-screen" id="login-screen">
+            <div class="login-box">
+                <h2>🔐 Accès Backoffice</h2>
+                <p>Entrez le mot de passe pour accéder à l'administration</p>
+                <input type="password" id="password-input" placeholder="Mot de passe" onkeypress="if(event.key==='Enter')checkPassword()">
+                <button onclick="checkPassword()">Accéder</button>
+                <div class="login-error" id="login-error"></div>
+            </div>
+        </div>
+
+        <!-- Backoffice Content -->
+        <div class="backoffice-content" id="backoffice-content">
+            <button class="add-btn" onclick="openModal()">+ Nouveau Projet</button>
+            
+            <div class="projects-list" id="projects-list">
+                <div class="loading">Chargement...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+        <div class="modal">
+            <h2 id="modal-title">Nouveau Projet</h2>
+            <form id="project-form" onsubmit="saveProject(event)">
+                <input type="hidden" id="project-id">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nom du projet *</label>
+                        <input type="text" id="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Client</label>
+                        <input type="text" id="client_name">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date de début</label>
+                        <input type="date" id="date_start">
+                    </div>
+                    <div class="form-group">
+                        <label>Statut</label>
+                        <select id="status">
+                            <option value="a_venir">À venir</option>
+                            <option value="en_cours">En cours</option>
+                            <option value="complete">Complété</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="description"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>URL Photo de couverture</label>
+                    <input type="url" id="cover_photo_url" placeholder="https://...">
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">📸 Photos</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Total prises</label>
+                            <input type="number" id="total_photos" value="0" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Sélectionnées</label>
+                            <input type="number" id="selected_photos" value="0" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">🎨 Lightroom</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Total</label>
+                            <input type="number" id="lightroom_total" value="0" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Traitées</label>
+                            <input type="number" id="lightroom_done" value="0" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">✨ Photoshop</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Total</label>
+                            <input type="number" id="photoshop_total" value="0" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Traitées</label>
+                            <input type="number" id="photoshop_done" value="0" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">🎬 DaVinci</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Reels prévus</label>
+                            <input type="number" id="davinci_reels" value="0" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Rendus</label>
+                            <input type="number" id="davinci_rendered" value="0" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">📊 Statuts</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Paiement (%)</label>
+                            <input type="number" id="payment_percent" value="0" min="0" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label>Progression projet (%)</label>
+                            <input type="number" id="project_percent" value="0" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-save">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Config
+        const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+        const PASSWORD = 'neo2026';
+        
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Check if already logged in
+        if (sessionStorage.getItem('neo-backoffice-auth') === 'true') {
+            showBackoffice();
+        }
+
+        // Check password
+        function checkPassword() {
+            const input = document.getElementById('password-input').value;
+            if (input === PASSWORD) {
+                sessionStorage.setItem('neo-backoffice-auth', 'true');
+                showBackoffice();
+            } else {
+                document.getElementById('login-error').textContent = 'Mot de passe incorrect';
+            }
+        }
+
+        // Show backoffice
+        function showBackoffice() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('backoffice-content').classList.add('visible');
+            loadProjects();
+        }
+
+        // Load projects
+        async function loadProjects() {
+            const { data, error } = await db
+                .from('neo_projects')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error:', error);
+                return;
+            }
+
+            const container = document.getElementById('projects-list');
+            
+            if (data.length === 0) {
+                container.innerHTML = '<div class="empty-state">Aucun projet. Cliquez sur "+ Nouveau Projet" pour commencer.</div>';
+                return;
+            }
+
+            container.innerHTML = data.map(p => `
+                <div class="project-row">
+                    <div class="project-row-info">
+                        <div class="project-row-name">${p.name}</div>
+                        <div class="project-row-meta">
+                            ${p.client_name || 'Pas de client'} • 
+                            <span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span>
+                        </div>
+                    </div>
+                    <div class="project-row-actions">
+                        <button class="btn btn-edit" onclick="editProject(${p.id})">Modifier</button>
+                        <button class="btn btn-delete" onclick="deleteProject(${p.id}, '${p.name}')">Supprimer</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Open modal
+        function openModal(project = null) {
+            document.getElementById('modal-title').textContent = project ? 'Modifier Projet' : 'Nouveau Projet';
+            document.getElementById('project-form').reset();
+            document.getElementById('project-id').value = project ? project.id : '';
+            
+            if (project) {
+                document.getElementById('name').value = project.name || '';
+                document.getElementById('client_name').value = project.client_name || '';
+                document.getElementById('date_start').value = project.date_start || '';
+                document.getElementById('status').value = project.status || 'a_venir';
+                document.getElementById('description').value = project.description || '';
+                document.getElementById('cover_photo_url').value = project.cover_photo_url || '';
+                document.getElementById('total_photos').value = project.total_photos || 0;
+                document.getElementById('selected_photos').value = project.selected_photos || 0;
+                document.getElementById('lightroom_total').value = project.lightroom_total || 0;
+                document.getElementById('lightroom_done').value = project.lightroom_done || 0;
+                document.getElementById('photoshop_total').value = project.photoshop_total || 0;
+                document.getElementById('photoshop_done').value = project.photoshop_done || 0;
+                document.getElementById('davinci_reels').value = project.davinci_reels || 0;
+                document.getElementById('davinci_rendered').value = project.davinci_rendered || 0;
+                document.getElementById('payment_percent').value = project.payment_percent || 0;
+                document.getElementById('project_percent').value = project.project_percent || 0;
+            }
+            
+            document.getElementById('modal-overlay').classList.add('visible');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('visible');
+        }
+
+        // Edit project
+        async function editProject(id) {
+            const { data, error } = await db
+                .from('neo_projects')
+                .select('*')
+                .eq('id', id)
+                .single();
+            
+            if (data) {
+                openModal(data);
+            }
+        }
+
+        // Save project
+        async function saveProject(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('project-id').value;
+            const projectData = {
+                name: document.getElementById('name').value,
+                client_name: document.getElementById('client_name').value || null,
+                date_start: document.getElementById('date_start').value || null,
+                status: document.getElementById('status').value,
+                description: document.getElementById('description').value || null,
+                cover_photo_url: document.getElementById('cover_photo_url').value || null,
+                total_photos: parseInt(document.getElementById('total_photos').value) || 0,
+                selected_photos: parseInt(document.getElementById('selected_photos').value) || 0,
+                lightroom_total: parseInt(document.getElementById('lightroom_total').value) || 0,
+                lightroom_done: parseInt(document.getElementById('lightroom_done').value) || 0,
+                photoshop_total: parseInt(document.getElementById('photoshop_total').value) || 0,
+                photoshop_done: parseInt(document.getElementById('photoshop_done').value) || 0,
+                davinci_reels: parseInt(document.getElementById('davinci_reels').value) || 0,
+                davinci_rendered: parseInt(document.getElementById('davinci_rendered').value) || 0,
+                payment_percent: parseInt(document.getElementById('payment_percent').value) || 0,
+                project_percent: parseInt(document.getElementById('project_percent').value) || 0
+            };
+
+            let error;
+            if (id) {
+                ({ error } = await db.from('neo_projects').update(projectData).eq('id', id));
+            } else {
+                ({ error } = await db.from('neo_projects').insert([projectData]));
+            }
+
+            if (error) {
+                alert('Erreur: ' + error.message);
+                return;
+            }
+
+            closeModal();
+            loadProjects();
+        }
+
+        // Delete project
+        async function deleteProject(id, name) {
+            if (!confirm(`Supprimer le projet "${name}" ?`)) return;
+            
+            const { error } = await db.from('neo_projects').delete().eq('id', id);
+            
+            if (error) {
+                alert('Erreur: ' + error.message);
+                return;
+            }
+            
+            loadProjects();
+        }
+
+        // Real-time sync
+        db.channel('neo_projects_backoffice')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'neo_projects' }, () => loadProjects())
+            .subscribe();
+    </script>
+</body>
+</html>

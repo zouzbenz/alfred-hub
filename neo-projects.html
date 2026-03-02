@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neo Projects - Néo Storytellers</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#0d0d0d">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d0d0d;
+            --card-bg: #161616;
+            --accent-color: #e63946;
+            --text-main: #ffffff;
+            --text-dim: #a0a0a0;
+            --border-color: #2a2a2a;
+            --success: #2ecc71;
+            --warning: #f39c12;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 2px solid var(--accent-color);
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .header h1 span {
+            color: var(--accent-color);
+        }
+
+        .header-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .header-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.85rem;
+            padding: 8px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+
+        .header-links a:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .header-links a.active {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title .count {
+            background: var(--accent-color);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+
+        /* Project Cards */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .project-card {
+            position: relative;
+            height: 200px;
+            border-radius: 15px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid var(--border-color);
+        }
+
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(230, 57, 70, 0.2);
+        }
+
+        .project-card-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            filter: brightness(0.4);
+            transition: 0.3s;
+        }
+
+        .project-card:hover .project-card-bg {
+            filter: brightness(0.5);
+            transform: scale(1.05);
+        }
+
+        .project-card-content {
+            position: relative;
+            z-index: 1;
+            height: 100%;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .project-card-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .project-card-client {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+        }
+
+        .project-card-date {
+            font-size: 0.75rem;
+            color: var(--accent-color);
+        }
+
+        .project-card-status {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-en_cours {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .status-a_venir {
+            background: var(--warning);
+            color: black;
+        }
+
+        .status-complete {
+            background: var(--success);
+            color: white;
+        }
+
+        .project-card-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .project-card-progress-fill {
+            height: 100%;
+            background: var(--accent-color);
+            transition: width 0.3s;
+        }
+
+        .check-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            text-decoration: none;
+        }
+
+        .check-btn:hover {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-dim);
+            background: var(--card-bg);
+            border-radius: 15px;
+            border: 1px dashed var(--border-color);
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-dim);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .projects-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .project-card {
+                height: 180px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Neo <span>Projects</span></h1>
+            <div class="header-links">
+                <a href="./index.html">Hub</a>
+                <a href="./neo-projects.html" class="active">Projects</a>
+                <a href="./neo-backoffice.html">Backoffice</a>
+            </div>
+        </header>
+
+        <!-- En Cours -->
+        <section class="section">
+            <h2 class="section-title">
+                🎬 En Cours
+                <span class="count" id="count-en-cours">0</span>
+            </h2>
+            <div class="projects-grid" id="projects-en-cours">
+                <div class="loading">Chargement...</div>
+            </div>
+        </section>
+
+        <!-- À Venir -->
+        <section class="section">
+            <h2 class="section-title">
+                📅 À Venir
+                <span class="count" id="count-a-venir">0</span>
+            </h2>
+            <div class="projects-grid" id="projects-a-venir">
+                <div class="loading">Chargement...</div>
+            </div>
+        </section>
+
+        <!-- Complété -->
+        <section class="section">
+            <h2 class="section-title">
+                ✅ Complété
+                <span class="count" id="count-complete">0</span>
+            </h2>
+            <div class="projects-grid" id="projects-complete">
+                <div class="loading">Chargement...</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Supabase Config
+        const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+        
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Format date
+        function formatDate(dateStr) {
+            if (!dateStr) return 'Date non définie';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        // Render project card
+        function renderProjectCard(project) {
+            const defaultBg = 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=600&q=80';
+            const bgUrl = project.cover_photo_url || defaultBg;
+            
+            return `
+                <div class="project-card" onclick="window.location.href='project.html?id=${project.id}'">
+                    <div class="project-card-bg" style="background-image: url('${bgUrl}')"></div>
+                    <a href="project.html?id=${project.id}" class="check-btn">Check</a>
+                    <span class="project-card-status status-${project.status}">${project.status.replace('_', ' ')}</span>
+                    <div class="project-card-content">
+                        <div class="project-card-name">${project.name}</div>
+                        <div class="project-card-client">${project.client_name || 'Client non défini'}</div>
+                        <div class="project-card-date">${formatDate(project.date_start)}</div>
+                    </div>
+                    <div class="project-card-progress">
+                        <div class="project-card-progress-fill" style="width: ${project.project_percent || 0}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Load projects
+        async function loadProjects() {
+            const { data, error } = await db
+                .from('neo_projects')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error loading projects:', error);
+                return;
+            }
+
+            const enCours = data.filter(p => p.status === 'en_cours');
+            const aVenir = data.filter(p => p.status === 'a_venir');
+            const complete = data.filter(p => p.status === 'complete');
+
+            // Update counts
+            document.getElementById('count-en-cours').textContent = enCours.length;
+            document.getElementById('count-a-venir').textContent = aVenir.length;
+            document.getElementById('count-complete').textContent = complete.length;
+
+            // Render En Cours
+            const enCoursContainer = document.getElementById('projects-en-cours');
+            if (enCours.length > 0) {
+                enCoursContainer.innerHTML = enCours.map(renderProjectCard).join('');
+            } else {
+                enCoursContainer.innerHTML = '<div class="empty-state">Aucun projet en cours</div>';
+            }
+
+            // Render À Venir
+            const aVenirContainer = document.getElementById('projects-a-venir');
+            if (aVenir.length > 0) {
+                aVenirContainer.innerHTML = aVenir.map(renderProjectCard).join('');
+            } else {
+                aVenirContainer.innerHTML = '<div class="empty-state">Aucun projet à venir</div>';
+            }
+
+            // Render Complété
+            const completeContainer = document.getElementById('projects-complete');
+            if (complete.length > 0) {
+                completeContainer.innerHTML = complete.map(renderProjectCard).join('');
+            } else {
+                completeContainer.innerHTML = '<div class="empty-state">Aucun projet complété</div>';
+            }
+        }
+
+        // Real-time sync
+        db.channel('neo_projects')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'neo_projects' }, () => loadProjects())
+            .subscribe();
+
+        // Init
+        loadProjects();
+    </script>
+</body>
+</html>
