@@ -269,18 +269,107 @@
                 height: 180px;
             }
         }
+
+        /* Login Screen */
+        .login-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 60vh;
+        }
+
+        .login-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-box h2 {
+            margin-bottom: 10px;
+        }
+
+        .login-box p {
+            color: var(--text-dim);
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 15px;
+            background: #111;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .login-box input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 15px;
+            background: var(--accent-color);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .login-box button:hover {
+            opacity: 0.9;
+        }
+
+        .login-error {
+            color: #e74c3c;
+            margin-top: 15px;
+            font-size: 0.85rem;
+        }
+
+        .projects-content {
+            display: none;
+        }
+
+        .projects-content.visible {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <h1>Neo <span>Projects</span></h1>
-            <div class="header-links">
-                <a href="./index.html">Hub</a>
-                <a href="./neo-projects.html" class="active">Projects</a>
-                <a href="./neo-backoffice.html">Backoffice</a>
+        <!-- Login Screen -->
+        <div class="login-screen" id="login-screen">
+            <div class="login-box">
+                <h2>🔐 Neo Projects</h2>
+                <p>Entrez le mot de passe pour accéder aux projets</p>
+                <input type="password" id="password-input" placeholder="Mot de passe" onkeypress="if(event.key==='Enter')checkPassword()">
+                <button onclick="checkPassword()">Accéder</button>
+                <div class="login-error" id="login-error"></div>
             </div>
-        </header>
+        </div>
+
+        <!-- Projects Content -->
+        <div class="projects-content" id="projects-content">
+            <header class="header">
+                <h1>Neo <span>Projects</span></h1>
+                <div class="header-links">
+                    <a href="./index.html">Hub</a>
+                    <a href="./neo-projects.html" class="active">Projects</a>
+                    <a href="./neo-backoffice.html">Backoffice</a>
+                </div>
+            </header>
 
         <!-- En Cours -->
         <section class="section">
@@ -314,9 +403,35 @@
                 <div class="loading">Chargement...</div>
             </div>
         </section>
+        </div> <!-- End projects-content -->
     </div>
 
     <script>
+        // Password
+        const PASSWORD = 'neo2026';
+
+        // Check if already logged in (from backoffice or previous visit)
+        if (sessionStorage.getItem('neo-backoffice-auth') === 'true') {
+            showProjects();
+        }
+
+        function checkPassword() {
+            const input = document.getElementById('password-input').value;
+            if (input === PASSWORD) {
+                sessionStorage.setItem('neo-backoffice-auth', 'true');
+                showProjects();
+            } else {
+                document.getElementById('login-error').textContent = 'Mot de passe incorrect';
+            }
+        }
+
+        function showProjects() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('projects-content').classList.add('visible');
+            loadProjects();
+            setupRealtimeSync();
+        }
+
         // Supabase Config
         const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
@@ -330,10 +445,24 @@
             return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
         }
 
+        // Get image URL from storage
+        function getImageUrl(path) {
+            if (!path) return null;
+            const { data } = db.storage.from('project-covers').getPublicUrl(path);
+            return data.publicUrl;
+        }
+
         // Render project card
         function renderProjectCard(project) {
             const defaultBg = 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=600&q=80';
-            const bgUrl = project.cover_photo_url || defaultBg;
+            
+            // Use uploaded image or URL fallback or default
+            let bgUrl = defaultBg;
+            if (project.cover_image_path) {
+                bgUrl = getImageUrl(project.cover_image_path);
+            } else if (project.cover_photo_url) {
+                bgUrl = project.cover_photo_url;
+            }
             
             return `
                 <div class="project-card" onclick="window.location.href='project.html?id=${project.id}'">
@@ -398,13 +527,12 @@
             }
         }
 
-        // Real-time sync
-        db.channel('neo_projects')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'neo_projects' }, () => loadProjects())
-            .subscribe();
-
-        // Init
-        loadProjects();
+        // Real-time sync (only subscribe after auth)
+        function setupRealtimeSync() {
+            db.channel('neo_projects')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'neo_projects' }, () => loadProjects())
+                .subscribe();
+        }
     </script>
 </body>
 </html>
