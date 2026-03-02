@@ -410,11 +410,6 @@
         // Password
         const PASSWORD = 'neo2026';
 
-        // Check if already logged in (from backoffice or previous visit)
-        if (sessionStorage.getItem('neo-backoffice-auth') === 'true') {
-            showProjects();
-        }
-
         function checkPassword() {
             const input = document.getElementById('password-input').value;
             if (input === PASSWORD) {
@@ -532,6 +527,11 @@
             db.channel('neo_projects')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'neo_projects' }, () => loadProjects())
                 .subscribe();
+        }
+
+        // Init - Check if already logged in (from backoffice or previous visit)
+        if (sessionStorage.getItem('neo-backoffice-auth') === 'true') {
+            showProjects();
         }
     </script>
 </body>
