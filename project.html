@@ -38,7 +38,84 @@
             padding: 20px;
         }
 
-        /* Back link */
+        /* Password Screen */
+        .password-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+        }
+
+        .password-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .password-box h2 {
+            margin-bottom: 10px;
+        }
+
+        .password-box p {
+            color: var(--text-dim);
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        .password-box input {
+            width: 100%;
+            padding: 15px;
+            background: #111;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .password-box input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .password-box button {
+            width: 100%;
+            padding: 15px;
+            background: var(--accent-color);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .password-box button:hover {
+            opacity: 0.9;
+        }
+
+        .password-error {
+            color: #e74c3c;
+            margin-top: 15px;
+            font-size: 0.85rem;
+        }
+
+        /* Project Content */
+        .project-content {
+            display: none;
+        }
+
+        .project-content.visible {
+            display: block;
+        }
+
+        /* Back link - only for admin */
         .back-link {
             display: inline-flex;
             align-items: center;
@@ -51,6 +128,10 @@
 
         .back-link:hover {
             text-decoration: underline;
+        }
+
+        .back-link.hidden {
+            display: none;
         }
 
         /* Project Header */
@@ -296,14 +377,40 @@
             padding: 100px;
             color: var(--accent-color);
         }
+
+        /* Footer branding */
+        .footer-branding {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+        }
+
+        .footer-branding a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="./neo-projects.html" class="back-link">← Retour aux projets</a>
-        
-        <div id="project-content">
-            <div class="loading">Chargement du projet...</div>
+        <!-- Password Screen -->
+        <div class="password-screen" id="password-screen">
+            <div class="password-box">
+                <h2>🔐 Accès Projet</h2>
+                <p>Entrez le mot de passe pour accéder aux détails du projet</p>
+                <input type="password" id="project-password" placeholder="Mot de passe" onkeypress="if(event.key==='Enter')checkProjectPassword()">
+                <button onclick="checkProjectPassword()">Accéder</button>
+                <div class="password-error" id="password-error"></div>
+            </div>
+        </div>
+
+        <!-- Project Content -->
+        <div class="project-content" id="project-content">
+            <a href="./neo-projects.html" class="back-link" id="back-link">← Retour aux projets</a>
+            <div id="project-details">
+                <div class="loading">Chargement du projet...</div>
+            </div>
         </div>
     </div>
 
@@ -318,6 +425,14 @@
         const urlParams = new URLSearchParams(window.location.search);
         const projectId = urlParams.get('id');
 
+        let currentProject = null;
+        let isAdmin = false;
+
+        // Check if user is admin (came from backoffice)
+        if (sessionStorage.getItem('neo-backoffice-auth') === 'true') {
+            isAdmin = true;
+        }
+
         // Format date
         function formatDate(dateStr) {
             if (!dateStr) return 'Non définie';
@@ -331,10 +446,75 @@
             return Math.round((done / total) * 100);
         }
 
+        // Get image URL from storage
+        function getImageUrl(path) {
+            if (!path) return null;
+            const { data } = db.storage.from('project-covers').getPublicUrl(path);
+            return data.publicUrl;
+        }
+
+        // Load project data first to check if password is required
+        async function loadProjectData() {
+            if (!projectId) {
+                document.getElementById('password-screen').innerHTML = '<div class="password-box"><h2>❌ Erreur</h2><p>Projet non trouvé</p></div>';
+                return;
+            }
+
+            const { data, error } = await db
+                .from('neo_projects')
+                .select('*')
+                .eq('id', projectId)
+                .single();
+
+            if (error || !data) {
+                document.getElementById('password-screen').innerHTML = '<div class="password-box"><h2>❌ Erreur</h2><p>Projet non trouvé</p></div>';
+                return;
+            }
+
+            currentProject = data;
+
+            // If admin or no password required, show directly
+            if (isAdmin || !data.password) {
+                showProject();
+            }
+            // Otherwise, show password screen
+        }
+
+        // Check project password
+        function checkProjectPassword() {
+            const input = document.getElementById('project-password').value;
+            
+            if (input === currentProject.password) {
+                showProject();
+            } else {
+                document.getElementById('password-error').textContent = 'Mot de passe incorrect';
+            }
+        }
+
+        // Show project content
+        function showProject() {
+            document.getElementById('password-screen').style.display = 'none';
+            document.getElementById('project-content').classList.add('visible');
+            
+            // Hide back link for non-admin users
+            if (!isAdmin) {
+                document.getElementById('back-link').classList.add('hidden');
+            }
+
+            renderProject(currentProject);
+        }
+
         // Render project
         function renderProject(p) {
             const defaultBg = 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=1200&q=80';
-            const bgUrl = p.cover_photo_url || defaultBg;
+            
+            // Use uploaded image or default
+            let bgUrl = defaultBg;
+            if (p.cover_image_path) {
+                bgUrl = getImageUrl(p.cover_image_path);
+            } else if (p.cover_photo_url) {
+                bgUrl = p.cover_photo_url;
+            }
             
             const selectionPercent = calcPercent(p.selected_photos, p.total_photos);
             const lightroomPercent = calcPercent(p.lightroom_done, p.lightroom_total);
@@ -347,7 +527,7 @@
 
             document.title = `${p.name} - Néo Storytellers`;
 
-            return `
+            document.getElementById('project-details').innerHTML = `
                 <!-- Header -->
                 <div class="project-header">
                     <div class="project-header-bg" style="background-image: url('${bgUrl}')"></div>
@@ -491,37 +671,30 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="footer-branding">
+                    Projet suivi par <a href="#">Néo Storytellers</a>
+                </div>
             `;
         }
 
-        // Load project
-        async function loadProject() {
-            if (!projectId) {
-                document.getElementById('project-content').innerHTML = '<div class="error">Projet non trouvé</div>';
-                return;
-            }
-
-            const { data, error } = await db
-                .from('neo_projects')
-                .select('*')
-                .eq('id', projectId)
-                .single();
-
-            if (error || !data) {
-                document.getElementById('project-content').innerHTML = '<div class="error">Projet non trouvé</div>';
-                return;
-            }
-
-            document.getElementById('project-content').innerHTML = renderProject(data);
+        // Real-time sync
+        if (projectId) {
+            db.channel('neo_projects_detail')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'neo_projects', filter: `id=eq.${projectId}` }, async () => {
+                    const { data } = await db.from('neo_projects').select('*').eq('id', projectId).single();
+                    if (data) {
+                        currentProject = data;
+                        if (document.getElementById('project-content').classList.contains('visible')) {
+                            renderProject(data);
+                        }
+                    }
+                })
+                .subscribe();
         }
 
-        // Real-time sync
-        db.channel('neo_projects_detail')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'neo_projects', filter: `id=eq.${projectId}` }, () => loadProject())
-            .subscribe();
-
         // Init
-        loadProject();
+        loadProjectData();
     </script>
 </body>
 </html>
