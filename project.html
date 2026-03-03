@@ -19,11 +19,7 @@
             --warning: #f39c12;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             background: var(--bg-color);
@@ -38,7 +34,6 @@
             padding: 20px;
         }
 
-        /* Password Screen */
         .password-screen {
             display: flex;
             justify-content: center;
@@ -56,15 +51,8 @@
             text-align: center;
         }
 
-        .password-box h2 {
-            margin-bottom: 10px;
-        }
-
-        .password-box p {
-            color: var(--text-dim);
-            margin-bottom: 30px;
-            font-size: 0.9rem;
-        }
+        .password-box h2 { margin-bottom: 10px; }
+        .password-box p { color: var(--text-dim); margin-bottom: 30px; font-size: 0.9rem; }
 
         .password-box input {
             width: 100%;
@@ -78,10 +66,7 @@
             text-align: center;
         }
 
-        .password-box input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
+        .password-box input:focus { outline: none; border-color: var(--accent-color); }
 
         .password-box button {
             width: 100%;
@@ -93,29 +78,13 @@
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: 0.2s;
         }
 
-        .password-box button:hover {
-            opacity: 0.9;
-        }
+        .password-error { color: #e74c3c; margin-top: 15px; font-size: 0.85rem; }
 
-        .password-error {
-            color: #e74c3c;
-            margin-top: 15px;
-            font-size: 0.85rem;
-        }
+        .project-content { display: none; }
+        .project-content.visible { display: block; }
 
-        /* Project Content */
-        .project-content {
-            display: none;
-        }
-
-        .project-content.visible {
-            display: block;
-        }
-
-        /* Back link - only for admin */
         .back-link {
             display: inline-flex;
             align-items: center;
@@ -126,15 +95,9 @@
             margin-bottom: 20px;
         }
 
-        .back-link:hover {
-            text-decoration: underline;
-        }
+        .back-link:hover { text-decoration: underline; }
+        .back-link.hidden { display: none; }
 
-        .back-link.hidden {
-            display: none;
-        }
-
-        /* Project Header */
         .project-header {
             position: relative;
             height: 250px;
@@ -145,10 +108,8 @@
 
         .project-header-bg {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background-size: cover;
             background-position: center;
             filter: brightness(0.4);
@@ -166,8 +127,7 @@
 
         .project-status-badge {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 20px; right: 20px;
             padding: 8px 16px;
             border-radius: 25px;
             font-size: 0.8rem;
@@ -191,43 +151,50 @@
             flex-wrap: wrap;
         }
 
-        .project-meta-item {
-            font-size: 0.9rem;
+        .project-meta-item { font-size: 0.9rem; }
+        .project-meta-item span { color: var(--text-dim); }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
         }
 
-        .project-meta-item span {
-            color: var(--text-dim);
-        }
-
-        /* Info Grid */
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .info-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 15px;
-            padding: 20px;
-        }
-
-        .info-card-title {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-        }
-
-        .info-card-value {
-            font-size: 1.2rem;
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 25px;
+            border-radius: 12px;
+            text-decoration: none;
             font-weight: 600;
+            font-size: 0.95rem;
+            transition: 0.2s;
+            border: none;
+            cursor: pointer;
         }
 
-        /* Progress Section */
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .action-btn-drive {
+            background: linear-gradient(135deg, #4285f4, #34a853);
+            color: white;
+        }
+
+        .action-btn-invoice {
+            background: linear-gradient(135deg, #e63946, #c92a2a);
+            color: white;
+        }
+
+        .action-btn-icon {
+            font-size: 1.3rem;
+        }
+
         .section {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -245,11 +212,8 @@
             gap: 10px;
         }
 
-        .section-title-icon {
-            font-size: 1.2rem;
-        }
+        .section-title-icon { font-size: 1.2rem; }
 
-        /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -276,10 +240,7 @@
             margin-top: 5px;
         }
 
-        /* Progress Bar */
-        .progress-container {
-            margin-top: 15px;
-        }
+        .progress-container { margin-top: 15px; }
 
         .progress-bar {
             height: 10px;
@@ -312,7 +273,6 @@
             color: var(--text-main);
         }
 
-        /* Two columns */
         .two-col {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -320,27 +280,29 @@
         }
 
         @media (max-width: 600px) {
-            .two-col {
-                grid-template-columns: 1fr;
-            }
-
-            .project-name {
-                font-size: 1.8rem;
-            }
-
-            .project-header {
-                height: 200px;
-            }
+            .two-col { grid-template-columns: 1fr; }
+            .project-name { font-size: 1.8rem; }
+            .project-header { height: 200px; }
+            .action-btn { width: 100%; justify-content: center; }
         }
 
-        /* Description */
         .description {
             color: var(--text-dim);
             line-height: 1.6;
             font-size: 0.95rem;
         }
 
-        /* Payment */
+        .client-notes {
+            background: rgba(255,255,255,0.03);
+            border-left: 3px solid var(--accent-color);
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            color: var(--text-dim);
+            line-height: 1.6;
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+        }
+
         .payment-status {
             display: flex;
             align-items: center;
@@ -352,33 +314,13 @@
             font-weight: 800;
         }
 
-        .payment-percent.paid {
-            color: var(--success);
-        }
+        .payment-percent.paid { color: var(--success); }
+        .payment-percent.partial { color: var(--warning); }
+        .payment-percent.unpaid { color: var(--accent-color); }
 
-        .payment-percent.partial {
-            color: var(--warning);
-        }
+        .loading { text-align: center; padding: 100px; color: var(--text-dim); }
+        .error { text-align: center; padding: 100px; color: var(--accent-color); }
 
-        .payment-percent.unpaid {
-            color: var(--accent-color);
-        }
-
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 100px;
-            color: var(--text-dim);
-        }
-
-        /* Error */
-        .error {
-            text-align: center;
-            padding: 100px;
-            color: var(--accent-color);
-        }
-
-        /* Footer branding */
         .footer-branding {
             text-align: center;
             padding: 40px 20px;
@@ -390,11 +332,79 @@
             color: var(--accent-color);
             text-decoration: none;
         }
+
+        /* Tasks */
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            transition: 0.2s;
+        }
+
+        .task-item:hover { background: rgba(255,255,255,0.05); }
+
+        .task-item.done { opacity: 0.6; }
+        .task-item.done .task-text { text-decoration: line-through; }
+
+        .task-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: 0.2s;
+        }
+
+        .task-checkbox:hover { border-color: var(--success); }
+
+        .task-checkbox.checked {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .task-checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+        }
+
+        .task-text { flex: 1; font-size: 0.95rem; }
+
+        .tasks-empty {
+            color: var(--text-dim);
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9rem;
+        }
+
+        .tasks-section-title {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tasks-section-title.completed { color: var(--success); }
+
+        .tasks-divider {
+            margin: 25px 0;
+            border: none;
+            border-top: 1px solid var(--border-color);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Password Screen -->
         <div class="password-screen" id="password-screen">
             <div class="password-box">
                 <h2>🔐 Accès Projet</h2>
@@ -405,7 +415,6 @@
             </div>
         </div>
 
-        <!-- Project Content -->
         <div class="project-content" id="project-content">
             <a href="./neo-projects.html" class="back-link" id="back-link">← Retour aux projets</a>
             <div id="project-details">
@@ -415,45 +424,41 @@
     </div>
 
     <script>
-        // Supabase Config
         const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
         
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Get project ID from URL
         const urlParams = new URLSearchParams(window.location.search);
         const projectId = urlParams.get('id');
 
         let currentProject = null;
-        let isAdmin = false;
+        let projectTasks = [];
+        let isAdmin = sessionStorage.getItem('neo-backoffice-auth') === 'true';
 
-        // Check if user is admin (came from backoffice)
-        if (sessionStorage.getItem('neo-backoffice-auth') === 'true') {
-            isAdmin = true;
-        }
-
-        // Format date
         function formatDate(dateStr) {
             if (!dateStr) return 'Non définie';
             const date = new Date(dateStr);
             return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
         }
 
-        // Calculate percentage
         function calcPercent(done, total) {
             if (!total || total === 0) return 0;
             return Math.round((done / total) * 100);
         }
 
-        // Get image URL from storage
         function getImageUrl(path) {
             if (!path) return null;
             const { data } = db.storage.from('project-covers').getPublicUrl(path);
             return data.publicUrl;
         }
 
-        // Load project data first to check if password is required
+        function getInvoiceUrl(path) {
+            if (!path) return null;
+            const { data } = db.storage.from('project-invoices').getPublicUrl(path);
+            return data.publicUrl;
+        }
+
         async function loadProjectData() {
             if (!projectId) {
                 document.getElementById('password-screen').innerHTML = '<div class="password-box"><h2>❌ Erreur</h2><p>Projet non trouvé</p></div>';
@@ -473,14 +478,11 @@
 
             currentProject = data;
 
-            // If admin or no password required, show directly
             if (isAdmin || !data.password) {
                 showProject();
             }
-            // Otherwise, show password screen
         }
 
-        // Check project password
         function checkProjectPassword() {
             const input = document.getElementById('project-password').value;
             
@@ -491,24 +493,50 @@
             }
         }
 
-        // Show project content
-        function showProject() {
+        async function showProject() {
             document.getElementById('password-screen').style.display = 'none';
             document.getElementById('project-content').classList.add('visible');
             
-            // Hide back link for non-admin users
             if (!isAdmin) {
                 document.getElementById('back-link').classList.add('hidden');
             }
 
+            await loadTasks();
             renderProject(currentProject);
         }
 
-        // Render project
+        async function loadTasks() {
+            const { data, error } = await db
+                .from('project_tasks')
+                .select('*')
+                .eq('project_id', projectId)
+                .order('created_at', { ascending: true });
+
+            if (!error) {
+                projectTasks = data || [];
+            }
+        }
+
+        async function toggleTask(taskId, done) {
+            const { error } = await db.from('project_tasks').update({ done }).eq('id', taskId);
+            if (!error) {
+                await loadTasks();
+                renderProject(currentProject);
+            }
+        }
+
+        function renderTaskItem(task) {
+            return `
+                <div class="task-item ${task.done ? 'done' : ''}">
+                    <div class="task-checkbox ${task.done ? 'checked' : ''}" onclick="toggleTask(${task.id}, ${!task.done})"></div>
+                    <span class="task-text">${task.text}</span>
+                </div>
+            `;
+        }
+
         function renderProject(p) {
             const defaultBg = 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=1200&q=80';
             
-            // Use uploaded image or default
             let bgUrl = defaultBg;
             if (p.cover_image_path) {
                 bgUrl = getImageUrl(p.cover_image_path);
@@ -527,8 +555,67 @@
 
             document.title = `${p.name} - Néo Storytellers`;
 
+            const pendingTasks = projectTasks.filter(t => !t.done);
+            const completedTasks = projectTasks.filter(t => t.done);
+
+            // Action buttons HTML
+            let actionButtonsHtml = '';
+            if (p.drive_link || p.invoice_path) {
+                actionButtonsHtml = '<div class="action-buttons">';
+                if (p.drive_link) {
+                    actionButtonsHtml += `
+                        <a href="${p.drive_link}" target="_blank" class="action-btn action-btn-drive">
+                            <span class="action-btn-icon">📁</span>
+                            Accéder aux fichiers
+                        </a>
+                    `;
+                }
+                if (p.invoice_path) {
+                    const invoiceUrl = getInvoiceUrl(p.invoice_path);
+                    actionButtonsHtml += `
+                        <a href="${invoiceUrl}" target="_blank" class="action-btn action-btn-invoice">
+                            <span class="action-btn-icon">📄</span>
+                            Voir la facture
+                        </a>
+                    `;
+                }
+                actionButtonsHtml += '</div>';
+            }
+
+            // Client notes HTML
+            let clientNotesHtml = '';
+            if (p.client_notes) {
+                clientNotesHtml = `
+                    <div class="section">
+                        <h3 class="section-title"><span class="section-title-icon">💬</span> Notes</h3>
+                        <div class="client-notes">${p.client_notes}</div>
+                    </div>
+                `;
+            }
+
+            // Tasks HTML
+            let tasksHtml = '';
+            if (projectTasks.length > 0) {
+                tasksHtml = `
+                    <div class="section">
+                        <h3 class="section-title"><span class="section-title-icon">📋</span> Tâches du projet</h3>
+                        
+                        <div class="tasks-section-title">À faire (${pendingTasks.length})</div>
+                        ${pendingTasks.length > 0 
+                            ? pendingTasks.map(renderTaskItem).join('') 
+                            : '<div class="tasks-empty">Toutes les tâches sont complétées ! 🎉</div>'
+                        }
+                        
+                        ${completedTasks.length > 0 ? `
+                            <hr class="tasks-divider">
+                            <div class="tasks-section-title completed">✅ Complétées (${completedTasks.length})</div>
+                            ${completedTasks.map(renderTaskItem).join('')}
+                        ` : ''}
+                    </div>
+                `;
+            }
+
             document.getElementById('project-details').innerHTML = `
-                <!-- Header -->
                 <div class="project-header">
                     <div class="project-header-bg" style="background-image: url('${bgUrl}')"></div>
                     <span class="project-status-badge status-${p.status}">${p.status.replace('_', ' ')}</span>
@@ -541,7 +628,8 @@
                     </div>
                 </div>
 
-                <!-- Description -->
+                ${actionButtonsHtml}
+
                 ${p.description ? `
                 <div class="section">
                     <h3 class="section-title"><span class="section-title-icon">📝</span> Description</h3>
@@ -549,7 +637,10 @@
                 </div>
                 ` : ''}
 
-                <!-- Photos Section -->
+                ${clientNotesHtml}
+
+                ${tasksHtml}
+
                 <div class="section">
                     <h3 class="section-title"><span class="section-title-icon">📸</span> Sélection Photos</h3>
                     <div class="stats-grid">
@@ -569,7 +660,6 @@
                 </div>
 
                 <div class="two-col">
-                    <!-- Lightroom -->
                     <div class="section">
                         <h3 class="section-title"><span class="section-title-icon">🎨</span> Lightroom</h3>
                         <div class="stats-grid">
@@ -593,7 +683,6 @@
                         </div>
                     </div>
 
-                    <!-- Photoshop -->
                     <div class="section">
                         <h3 class="section-title"><span class="section-title-icon">✨</span> Photoshop</h3>
                         <div class="stats-grid">
@@ -618,7 +707,6 @@
                     </div>
                 </div>
 
-                <!-- DaVinci -->
                 <div class="section">
                     <h3 class="section-title"><span class="section-title-icon">🎬</span> DaVinci Resolve</h3>
                     <div class="stats-grid">
@@ -643,7 +731,6 @@
                 </div>
 
                 <div class="two-col">
-                    <!-- Payment -->
                     <div class="section">
                         <h3 class="section-title"><span class="section-title-icon">💰</span> Statut Paiement</h3>
                         <div class="payment-status">
@@ -655,7 +742,6 @@
                         </div>
                     </div>
 
-                    <!-- Project Status -->
                     <div class="section">
                         <h3 class="section-title"><span class="section-title-icon">📊</span> Statut Projet</h3>
                         <div class="stats-grid">
@@ -691,9 +777,17 @@
                     }
                 })
                 .subscribe();
+
+            db.channel('project_tasks_detail')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'project_tasks', filter: `project_id=eq.${projectId}` }, async () => {
+                    await loadTasks();
+                    if (document.getElementById('project-content').classList.contains('visible')) {
+                        renderProject(currentProject);
+                    }
+                })
+                .subscribe();
         }
 
-        // Init
         loadProjectData();
     </script>
 </body>
