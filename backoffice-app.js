@@ -5,7 +5,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const COMPANY = {
     name: 'INSTA IMMO', fullName: 'INSTA IMMO SARL', address: '10, rue ibnou Rifai 3 Appt gauche',
-    tel: '0687842466', patente: '35700518', rc: '415075', if: '26185321', ice: '002152608000044',
+    tel: '0687842466', patente: '35700518', rc: '415075', identifiantFiscal: '26185321', ice: '002152608000044',
     bank: 'ATTIJARI, Agence PARANFA', rib: '007 780 0000277000000632 80'
 };
 
@@ -129,6 +129,7 @@ function closeDocsModal() { document.getElementById('docs-modal').classList.remo
 
 async function loadDocs() {
     const { data, error } = await db.from('project_documents').select('*').eq('project_id', currentDocsProjectId).order('created_at', { ascending: false });
+    if (error) console.error('loadDocs error:', error);
     const c = document.getElementById('docs-list');
     if (!data?.length) { c.innerHTML = '<div class="empty-state">Aucun document</div>'; return; }
     c.innerHTML = data.map(d => {
@@ -191,20 +192,72 @@ document.getElementById('doc-frais')?.addEventListener('input', calcTotals);
 function formatMoney(n) { return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' MAD'; }
 
 async function saveDocument(e) {
-    e.preventDefault(); const btn = document.getElementById('doc-save-btn'); btn.disabled = true; btn.textContent = '...';
+    e.preventDefault();
+    const btn = document.getElementById('doc-save-btn');
+    btn.disabled = true; btn.textContent = '...';
+    
     const docId = document.getElementById('doc-id').value;
-    const d = { project_id: parseInt(currentDocsProjectId), type: document.getElementById('doc-type').value, doc_number: document.getElementById('doc-number').value, doc_date: document.getElementById('doc-date').value, client_name: document.getElementById('doc-client-name').value, client_address: document.getElementById('doc-client-address').value, client_ice: document.getElementById('doc-client-ice').value, commande_ref: document.getElementById('doc-commande-ref').value, tva_rate: +document.getElementById('doc-tva').value || 20, frais_deplacement: +document.getElementById('doc-frais').value || 0, conditions: document.getElementById('doc-conditions').value, status: 'brouillon' };
-    let savedId = docId;
+    const projectId = currentDocsProjectId;
+    
+    const docData = {
+        project_id: Number(projectId),
+        type: document.getElementById('doc-type').value,
+        doc_number: document.getElementById('doc-number').value,
+        doc_date: document.getElementById('doc-date').value,
+        client_name: document.getElementById('doc-client-name').value || '',
+        client_address: document.getElementById('doc-client-address').value || '',
+        client_ice: document.getElementById('doc-client-ice').value || '',
+        commande_ref: document.getElementById('doc-commande-ref').value || '',
+        tva_rate: Number(document.getElementById('doc-tva').value) || 20,
+        frais_deplacement: Number(document.getElementById('doc-frais').value) || 0,
+        conditions: document.getElementById('doc-conditions').value || '',
+        status: 'brouillon'
+    };
+    
+    console.log('Saving doc:', docData);
+    
+    let savedId = docId ? Number(docId) : null;
+    
     try {
-        if (docId) { const { error } = await db.from('project_documents').update(d).eq('id', docId); if (error) throw error; await db.from('document_lines').delete().eq('document_id', docId); }
-        else { const { data, error } = await db.from('project_documents').insert([d]).select(); if (error) throw error; savedId = data?.[0]?.id; }
-        if (savedId && docLines.length) {
-            const lines = docLines.map((l, i) => ({ document_id: parseInt(savedId), is_category: l.is_category || false, designation: l.designation || '', detail: l.detail || '', quantity: l.quantity || 1, unit_price: l.unit_price || 0, sort_order: i }));
-            const { error: linesError } = await db.from('document_lines').insert(lines); if (linesError) throw linesError;
+        if (docId) {
+            // Update existing
+            const { error } = await db.from('project_documents').update(docData).eq('id', Number(docId));
+            if (error) { console.error('Update error:', error); throw error; }
+            // Delete old lines
+            await db.from('document_lines').delete().eq('document_id', Number(docId));
+        } else {
+            // Insert new
+            const { data, error } = await db.from('project_documents').insert([docData]).select();
+            console.log('Insert result:', data, error);
+            if (error) { console.error('Insert error:', error); throw error; }
+            if (data && data[0]) savedId = data[0].id;
         }
+        
+        // Insert lines
+        if (savedId && docLines.length > 0) {
+            const linesToInsert = docLines.map((l, i) => ({
+                document_id: Number(savedId),
+                is_category: l.is_category === true,
+                designation: l.designation || '',
+                detail: l.detail || '',
+                quantity: Number(l.quantity) || 1,
+                unit_price: Number(l.unit_price) || 0,
+                sort_order: i
+            }));
+            console.log('Inserting lines:', linesToInsert);
+            const { error: linesError } = await db.from('document_lines').insert(linesToInsert);
+            if (linesError) { console.error('Lines error:', linesError); throw linesError; }
+        }
+        
         showToast('Document enregistré !');
-    } catch (err) { console.error('Save error:', err); alert('Erreur: ' + err.message); }
-    btn.disabled = false; btn.textContent = 'Enregistrer'; closeDocEditor(); loadDocs();
+        closeDocEditor();
+        loadDocs();
+    } catch (err) {
+        console.error('Save failed:', err);
+        alert('Erreur: ' + (err.message || JSON.stringify(err)));
+    }
+    
+    btn.disabled = false; btn.textContent = 'Enregistrer';
 }
 
 async function editDoc(id) { const { data: doc } = await db.from('project_documents').select('*').eq('id', id).single(); const { data: lines } = await db.from('document_lines').select('*').eq('document_id', id).order('sort_order'); if (doc) { doc.lines = lines || []; openDocEditor(doc.type, doc); } }
@@ -228,122 +281,245 @@ async function downloadPDF(id) { const { data: doc } = await db.from('project_do
 function generatePDF() { const doc = { type: document.getElementById('doc-type').value, doc_number: document.getElementById('doc-number').value, doc_date: document.getElementById('doc-date').value, client_name: document.getElementById('doc-client-name').value, client_address: document.getElementById('doc-client-address').value, client_ice: document.getElementById('doc-client-ice').value, commande_ref: document.getElementById('doc-commande-ref').value, tva_rate: +document.getElementById('doc-tva').value || 20, frais_deplacement: +document.getElementById('doc-frais').value || 0, conditions: document.getElementById('doc-conditions').value }; generatePDFFromData(doc, docLines); }
 
 function generatePDFFromData(doc, lines) {
-    const { jsPDF } = window.jspdf; const pdf = new jsPDF('p', 'mm', 'a4');
-    const w = 210, m = 15; let y = 15;
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageW = 210, m = 15;
+    let y = 15;
     const isFacture = doc.type === 'facture', docLabel = isFacture ? 'FACTURE' : 'DEVIS';
 
     // Title
     pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
-    pdf.text(`${docLabel} : ${currentDocsProjectName.toUpperCase()}`, w / 2, y, { align: 'center' });
-    pdf.setLineWidth(0.5); pdf.line(m + 20, y + 1, w - m - 20, y + 1); y += 12;
+    pdf.text(`${docLabel} : ${currentDocsProjectName.toUpperCase()}`, pageW / 2, y, { align: 'center' });
+    pdf.setLineWidth(0.5); pdf.line(m + 20, y + 2, pageW - m - 20, y + 2);
+    y += 15;
 
     // INSTA IMMO
-    pdf.setFontSize(28); pdf.text('INSTA IMMO', w / 2, y, { align: 'center' }); y += 15;
+    pdf.setFontSize(28); pdf.text('INSTA IMMO', pageW / 2, y, { align: 'center' });
+    y += 15;
 
-    // Left: Client | Right: Doc info
-    pdf.setFontSize(9); pdf.setFont('helvetica', 'bold');
-    pdf.text(`${docLabel}É À :`, m, y); pdf.text(`${docLabel} N° :`, w / 2 + 10, y);
-    pdf.setFont('helvetica', 'normal'); pdf.text(doc.doc_number || '', w - m, y, { align: 'right' }); y += 5;
+    // Two columns: Client (left) | Doc info (right)
+    const midX = pageW / 2;
+    pdf.setFontSize(9);
+    
+    // Left column - Client
+    pdf.setFont('helvetica', 'bold'); pdf.text(`${docLabel}É À :`, m, y);
+    // Right column - Doc number
+    pdf.text(`${docLabel} N° :`, midX + 5, y);
+    pdf.setFont('helvetica', 'normal'); pdf.text(doc.doc_number || '', midX + 35, y);
+    y += 5;
 
-    pdf.text(doc.client_name || '', m, y);
-    pdf.setFont('helvetica', 'bold'); pdf.text(`DATE ${isFacture ? 'DE LA FACTURE' : 'DU DEVIS'} :`, w / 2 + 10, y);
-    pdf.setFont('helvetica', 'normal'); pdf.text(formatDatePDF(doc.doc_date), w - m, y, { align: 'right' }); y += 5;
+    // Client name | Date
+    pdf.setFont('helvetica', 'normal'); pdf.text(doc.client_name || '', m, y);
+    pdf.setFont('helvetica', 'bold'); pdf.text(`DATE ${isFacture ? 'DE LA FACTURE' : 'DU DEVIS'} :`, midX + 5, y);
+    pdf.setFont('helvetica', 'normal'); pdf.text(formatDatePDF(doc.doc_date), midX + 50, y);
+    y += 5;
 
-    if (doc.client_ice) { pdf.setFont('helvetica', 'bold'); pdf.text('ICE : ', m, y); pdf.setFont('helvetica', 'normal'); pdf.text(doc.client_ice, m + 12, y); } y += 5;
+    // ICE
+    if (doc.client_ice) {
+        pdf.setFont('helvetica', 'bold'); pdf.text('ICE :', m, y);
+        pdf.setFont('helvetica', 'normal'); pdf.text(doc.client_ice, m + 10, y);
+    }
+    y += 5;
 
+    // Address | Commande ref
     pdf.setFont('helvetica', 'bold'); pdf.text('Adresse :', m, y);
     pdf.setFont('helvetica', 'normal'); pdf.text(doc.client_address || '', m + 18, y);
-    pdf.setFont('helvetica', 'bold'); pdf.text('Relative à la Commande :', w / 2 + 10, y);
-    pdf.setFont('helvetica', 'normal'); pdf.text(doc.commande_ref || '', w - m, y, { align: 'right' }); y += 12;
+    pdf.setFont('helvetica', 'bold'); pdf.text('Relative à la Commande :', midX + 5, y);
+    pdf.setFont('helvetica', 'normal'); pdf.text(doc.commande_ref || '', midX + 50, y);
+    y += 12;
 
-    // Table
-    const colWidths = [90, 18, 25, 32], colX = [m, m + colWidths[0], m + colWidths[0] + colWidths[1], m + colWidths[0] + colWidths[1] + colWidths[2]], tableW = colWidths.reduce((a, b) => a + b, 0);
+    // TABLE - Wider columns
+    const col1W = 95, col2W = 20, col3W = 25, col4W = 40;
+    const tableW = col1W + col2W + col3W + col4W;
+    const col1X = m, col2X = m + col1W, col3X = col2X + col2W, col4X = col3X + col3W;
 
     // Header
-    pdf.setFillColor(30, 30, 30); pdf.rect(m, y, tableW, 10, 'F');
-    pdf.setTextColor(255, 255, 255); pdf.setFontSize(8); pdf.setFont('helvetica', 'bold');
-    pdf.text('DÉSIGNATION', colX[0] + 2, y + 6);
-    pdf.text('QTÉ', colX[1] + 2, y + 6);
-    pdf.text('P.U', colX[2] + 2, y + 6);
-    pdf.text('MONTANT', colX[3] + 2, y + 4); pdf.text('MAD HT', colX[3] + 2, y + 8);
-    pdf.setTextColor(0, 0, 0); y += 10;
+    pdf.setFillColor(30, 30, 30);
+    pdf.rect(m, y, tableW, 12, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(9); pdf.setFont('helvetica', 'bold');
+    pdf.text('DÉSIGNATION', col1X + 3, y + 7);
+    pdf.text('QTÉ', col2X + 3, y + 7);
+    pdf.text('P.U', col3X + 3, y + 7);
+    pdf.text('MONTANT', col4X + 3, y + 5);
+    pdf.text('MAD HT', col4X + 3, y + 9);
+    pdf.setTextColor(0, 0, 0);
+    y += 12;
 
-    // Rows
+    // Data rows
     let totalHT = 0;
     lines.forEach((l, idx) => {
-        const rowH = l.is_category ? 7 : (l.detail ? 12 : 8);
-        pdf.setDrawColor(180, 180, 180); pdf.rect(m, y, tableW, rowH);
-        pdf.line(colX[1], y, colX[1], y + rowH); pdf.line(colX[2], y, colX[2], y + rowH); pdf.line(colX[3], y, colX[3], y + rowH);
+        const rowH = l.is_category ? 8 : (l.detail ? 14 : 10);
+        
+        // Draw cell borders
+        pdf.setDrawColor(150, 150, 150);
+        pdf.rect(col1X, y, col1W, rowH);
+        pdf.rect(col2X, y, col2W, rowH);
+        pdf.rect(col3X, y, col3W, rowH);
+        pdf.rect(col4X, y, col4W, rowH);
 
         if (l.is_category) {
-            pdf.setFillColor(245, 245, 245); pdf.rect(m + 0.5, y + 0.5, colWidths[0] - 1, rowH - 1, 'F');
-            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.text(l.designation || '', colX[0] + 2, y + 5);
-            let catTotal = 0; for (let j = idx + 1; j < lines.length && !lines[j].is_category; j++) catTotal += (lines[j].quantity || 1) * (lines[j].unit_price || 0);
-            pdf.setTextColor(230, 57, 70); pdf.text(formatNum(catTotal), colX[3] + colWidths[3] - 2, y + 5, { align: 'right' }); pdf.setTextColor(0, 0, 0);
+            // Category row
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(col1X + 0.3, y + 0.3, col1W - 0.6, rowH - 0.6, 'F');
+            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9);
+            pdf.text((l.designation || '').substring(0, 40), col1X + 3, y + 5.5);
+            // Category subtotal
+            let catTotal = 0;
+            for (let j = idx + 1; j < lines.length && !lines[j].is_category; j++) {
+                catTotal += (lines[j].quantity || 1) * (lines[j].unit_price || 0);
+            }
+            pdf.setTextColor(230, 57, 70);
+            pdf.text(formatNum(catTotal), col4X + col4W - 3, y + 5.5, { align: 'right' });
+            pdf.setTextColor(0, 0, 0);
         } else {
-            const montant = (l.quantity || 1) * (l.unit_price || 0); totalHT += montant;
-            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.text(l.designation || '', colX[0] + 2, y + 5);
-            if (l.detail) { pdf.setFontSize(7); pdf.splitTextToSize(l.detail, colWidths[0] - 4).slice(0, 2).forEach((dl, di) => pdf.text(dl, colX[0] + 2, y + 8 + di * 3)); pdf.setFontSize(8); }
-            pdf.text(String(l.quantity || 1), colX[1] + colWidths[1] / 2, y + 5, { align: 'center' });
-            pdf.text(formatNum(l.unit_price || 0), colX[2] + colWidths[2] - 2, y + 5, { align: 'right' });
-            pdf.text(formatNum(montant), colX[3] + colWidths[3] - 2, y + 5, { align: 'right' });
+            const montant = (l.quantity || 1) * (l.unit_price || 0);
+            totalHT += montant;
+            
+            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
+            // Designation - truncate if too long
+            const desig = (l.designation || '').substring(0, 45);
+            pdf.text(desig, col1X + 3, y + 5);
+            
+            // Detail
+            if (l.detail) {
+                pdf.setFontSize(7);
+                const detailText = pdf.splitTextToSize(l.detail, col1W - 6);
+                detailText.slice(0, 2).forEach((dt, di) => {
+                    pdf.text(dt, col1X + 3, y + 9 + di * 3);
+                });
+                pdf.setFontSize(9);
+            }
+            
+            // Quantity centered
+            pdf.text(String(l.quantity || 1), col2X + col2W/2, y + 5, { align: 'center' });
+            // Price right-aligned
+            pdf.text(formatNum(l.unit_price || 0), col3X + col3W - 3, y + 5, { align: 'right' });
+            // Montant right-aligned
+            pdf.text(formatNum(montant), col4X + col4W - 3, y + 5, { align: 'right' });
         }
-        y += rowH; if (y > 250) { pdf.addPage(); y = 20; }
+        
+        y += rowH;
+        if (y > 250) { pdf.addPage(); y = 20; }
     });
 
-    // Totals
-    y += 2;
-    const tvaAmount = totalHT * (doc.tva_rate || 20) / 100, totalPhotoTTC = totalHT + tvaAmount, frais = doc.frais_deplacement || 0, totalTTC = totalPhotoTTC + frais;
-    const totals = [['TOTAL MAD HT', formatNum(totalHT)], ['T.V.A', formatNum(tvaAmount)], ['TOTAL PHOTO TTC', formatNum(totalPhotoTTC)], ['FRAIS DE DEPLACEMENT TTC', formatNum(frais)], ['TOTAL TTC', formatNum(totalTTC)]];
-    totals.forEach((t, i) => {
-        pdf.setDrawColor(180, 180, 180); pdf.rect(colX[2], y, colWidths[2] + colWidths[3], 7); pdf.line(colX[3], y, colX[3], y + 7);
-        pdf.setFont('helvetica', i === 4 ? 'bold' : 'normal'); pdf.setFontSize(8); pdf.text(t[0], colX[2] + 2, y + 5);
-        if (i === 4) pdf.setTextColor(230, 57, 70); pdf.text(t[1], colX[3] + colWidths[3] - 2, y + 5, { align: 'right' }); pdf.setTextColor(0, 0, 0); y += 7;
+    // TOTALS - aligned with last two columns
+    y += 3;
+    const tvaRate = doc.tva_rate || 20;
+    const tvaAmount = totalHT * tvaRate / 100;
+    const totalPhotoTTC = totalHT + tvaAmount;
+    const frais = doc.frais_deplacement || 0;
+    const totalTTC = totalPhotoTTC + frais;
+    
+    const totLabelW = col3W + col4W;
+    const totX = col3X;
+
+    const totals = [
+        ['TOTAL MAD HT', formatNum(totalHT)],
+        [`T.V.A ${tvaRate}%`, formatNum(tvaAmount)],
+        ['TOTAL PHOTO TTC', formatNum(totalPhotoTTC)],
+        ['FRAIS DE DEPLACEMENT TTC', formatNum(frais)],
+        ['TOTAL TTC', formatNum(totalTTC)]
+    ];
+
+    totals.forEach((row, i) => {
+        pdf.setDrawColor(150, 150, 150);
+        pdf.rect(totX, y, col3W, 7);
+        pdf.rect(col4X, y, col4W, 7);
+        
+        pdf.setFont('helvetica', i === 4 ? 'bold' : 'normal');
+        pdf.setFontSize(8);
+        pdf.text(row[0], totX + 2, y + 5);
+        
+        if (i === 4) pdf.setTextColor(230, 57, 70);
+        pdf.text(row[1], col4X + col4W - 3, y + 5, { align: 'right' });
+        pdf.setTextColor(0, 0, 0);
+        
+        y += 7;
     });
-    y += 8;
+
+    y += 10;
 
     // Amount in words
     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9);
-    pdf.text(`Arrêté le présent ${doc.type} à la somme de :`, m, y); y += 5;
-    pdf.setFont('helvetica', 'normal'); pdf.text(numberToWords(totalTTC) + ' dirhams toute taxes comprises.', m, y); y += 8;
+    pdf.text(`Arrêté le présent ${doc.type} à la somme de :`, m, y);
+    y += 5;
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(numberToWords(totalTTC) + ' dirhams toute taxes comprises.', m, y);
+    y += 10;
 
-    // Conditions & Payment
-    pdf.setFont('helvetica', 'bold'); pdf.text('Conditions de règlement :', m, y); y += 4;
-    pdf.setFont('helvetica', 'normal'); pdf.text(doc.conditions || '', m, y); y += 8;
-    pdf.setFont('helvetica', 'bold'); pdf.text('À payer par :', m, y); y += 4;
+    // Conditions
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Conditions de règlement :', m, y); y += 5;
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(doc.conditions || '', m, y); y += 10;
+
+    // Payment info
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('À payer par :', m, y); y += 5;
     pdf.setFont('helvetica', 'normal');
     pdf.text(`Chèque à l'ordre de ${COMPANY.name}`, m, y); y += 4;
     pdf.text(`ou par virement bancaire sur le compte suivant : ${COMPANY.fullName}`, m, y); y += 4;
-    pdf.text(`${COMPANY.bank} - N° de compte : RIB : ${COMPANY.rib}`, m, y); y += 12;
+    pdf.text(`${COMPANY.bank} - N° de compte : RIB : ${COMPANY.rib}`, m, y);
+    y += 15;
 
     // Signature box
-    pdf.setDrawColor(0, 0, 0); pdf.rect(w - m - 70, y, 70, 25);
-    pdf.setFontSize(8); pdf.text('Signature et cachet de l\'entreprise', w - m - 68, y + 5); y += 35;
+    const sigX = pageW - m - 75;
+    pdf.setDrawColor(0, 0, 0);
+    pdf.rect(sigX, y, 75, 28);
+    pdf.setFontSize(8);
+    pdf.text('Signature et cachet de l\'entreprise', sigX + 3, y + 6);
 
     // Footer
     pdf.setFontSize(7);
-    pdf.text(`${COMPANY.fullName} ${COMPANY.address} - Tel : ${COMPANY.tel} - Patente : ${COMPANY.patente} – RC : ${COMPANY.rc}`, w / 2, 285, { align: 'center' });
-    pdf.text(`– Identifiant fiscal ${COMPANY.if} ICE : ${COMPANY.ice}`, w / 2, 289, { align: 'center' });
+    const footerY = 287;
+    const footer1 = `${COMPANY.fullName} ${COMPANY.address} - Tel : ${COMPANY.tel} - Patente : ${COMPANY.patente} – RC : ${COMPANY.rc}`;
+    const footer2 = `– Identifiant fiscal ${COMPANY.identifiantFiscal} ICE : ${COMPANY.ice}`;
+    pdf.text(footer1, pageW / 2, footerY, { align: 'center' });
+    pdf.text(footer2, pageW / 2, footerY + 4, { align: 'center' });
 
     pdf.save(`${doc.type}_${doc.doc_number}.pdf`);
 }
 
-function formatNum(n) { return n.toFixed(n % 1 === 0 ? 0 : 2).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
-function formatDatePDF(d) { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; }
+function formatNum(n) { 
+    if (typeof n !== 'number') n = parseFloat(n) || 0;
+    return n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace(/\s/g, '.'); 
+}
+
+function formatDatePDF(d) { 
+    if (!d) return ''; 
+    const parts = d.split('-'); 
+    if (parts.length !== 3) return d;
+    return `${parts[2]}/${parts[1]}/${parts[0]}`; 
+}
 
 function numberToWords(n) {
     const u = ['','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix','onze','douze','treize','quatorze','quinze','seize','dix-sept','dix-huit','dix-neuf'];
     const t = ['','','vingt','trente','quarante','cinquante','soixante','soixante','quatre-vingt','quatre-vingt'];
-    n = Math.floor(n); if (n === 0) return 'zéro'; if (n < 20) return u[n];
-    if (n < 100) { const x = Math.floor(n/10), r = n%10; if (x === 7 || x === 9) return t[x] + '-' + u[10 + r]; return t[x] + (r === 1 && x !== 8 ? ' et ' : r ? '-' : '') + u[r]; }
-    if (n < 1000) { const h = Math.floor(n/100), r = n%100; return (h === 1 ? 'cent' : u[h] + ' cent') + (h > 1 && r === 0 ? 's' : '') + (r ? ' ' + numberToWords(r) : ''); }
-    if (n < 1000000) { const th = Math.floor(n/1000), r = n%1000; return (th === 1 ? 'mille' : numberToWords(th) + ' mille') + (r ? ' ' + numberToWords(r) : ''); }
+    n = Math.floor(n); 
+    if (n === 0) return 'zéro'; 
+    if (n < 20) return u[n];
+    if (n < 100) { 
+        const x = Math.floor(n/10), r = n%10; 
+        if (x === 7 || x === 9) return t[x] + '-' + u[10 + r]; 
+        return t[x] + (r === 1 && x !== 8 ? ' et ' : r ? '-' : '') + u[r]; 
+    }
+    if (n < 1000) { 
+        const h = Math.floor(n/100), r = n%100; 
+        return (h === 1 ? 'cent' : u[h] + ' cent') + (h > 1 && r === 0 ? 's' : '') + (r ? ' ' + numberToWords(r) : ''); 
+    }
+    if (n < 1000000) { 
+        const th = Math.floor(n/1000), r = n%1000; 
+        return (th === 1 ? 'mille' : numberToWords(th) + ' mille') + (r ? ' ' + numberToWords(r) : ''); 
+    }
     return n.toString();
 }
 
 async function exportToExcel() {
-    const { data } = await db.from('neo_projects').select('*').order('created_at', { ascending: false }); if (!data) return;
+    const { data } = await db.from('neo_projects').select('*').order('created_at', { ascending: false }); 
+    if (!data) return;
     const rows = data.map(p => ({ Nom: p.name, Client: p.client_name || '', Statut: p.status, 'Photos Total': p.total_photos, 'Photos Sélect.': p.selected_photos, 'LR Total': p.lightroom_total, 'LR Fait': p.lightroom_done, 'PS Total': p.photoshop_total, 'PS Fait': p.photoshop_done, 'DV Reels': p.davinci_reels, 'DV Rendus': p.davinci_rendered, 'Paiement %': p.payment_percent, 'Progression %': p.project_percent }));
-    const ws = XLSX.utils.json_to_sheet(rows), wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Projets');
+    const ws = XLSX.utils.json_to_sheet(rows), wb = XLSX.utils.book_new(); 
+    XLSX.utils.book_append_sheet(wb, ws, 'Projets');
     XLSX.writeFile(wb, `neo-projects-${new Date().toISOString().split('T')[0]}.xlsx`);
 }
