@@ -421,8 +421,6 @@ function generatePDFFromData(doc, lines) {
     const totals = [
         ['TOTAL MAD HT', formatNum(totalHT)],
         [`T.V.A ${tvaRate}%`, formatNum(tvaAmount)],
-        ['TOTAL PHOTO TTC', formatNum(totalPhotoTTC)],
-        ['FRAIS DEPLACEMENT TTC', formatNum(frais)],
         ['TOTAL TTC', formatNum(totalTTC)]
     ];
 
@@ -431,12 +429,11 @@ function generatePDFFromData(doc, lines) {
         pdf.rect(totStartX, y, totLabelW, 7);
         pdf.rect(totStartX + totLabelW, y, totValW, 7);
         
-        pdf.setFont('helvetica', i === 4 ? 'bold' : 'normal');
-        pdf.setFontSize(7);
+        pdf.setFont('helvetica', i === 2 ? 'bold' : 'normal');
+        pdf.setFontSize(8);
         pdf.text(row[0], totStartX + 2, y + 5);
         
-        if (i === 4) pdf.setTextColor(230, 57, 70);
-        pdf.setFontSize(8);
+        if (i === 2) pdf.setTextColor(230, 57, 70);
         pdf.text(row[1], totStartX + totLabelW + totValW - 2, y + 5, { align: 'right' });
         pdf.setTextColor(0, 0, 0);
         
