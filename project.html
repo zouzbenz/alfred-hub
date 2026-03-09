@@ -144,7 +144,7 @@
         }
 
         async function loadDocs() {
-            const { data } = await db.from('project_documents').select('*').eq('project_id', projectId).eq('status', 'valide');
+            const { data } = await db.from('project_documents').select('*').eq('project_id', projectId);
             projectDocs = data || [];
         }
 
@@ -263,14 +263,16 @@
             const pending = projectTasks.filter(t => !t.done);
             const done = projectTasks.filter(t => t.done);
 
-            const devis = projectDocs.find(d => d.type === 'devis');
+            const devisValide = projectDocs.find(d => d.type === 'devis' && d.status === 'valide');
+            const devisBrouillon = projectDocs.find(d => d.type === 'devis' && d.status !== 'valide');
             const facture = projectDocs.find(d => d.type === 'facture');
 
             let btnsHtml = '';
-            if (p.drive_link || p.invoice_path || devis || facture) {
+            if (p.drive_link || p.invoice_path || devisValide || devisBrouillon || facture) {
                 btnsHtml = '<div class="action-buttons">';
                 if (p.drive_link) btnsHtml += `<a href="${p.drive_link}" target="_blank" class="action-btn action-btn-drive"><span class="action-btn-icon">📁</span>Fichiers</a>`;
-                if (devis) btnsHtml += `<button class="action-btn action-btn-devis" onclick="downloadDocPDF(${devis.id})"><span class="action-btn-icon">📋</span>Devis</button>`;
+                if (devisValide) btnsHtml += `<button class="action-btn action-btn-devis" onclick="downloadDocPDF(${devisValide.id})"><span class="action-btn-icon">📋</span>Devis</button>`;
+                else if (devisBrouillon) btnsHtml += `<button class="action-btn action-btn-devis" style="opacity:0.7" onclick="downloadDocPDF(${devisBrouillon.id})"><span class="action-btn-icon">📋</span>Devis (brouillon)</button>`;
                 if (facture) btnsHtml += `<button class="action-btn action-btn-facture" onclick="downloadDocPDF(${facture.id})"><span class="action-btn-icon">📄</span>Facture</button>`;
                 if (p.invoice_path) btnsHtml += `<a href="${getInvoiceUrl(p.invoice_path)}" target="_blank" class="action-btn action-btn-invoice"><span class="action-btn-icon">📄</span>Facture PDF</a>`;
                 btnsHtml += '</div>';
