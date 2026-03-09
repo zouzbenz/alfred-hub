@@ -7,400 +7,82 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <meta name="theme-color" content="#0d0d0d">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        :root {
-            --bg-color: #0d0d0d;
-            --card-bg: #161616;
-            --accent-color: #e63946;
-            --text-main: #ffffff;
-            --text-dim: #a0a0a0;
-            --border-color: #2a2a2a;
-            --success: #2ecc71;
-            --warning: #f39c12;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            background: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .password-screen {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 80vh;
-        }
-
-        .password-box {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 40px;
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-        }
-
-        .password-box h2 { margin-bottom: 10px; }
-        .password-box p { color: var(--text-dim); margin-bottom: 30px; font-size: 0.9rem; }
-
-        .password-box input {
-            width: 100%;
-            padding: 15px;
-            background: #111;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: white;
-            font-size: 1rem;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .password-box input:focus { outline: none; border-color: var(--accent-color); }
-
-        .password-box button {
-            width: 100%;
-            padding: 15px;
-            background: var(--accent-color);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .password-error { color: #e74c3c; margin-top: 15px; font-size: 0.85rem; }
-
-        .project-content { display: none; }
-        .project-content.visible { display: block; }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--accent-color);
-            text-decoration: none;
-            font-size: 0.85rem;
-            margin-bottom: 20px;
-        }
-
-        .back-link:hover { text-decoration: underline; }
-        .back-link.hidden { display: none; }
-
-        .project-header {
-            position: relative;
-            height: 250px;
-            border-radius: 20px;
-            overflow: hidden;
-            margin-bottom: 30px;
-        }
-
-        .project-header-bg {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background-size: cover;
-            background-position: center;
-            filter: brightness(0.4);
-        }
-
-        .project-header-content {
-            position: relative;
-            z-index: 1;
-            height: 100%;
-            padding: 30px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-        }
-
-        .project-status-badge {
-            position: absolute;
-            top: 20px; right: 20px;
-            padding: 8px 16px;
-            border-radius: 25px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-en_cours { background: var(--accent-color); color: white; }
-        .status-a_venir { background: var(--warning); color: black; }
-        .status-complete { background: var(--success); color: white; }
-
-        .project-name {
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin-bottom: 10px;
-        }
-
-        .project-meta {
-            display: flex;
-            gap: 30px;
-            flex-wrap: wrap;
-        }
-
-        .project-meta-item { font-size: 0.9rem; }
-        .project-meta-item span { color: var(--text-dim); }
-
-        /* Action Buttons */
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
-        }
-
-        .action-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 15px 25px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: 0.2s;
-            border: none;
-            cursor: pointer;
-        }
-
-        .action-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-        }
-
-        .action-btn-drive {
-            background: linear-gradient(135deg, #4285f4, #34a853);
-            color: white;
-        }
-
-        .action-btn-invoice {
-            background: linear-gradient(135deg, #e63946, #c92a2a);
-            color: white;
-        }
-
-        .action-btn-icon {
-            font-size: 1.3rem;
-        }
-
-        .section {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 20px;
-        }
-
-        .section-title {
-            font-size: 1rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .section-title-icon { font-size: 1.2rem; }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .stat-box {
-            background: rgba(255,255,255,0.03);
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--accent-color);
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            margin-top: 5px;
-        }
-
-        .progress-container { margin-top: 15px; }
-
-        .progress-bar {
-            height: 10px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent-color), var(--warning));
-            border-radius: 5px;
-            transition: width 0.5s ease;
-        }
-
-        .progress-fill.green {
-            background: linear-gradient(90deg, var(--success), #27ae60);
-        }
-
-        .progress-text {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 8px;
-            font-size: 0.8rem;
-            color: var(--text-dim);
-        }
-
-        .progress-percent {
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        .two-col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 600px) {
-            .two-col { grid-template-columns: 1fr; }
-            .project-name { font-size: 1.8rem; }
-            .project-header { height: 200px; }
-            .action-btn { width: 100%; justify-content: center; }
-        }
-
-        .description {
-            color: var(--text-dim);
-            line-height: 1.6;
-            font-size: 0.95rem;
-        }
-
-        .client-notes {
-            background: rgba(255,255,255,0.03);
-            border-left: 3px solid var(--accent-color);
-            padding: 15px 20px;
-            border-radius: 0 10px 10px 0;
-            color: var(--text-dim);
-            line-height: 1.6;
-            font-size: 0.95rem;
-            white-space: pre-wrap;
-        }
-
-        .payment-status {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .payment-percent {
-            font-size: 2.5rem;
-            font-weight: 800;
-        }
-
-        .payment-percent.paid { color: var(--success); }
-        .payment-percent.partial { color: var(--warning); }
-        .payment-percent.unpaid { color: var(--accent-color); }
-
-        .loading { text-align: center; padding: 100px; color: var(--text-dim); }
-        .error { text-align: center; padding: 100px; color: var(--accent-color); }
-
-        .footer-branding {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-dim);
-            font-size: 0.8rem;
-        }
-
-        .footer-branding a {
-            color: var(--accent-color);
-            text-decoration: none;
-        }
-
-        /* Tasks */
-        .task-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 15px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 10px;
-            margin-bottom: 10px;
-            transition: 0.2s;
-        }
-
-        .task-item:hover { background: rgba(255,255,255,0.05); }
-
-        .task-item.done { opacity: 0.6; }
-        .task-item.done .task-text { text-decoration: line-through; }
-
-        .task-checkbox {
-            width: 24px;
-            height: 24px;
-            border: 2px solid var(--border-color);
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: 0.2s;
-        }
-
-        .task-checkbox:hover { border-color: var(--success); }
-
-        .task-checkbox.checked {
-            background: var(--success);
-            border-color: var(--success);
-        }
-
-        .task-checkbox.checked::after {
-            content: '✓';
-            color: white;
-            font-size: 14px;
-        }
-
-        .task-text { flex: 1; font-size: 0.95rem; }
-
-        .tasks-empty {
-            color: var(--text-dim);
-            text-align: center;
-            padding: 20px;
-            font-size: 0.9rem;
-        }
-
-        .tasks-section-title {
-            font-size: 0.85rem;
-            color: var(--text-dim);
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .tasks-section-title.completed { color: var(--success); }
-
-        .tasks-divider {
-            margin: 25px 0;
-            border: none;
-            border-top: 1px solid var(--border-color);
-        }
+        :root { --bg:#0d0d0d; --card:#161616; --accent:#e63946; --text:#fff; --dim:#a0a0a0; --border:#2a2a2a; --success:#2ecc71; --warn:#f39c12; --blue:#3498db; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+        .container { max-width:1000px; margin:0 auto; padding:20px; }
+        .password-screen { display:flex; justify-content:center; align-items:center; min-height:80vh; }
+        .password-box { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:40px; width:100%; max-width:400px; text-align:center; }
+        .password-box h2 { margin-bottom:10px; }
+        .password-box p { color:var(--dim); margin-bottom:30px; font-size:.9rem; }
+        .password-box input { width:100%; padding:15px; background:#111; border:1px solid var(--border); border-radius:10px; color:#fff; font-size:1rem; margin-bottom:15px; text-align:center; }
+        .password-box input:focus { outline:none; border-color:var(--accent); }
+        .password-box button { width:100%; padding:15px; background:var(--accent); border:none; border-radius:10px; color:#fff; font-size:1rem; font-weight:600; cursor:pointer; }
+        .password-error { color:#e74c3c; margin-top:15px; font-size:.85rem; }
+        .project-content { display:none; }
+        .project-content.visible { display:block; }
+        .back-link { display:inline-flex; align-items:center; gap:8px; color:var(--accent); text-decoration:none; font-size:.85rem; margin-bottom:20px; }
+        .back-link:hover { text-decoration:underline; }
+        .back-link.hidden { display:none; }
+        .project-header { position:relative; height:250px; border-radius:20px; overflow:hidden; margin-bottom:30px; }
+        .project-header-bg { position:absolute; top:0; left:0; width:100%; height:100%; background-size:cover; background-position:center; filter:brightness(.4); }
+        .project-header-content { position:relative; z-index:1; height:100%; padding:30px; display:flex; flex-direction:column; justify-content:flex-end; }
+        .project-status-badge { position:absolute; top:20px; right:20px; padding:8px 16px; border-radius:25px; font-size:.8rem; font-weight:600; text-transform:uppercase; }
+        .status-en_cours { background:var(--accent); color:#fff; }
+        .status-a_venir { background:var(--warn); color:#000; }
+        .status-complete { background:var(--success); color:#fff; }
+        .project-name { font-size:2.5rem; font-weight:800; margin-bottom:10px; }
+        .project-meta { display:flex; gap:30px; flex-wrap:wrap; }
+        .project-meta-item { font-size:.9rem; }
+        .project-meta-item span { color:var(--dim); }
+        .action-buttons { display:flex; gap:15px; margin-bottom:25px; flex-wrap:wrap; }
+        .action-btn { display:inline-flex; align-items:center; gap:10px; padding:15px 25px; border-radius:12px; text-decoration:none; font-weight:600; font-size:.95rem; transition:.2s; border:none; cursor:pointer; }
+        .action-btn:hover { transform:translateY(-2px); box-shadow:0 5px 20px rgba(0,0,0,.3); }
+        .action-btn-drive { background:linear-gradient(135deg,#4285f4,#34a853); color:#fff; }
+        .action-btn-invoice { background:linear-gradient(135deg,#e63946,#c92a2a); color:#fff; }
+        .action-btn-devis { background:linear-gradient(135deg,#9b59b6,#8e44ad); color:#fff; }
+        .action-btn-facture { background:linear-gradient(135deg,#3498db,#2980b9); color:#fff; }
+        .action-btn-icon { font-size:1.3rem; }
+        .section { background:var(--card); border:1px solid var(--border); border-radius:15px; padding:25px; margin-bottom:20px; }
+        .section-title { font-size:1rem; font-weight:700; margin-bottom:20px; display:flex; align-items:center; gap:10px; }
+        .section-title-icon { font-size:1.2rem; }
+        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:15px; margin-bottom:15px; }
+        .stat-box { background:rgba(255,255,255,.03); border-radius:10px; padding:15px; text-align:center; }
+        .stat-value { font-size:1.8rem; font-weight:800; color:var(--accent); }
+        .stat-label { font-size:.75rem; color:var(--dim); margin-top:5px; }
+        .progress-container { margin-top:15px; }
+        .progress-bar { height:10px; background:rgba(255,255,255,.1); border-radius:5px; overflow:hidden; }
+        .progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--warn)); border-radius:5px; transition:width .5s ease; }
+        .progress-fill.green { background:linear-gradient(90deg,var(--success),#27ae60); }
+        .progress-text { display:flex; justify-content:space-between; margin-top:8px; font-size:.8rem; color:var(--dim); }
+        .progress-percent { font-weight:700; color:var(--text); }
+        .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+        @media(max-width:600px) { .two-col { grid-template-columns:1fr; } .project-name { font-size:1.8rem; } .project-header { height:200px; } .action-btn { width:100%; justify-content:center; } }
+        .description { color:var(--dim); line-height:1.6; font-size:.95rem; }
+        .client-notes { background:rgba(255,255,255,.03); border-left:3px solid var(--accent); padding:15px 20px; border-radius:0 10px 10px 0; color:var(--dim); line-height:1.6; font-size:.95rem; white-space:pre-wrap; }
+        .payment-status { display:flex; align-items:center; gap:15px; }
+        .payment-percent { font-size:2.5rem; font-weight:800; }
+        .payment-percent.paid { color:var(--success); }
+        .payment-percent.partial { color:var(--warn); }
+        .payment-percent.unpaid { color:var(--accent); }
+        .loading { text-align:center; padding:100px; color:var(--dim); }
+        .footer-branding { text-align:center; padding:40px 20px; color:var(--dim); font-size:.8rem; }
+        .footer-branding a { color:var(--accent); text-decoration:none; }
+        .task-item { display:flex; align-items:center; gap:12px; padding:12px 15px; background:rgba(255,255,255,.03); border-radius:10px; margin-bottom:10px; transition:.2s; }
+        .task-item:hover { background:rgba(255,255,255,.05); }
+        .task-item.done { opacity:.6; }
+        .task-item.done .task-text { text-decoration:line-through; }
+        .task-checkbox { width:24px; height:24px; border:2px solid var(--border); border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:.2s; }
+        .task-checkbox:hover { border-color:var(--success); }
+        .task-checkbox.checked { background:var(--success); border-color:var(--success); }
+        .task-checkbox.checked::after { content:'✓'; color:#fff; font-size:14px; }
+        .task-text { flex:1; font-size:.95rem; }
+        .tasks-empty { color:var(--dim); text-align:center; padding:20px; font-size:.9rem; }
+        .tasks-section-title { font-size:.85rem; color:var(--dim); margin-bottom:15px; display:flex; align-items:center; gap:8px; }
+        .tasks-section-title.completed { color:var(--success); }
+        .tasks-divider { margin:25px 0; border:none; border-top:1px solid var(--border); }
     </style>
 </head>
 <body>
@@ -408,384 +90,251 @@
         <div class="password-screen" id="password-screen">
             <div class="password-box">
                 <h2>🔐 Accès Projet</h2>
-                <p>Entrez le mot de passe pour accéder aux détails du projet</p>
+                <p>Entrez le mot de passe</p>
                 <input type="password" id="project-password" placeholder="Mot de passe" onkeypress="if(event.key==='Enter')checkProjectPassword()">
                 <button onclick="checkProjectPassword()">Accéder</button>
                 <div class="password-error" id="password-error"></div>
             </div>
         </div>
-
         <div class="project-content" id="project-content">
             <a href="./neo-projects.html" class="back-link" id="back-link">← Retour aux projets</a>
-            <div id="project-details">
-                <div class="loading">Chargement du projet...</div>
-            </div>
+            <div id="project-details"><div class="loading">Chargement...</div></div>
         </div>
     </div>
-
     <script>
         const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
-        
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const COMPANY = { name:'INSTA IMMO SARL', bank:'ATTIJARI, Agence PARANFA', rib:'007 780 0000277000000632 80' };
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const projectId = urlParams.get('id');
+        const projectId = new URLSearchParams(window.location.search).get('id');
+        let currentProject = null, projectTasks = [], projectDocs = [];
+        const isAdmin = sessionStorage.getItem('neo-backoffice-auth') === 'true';
 
-        let currentProject = null;
-        let projectTasks = [];
-        let isAdmin = sessionStorage.getItem('neo-backoffice-auth') === 'true';
-
-        function formatDate(dateStr) {
-            if (!dateStr) return 'Non définie';
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-        }
-
-        function calcPercent(done, total) {
-            if (!total || total === 0) return 0;
-            return Math.round((done / total) * 100);
-        }
-
-        function getImageUrl(path) {
-            if (!path) return null;
-            const { data } = db.storage.from('project-covers').getPublicUrl(path);
-            return data.publicUrl;
-        }
-
-        function getInvoiceUrl(path) {
-            if (!path) return null;
-            const { data } = db.storage.from('project-invoices').getPublicUrl(path);
-            return data.publicUrl;
-        }
+        function formatDate(d) { if (!d) return 'Non définie'; return new Date(d).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }); }
+        function calcPercent(done, total) { return total ? Math.round((done / total) * 100) : 0; }
+        function getImageUrl(path) { if (!path) return null; return db.storage.from('project-covers').getPublicUrl(path).data.publicUrl; }
+        function getInvoiceUrl(path) { if (!path) return null; return db.storage.from('project-invoices').getPublicUrl(path).data.publicUrl; }
 
         async function loadProjectData() {
-            if (!projectId) {
-                document.getElementById('password-screen').innerHTML = '<div class="password-box"><h2>❌ Erreur</h2><p>Projet non trouvé</p></div>';
-                return;
-            }
-
-            const { data, error } = await db
-                .from('neo_projects')
-                .select('*')
-                .eq('id', projectId)
-                .single();
-
-            if (error || !data) {
-                document.getElementById('password-screen').innerHTML = '<div class="password-box"><h2>❌ Erreur</h2><p>Projet non trouvé</p></div>';
-                return;
-            }
-
+            if (!projectId) { document.getElementById('password-screen').innerHTML = '<div class="password-box"><h2>❌</h2><p>Projet non trouvé</p></div>'; return; }
+            const { data, error } = await db.from('neo_projects').select('*').eq('id', projectId).single();
+            if (error || !data) { document.getElementById('password-screen').innerHTML = '<div class="password-box"><h2>❌</h2><p>Projet non trouvé</p></div>'; return; }
             currentProject = data;
-
-            if (isAdmin || !data.password) {
-                showProject();
-            }
+            if (isAdmin || !data.password) showProject();
         }
 
         function checkProjectPassword() {
-            const input = document.getElementById('project-password').value;
-            
-            if (input === currentProject.password) {
-                showProject();
-            } else {
-                document.getElementById('password-error').textContent = 'Mot de passe incorrect';
-            }
+            if (document.getElementById('project-password').value === currentProject.password) showProject();
+            else document.getElementById('password-error').textContent = 'Mot de passe incorrect';
         }
 
         async function showProject() {
             document.getElementById('password-screen').style.display = 'none';
             document.getElementById('project-content').classList.add('visible');
-            
-            if (!isAdmin) {
-                document.getElementById('back-link').classList.add('hidden');
-            }
-
+            if (!isAdmin) document.getElementById('back-link').classList.add('hidden');
             await loadTasks();
+            await loadDocs();
             renderProject(currentProject);
         }
 
         async function loadTasks() {
-            const { data, error } = await db
-                .from('project_tasks')
-                .select('*')
-                .eq('project_id', projectId)
-                .order('created_at', { ascending: true });
-
-            if (!error) {
-                projectTasks = data || [];
-            }
+            const { data } = await db.from('project_tasks').select('*').eq('project_id', projectId).order('created_at');
+            projectTasks = data || [];
         }
 
-        async function toggleTask(taskId, done) {
-            const { error } = await db.from('project_tasks').update({ done }).eq('id', taskId);
-            if (!error) {
-                await loadTasks();
-                renderProject(currentProject);
-            }
+        async function loadDocs() {
+            const { data } = await db.from('project_documents').select('*').eq('project_id', projectId).eq('status', 'valide');
+            projectDocs = data || [];
         }
 
-        function renderTaskItem(task) {
-            return `
-                <div class="task-item ${task.done ? 'done' : ''}">
-                    <div class="task-checkbox ${task.done ? 'checked' : ''}" onclick="toggleTask(${task.id}, ${!task.done})"></div>
-                    <span class="task-text">${task.text}</span>
-                </div>
-            `;
+        async function toggleTask(id, done) {
+            await db.from('project_tasks').update({ done }).eq('id', id);
+            await loadTasks();
+            renderProject(currentProject);
+        }
+
+        function renderTaskItem(t) {
+            return `<div class="task-item ${t.done?'done':''}"><div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTask(${t.id},${!t.done})"></div><span class="task-text">${t.text}</span></div>`;
+        }
+
+        async function downloadDocPDF(docId) {
+            const { data: doc } = await db.from('project_documents').select('*').eq('id', docId).single();
+            const { data: lines } = await db.from('document_lines').select('*').eq('document_id', docId).order('sort_order');
+            if (doc) generatePDF(doc, lines || []);
+        }
+
+        function generatePDF(doc, lines) {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const w = 210, m = 15;
+            let y = 20;
+
+            pdf.setFontSize(16); pdf.setFont('helvetica', 'bold');
+            pdf.text(`${doc.type.toUpperCase()} : ${currentProject.name.toUpperCase()}`, m, y);
+            pdf.setFontSize(9); pdf.setFont('helvetica', 'normal');
+            pdf.text(`${doc.type.toUpperCase()} N° : ${doc.doc_number}`, w - m, y, { align: 'right' });
+            pdf.text(`DATE : ${formatDatePDF(doc.doc_date)}`, w - m, y + 5, { align: 'right' });
+            y += 20;
+
+            const colX = [m, 100, 125, 155];
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(m, y, w - 2 * m, 8, 'F');
+            pdf.setFontSize(8); pdf.setFont('helvetica', 'bold');
+            pdf.text('DÉSIGNATION', colX[0] + 2, y + 5);
+            pdf.text('QTÉ', colX[1] + 2, y + 5);
+            pdf.text('P.U', colX[2] + 2, y + 5);
+            pdf.text('MONTANT MAD HT', colX[3] + 2, y + 5);
+            y += 10;
+
+            pdf.setFont('helvetica', 'normal');
+            let totalHT = 0;
+            lines.forEach((l, i) => {
+                const montant = (l.quantity || 1) * (l.unit_price || 0);
+                totalHT += montant;
+                pdf.setFont('helvetica', 'bold');
+                pdf.text(`${i + 1}. ${l.designation || ''}`, colX[0], y + 4);
+                pdf.setFont('helvetica', 'normal');
+                if (l.detail) {
+                    const dls = pdf.splitTextToSize(l.detail, 80);
+                    pdf.setFontSize(7);
+                    dls.forEach((dl, di) => pdf.text(dl, colX[0], y + 9 + di * 4));
+                    pdf.setFontSize(8);
+                    y += dls.length * 4;
+                }
+                pdf.text(String(l.quantity || 1), colX[1] + 2, y + 4);
+                pdf.text(fmtNum(l.unit_price || 0), colX[2] + 2, y + 4);
+                pdf.text(fmtNum(montant), colX[3] + 2, y + 4);
+                y += 15;
+                if (y > 250) { pdf.addPage(); y = 20; }
+            });
+
+            y += 5;
+            const tva = totalHT * (doc.tva_rate || 20) / 100;
+            const ttc = totalHT + tva + (doc.frais_deplacement || 0);
+            pdf.text('TOTAL MAD HT', colX[2], y); pdf.text(fmtNum(totalHT), colX[3] + 2, y); y += 6;
+            pdf.text(`T.V.A ${doc.tva_rate || 20}%`, colX[2], y); pdf.text(fmtNum(tva), colX[3] + 2, y); y += 6;
+            if (doc.frais_deplacement) { pdf.text('FRAIS DÉPLACEMENT TTC', colX[2], y); pdf.text(fmtNum(doc.frais_deplacement), colX[3] + 2, y); y += 6; }
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('TOTAL TTC', colX[2], y); pdf.text(fmtNum(ttc), colX[3] + 2, y); y += 15;
+
+            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
+            pdf.text(`Arrêté le présent ${doc.type} à la somme de :`, m, y); y += 5;
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(numWords(ttc) + ' dirhams', m, y); y += 10;
+            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
+            pdf.text('Conditions de règlement :', m, y); y += 4;
+            pdf.text(doc.conditions || '', m, y); y += 8;
+            pdf.text('À payer par :', m, y); y += 4;
+            pdf.text(`Chèque à l'ordre de ${COMPANY.name}`, m, y); y += 4;
+            pdf.text(`ou par virement bancaire : ${COMPANY.name}`, m, y); y += 8;
+            pdf.text(`${COMPANY.bank} - RIB : ${COMPANY.rib}`, m, y); y += 15;
+            pdf.text('Signature et cachet de l\'entreprise', w - m - 60, y);
+
+            pdf.save(`${doc.type}_${doc.doc_number}.pdf`);
+        }
+
+        function fmtNum(n) { return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+        function formatDatePDF(d) { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; }
+        function numWords(n) {
+            const u = ['','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix','onze','douze','treize','quatorze','quinze','seize','dix-sept','dix-huit','dix-neuf'];
+            const t = ['','','vingt','trente','quarante','cinquante','soixante','soixante','quatre-vingt','quatre-vingt'];
+            n = Math.floor(n);
+            if (n === 0) return 'zéro';
+            if (n < 20) return u[n];
+            if (n < 100) { const x = Math.floor(n/10), r = n%10; return (x===7||x===9) ? t[x]+'-'+u[10+r] : t[x]+(r?'-'+u[r]:''); }
+            if (n < 1000) { const h = Math.floor(n/100), r = n%100; return (h===1?'cent':u[h]+' cent')+(r?' '+numWords(r):''); }
+            if (n < 1000000) { const th = Math.floor(n/1000), r = n%1000; return (th===1?'mille':numWords(th)+' mille')+(r?' '+numWords(r):''); }
+            return n.toString();
         }
 
         function renderProject(p) {
             const defaultBg = 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=1200&q=80';
+            let bgUrl = p.cover_image_path ? getImageUrl(p.cover_image_path) : (p.cover_photo_url || defaultBg);
             
-            let bgUrl = defaultBg;
-            if (p.cover_image_path) {
-                bgUrl = getImageUrl(p.cover_image_path);
-            } else if (p.cover_photo_url) {
-                bgUrl = p.cover_photo_url;
-            }
+            const selPct = calcPercent(p.selected_photos, p.total_photos);
+            const lrPct = calcPercent(p.lightroom_done, p.lightroom_total);
+            const psPct = calcPercent(p.photoshop_done, p.photoshop_total);
+            const dvPct = calcPercent(p.davinci_rendered, p.davinci_reels);
             
-            const selectionPercent = calcPercent(p.selected_photos, p.total_photos);
-            const lightroomPercent = calcPercent(p.lightroom_done, p.lightroom_total);
-            const photoshopPercent = calcPercent(p.photoshop_done, p.photoshop_total);
-            const davinciPercent = calcPercent(p.davinci_rendered, p.davinci_reels);
-            
-            let paymentClass = 'unpaid';
-            if (p.payment_percent >= 100) paymentClass = 'paid';
-            else if (p.payment_percent > 0) paymentClass = 'partial';
-
+            let payClass = p.payment_percent >= 100 ? 'paid' : p.payment_percent > 0 ? 'partial' : 'unpaid';
             document.title = `${p.name} - Néo Storytellers`;
 
-            const pendingTasks = projectTasks.filter(t => !t.done);
-            const completedTasks = projectTasks.filter(t => t.done);
+            const pending = projectTasks.filter(t => !t.done);
+            const done = projectTasks.filter(t => t.done);
 
-            // Action buttons HTML
-            let actionButtonsHtml = '';
-            if (p.drive_link || p.invoice_path) {
-                actionButtonsHtml = '<div class="action-buttons">';
-                if (p.drive_link) {
-                    actionButtonsHtml += `
-                        <a href="${p.drive_link}" target="_blank" class="action-btn action-btn-drive">
-                            <span class="action-btn-icon">📁</span>
-                            Accéder aux fichiers
-                        </a>
-                    `;
-                }
-                if (p.invoice_path) {
-                    const invoiceUrl = getInvoiceUrl(p.invoice_path);
-                    actionButtonsHtml += `
-                        <a href="${invoiceUrl}" target="_blank" class="action-btn action-btn-invoice">
-                            <span class="action-btn-icon">📄</span>
-                            Voir la facture
-                        </a>
-                    `;
-                }
-                actionButtonsHtml += '</div>';
+            const devis = projectDocs.find(d => d.type === 'devis');
+            const facture = projectDocs.find(d => d.type === 'facture');
+
+            let btnsHtml = '';
+            if (p.drive_link || p.invoice_path || devis || facture) {
+                btnsHtml = '<div class="action-buttons">';
+                if (p.drive_link) btnsHtml += `<a href="${p.drive_link}" target="_blank" class="action-btn action-btn-drive"><span class="action-btn-icon">📁</span>Fichiers</a>`;
+                if (devis) btnsHtml += `<button class="action-btn action-btn-devis" onclick="downloadDocPDF(${devis.id})"><span class="action-btn-icon">📋</span>Devis</button>`;
+                if (facture) btnsHtml += `<button class="action-btn action-btn-facture" onclick="downloadDocPDF(${facture.id})"><span class="action-btn-icon">📄</span>Facture</button>`;
+                if (p.invoice_path) btnsHtml += `<a href="${getInvoiceUrl(p.invoice_path)}" target="_blank" class="action-btn action-btn-invoice"><span class="action-btn-icon">📄</span>Facture PDF</a>`;
+                btnsHtml += '</div>';
             }
 
-            // Client notes HTML
-            let clientNotesHtml = '';
-            if (p.client_notes) {
-                clientNotesHtml = `
-                    <div class="section">
-                        <h3 class="section-title"><span class="section-title-icon">💬</span> Notes</h3>
-                        <div class="client-notes">${p.client_notes}</div>
-                    </div>
-                `;
-            }
+            let notesHtml = p.client_notes ? `<div class="section"><h3 class="section-title"><span class="section-title-icon">💬</span> Notes</h3><div class="client-notes">${p.client_notes}</div></div>` : '';
 
-            // Tasks HTML
             let tasksHtml = '';
-            if (projectTasks.length > 0) {
-                tasksHtml = `
-                    <div class="section">
-                        <h3 class="section-title"><span class="section-title-icon">📋</span> Tâches du projet</h3>
-                        
-                        <div class="tasks-section-title">À faire (${pendingTasks.length})</div>
-                        ${pendingTasks.length > 0 
-                            ? pendingTasks.map(renderTaskItem).join('') 
-                            : '<div class="tasks-empty">Toutes les tâches sont complétées ! 🎉</div>'
-                        }
-                        
-                        ${completedTasks.length > 0 ? `
-                            <hr class="tasks-divider">
-                            <div class="tasks-section-title completed">✅ Complétées (${completedTasks.length})</div>
-                            ${completedTasks.map(renderTaskItem).join('')}
-                        ` : ''}
-                    </div>
-                `;
+            if (projectTasks.length) {
+                tasksHtml = `<div class="section"><h3 class="section-title"><span class="section-title-icon">📋</span> Tâches</h3>
+                    <div class="tasks-section-title">À faire (${pending.length})</div>
+                    ${pending.length ? pending.map(renderTaskItem).join('') : '<div class="tasks-empty">Tout est fait ! 🎉</div>'}
+                    ${done.length ? `<hr class="tasks-divider"><div class="tasks-section-title completed">✅ Complétées (${done.length})</div>${done.map(renderTaskItem).join('')}` : ''}
+                </div>`;
             }
 
             document.getElementById('project-details').innerHTML = `
                 <div class="project-header">
-                    <div class="project-header-bg" style="background-image: url('${bgUrl}')"></div>
-                    <span class="project-status-badge status-${p.status}">${p.status.replace('_', ' ')}</span>
+                    <div class="project-header-bg" style="background-image:url('${bgUrl}')"></div>
+                    <span class="project-status-badge status-${p.status}">${p.status.replace('_',' ')}</span>
                     <div class="project-header-content">
                         <h1 class="project-name">${p.name}</h1>
                         <div class="project-meta">
-                            <div class="project-meta-item"><span>Client:</span> ${p.client_name || 'Non défini'}</div>
+                            <div class="project-meta-item"><span>Client:</span> ${p.client_name||'Non défini'}</div>
                             <div class="project-meta-item"><span>Début:</span> ${formatDate(p.date_start)}</div>
                         </div>
                     </div>
                 </div>
-
-                ${actionButtonsHtml}
-
-                ${p.description ? `
-                <div class="section">
-                    <h3 class="section-title"><span class="section-title-icon">📝</span> Description</h3>
-                    <p class="description">${p.description}</p>
-                </div>
-                ` : ''}
-
-                ${clientNotesHtml}
-
+                ${btnsHtml}
+                ${p.description?`<div class="section"><h3 class="section-title"><span class="section-title-icon">📝</span> Description</h3><p class="description">${p.description}</p></div>`:''}
+                ${notesHtml}
                 ${tasksHtml}
-
-                <div class="section">
-                    <h3 class="section-title"><span class="section-title-icon">📸</span> Sélection Photos</h3>
+                <div class="section"><h3 class="section-title"><span class="section-title-icon">📸</span> Sélection Photos</h3>
                     <div class="stats-grid">
-                        <div class="stat-box">
-                            <div class="stat-value">${p.total_photos || 0}</div>
-                            <div class="stat-label">Total prises</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-value">${p.selected_photos || 0}</div>
-                            <div class="stat-label">Sélectionnées</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-value">${selectionPercent}%</div>
-                            <div class="stat-label">Taux sélection</div>
-                        </div>
+                        <div class="stat-box"><div class="stat-value">${p.total_photos||0}</div><div class="stat-label">Total</div></div>
+                        <div class="stat-box"><div class="stat-value">${p.selected_photos||0}</div><div class="stat-label">Sélect.</div></div>
+                        <div class="stat-box"><div class="stat-value">${selPct}%</div><div class="stat-label">Taux</div></div>
                     </div>
                 </div>
-
                 <div class="two-col">
-                    <div class="section">
-                        <h3 class="section-title"><span class="section-title-icon">🎨</span> Lightroom</h3>
-                        <div class="stats-grid">
-                            <div class="stat-box">
-                                <div class="stat-value">${p.lightroom_total || 0}</div>
-                                <div class="stat-label">Total</div>
-                            </div>
-                            <div class="stat-box">
-                                <div class="stat-value">${p.lightroom_done || 0}</div>
-                                <div class="stat-label">Traitées</div>
-                            </div>
-                        </div>
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-fill ${lightroomPercent >= 100 ? 'green' : ''}" style="width: ${lightroomPercent}%"></div>
-                            </div>
-                            <div class="progress-text">
-                                <span>Progression</span>
-                                <span class="progress-percent">${lightroomPercent}%</span>
-                            </div>
-                        </div>
+                    <div class="section"><h3 class="section-title"><span class="section-title-icon">🎨</span> Lightroom</h3>
+                        <div class="stats-grid"><div class="stat-box"><div class="stat-value">${p.lightroom_total||0}</div><div class="stat-label">Total</div></div><div class="stat-box"><div class="stat-value">${p.lightroom_done||0}</div><div class="stat-label">Fait</div></div></div>
+                        <div class="progress-container"><div class="progress-bar"><div class="progress-fill ${lrPct>=100?'green':''}" style="width:${lrPct}%"></div></div><div class="progress-text"><span>Progression</span><span class="progress-percent">${lrPct}%</span></div></div>
                     </div>
-
-                    <div class="section">
-                        <h3 class="section-title"><span class="section-title-icon">✨</span> Photoshop</h3>
-                        <div class="stats-grid">
-                            <div class="stat-box">
-                                <div class="stat-value">${p.photoshop_total || 0}</div>
-                                <div class="stat-label">Total</div>
-                            </div>
-                            <div class="stat-box">
-                                <div class="stat-value">${p.photoshop_done || 0}</div>
-                                <div class="stat-label">Traitées</div>
-                            </div>
-                        </div>
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-fill ${photoshopPercent >= 100 ? 'green' : ''}" style="width: ${photoshopPercent}%"></div>
-                            </div>
-                            <div class="progress-text">
-                                <span>Progression</span>
-                                <span class="progress-percent">${photoshopPercent}%</span>
-                            </div>
-                        </div>
+                    <div class="section"><h3 class="section-title"><span class="section-title-icon">✨</span> Photoshop</h3>
+                        <div class="stats-grid"><div class="stat-box"><div class="stat-value">${p.photoshop_total||0}</div><div class="stat-label">Total</div></div><div class="stat-box"><div class="stat-value">${p.photoshop_done||0}</div><div class="stat-label">Fait</div></div></div>
+                        <div class="progress-container"><div class="progress-bar"><div class="progress-fill ${psPct>=100?'green':''}" style="width:${psPct}%"></div></div><div class="progress-text"><span>Progression</span><span class="progress-percent">${psPct}%</span></div></div>
                     </div>
                 </div>
-
-                <div class="section">
-                    <h3 class="section-title"><span class="section-title-icon">🎬</span> DaVinci Resolve</h3>
-                    <div class="stats-grid">
-                        <div class="stat-box">
-                            <div class="stat-value">${p.davinci_reels || 0}</div>
-                            <div class="stat-label">Reels prévus</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-value">${p.davinci_rendered || 0}</div>
-                            <div class="stat-label">Rendus</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-value">${davinciPercent}%</div>
-                            <div class="stat-label">Progression</div>
-                        </div>
-                    </div>
-                    <div class="progress-container">
-                        <div class="progress-bar">
-                            <div class="progress-fill ${davinciPercent >= 100 ? 'green' : ''}" style="width: ${davinciPercent}%"></div>
-                        </div>
-                    </div>
+                <div class="section"><h3 class="section-title"><span class="section-title-icon">🎬</span> DaVinci</h3>
+                    <div class="stats-grid"><div class="stat-box"><div class="stat-value">${p.davinci_reels||0}</div><div class="stat-label">Reels</div></div><div class="stat-box"><div class="stat-value">${p.davinci_rendered||0}</div><div class="stat-label">Rendus</div></div><div class="stat-box"><div class="stat-value">${dvPct}%</div><div class="stat-label">Progression</div></div></div>
+                    <div class="progress-container"><div class="progress-bar"><div class="progress-fill ${dvPct>=100?'green':''}" style="width:${dvPct}%"></div></div></div>
                 </div>
-
                 <div class="two-col">
-                    <div class="section">
-                        <h3 class="section-title"><span class="section-title-icon">💰</span> Statut Paiement</h3>
-                        <div class="payment-status">
-                            <div class="payment-percent ${paymentClass}">${p.payment_percent || 0}%</div>
-                            <div>
-                                <div style="font-weight: 600;">${p.payment_percent >= 100 ? 'Payé' : p.payment_percent > 0 ? 'Paiement partiel' : 'En attente'}</div>
-                                <div style="color: var(--text-dim); font-size: 0.85rem;">du montant total</div>
-                            </div>
-                        </div>
+                    <div class="section"><h3 class="section-title"><span class="section-title-icon">💰</span> Paiement</h3>
+                        <div class="payment-status"><div class="payment-percent ${payClass}">${p.payment_percent||0}%</div><div><div style="font-weight:600">${p.payment_percent>=100?'Payé':p.payment_percent>0?'Partiel':'En attente'}</div><div style="color:var(--dim);font-size:.85rem">du total</div></div></div>
                     </div>
-
-                    <div class="section">
-                        <h3 class="section-title"><span class="section-title-icon">📊</span> Statut Projet</h3>
-                        <div class="stats-grid">
-                            <div class="stat-box">
-                                <div class="stat-value">${p.project_percent || 0}%</div>
-                                <div class="stat-label">Complété</div>
-                            </div>
-                        </div>
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-fill ${p.project_percent >= 100 ? 'green' : ''}" style="width: ${p.project_percent || 0}%"></div>
-                            </div>
-                        </div>
+                    <div class="section"><h3 class="section-title"><span class="section-title-icon">📊</span> Projet</h3>
+                        <div class="stats-grid"><div class="stat-box"><div class="stat-value">${p.project_percent||0}%</div><div class="stat-label">Complété</div></div></div>
+                        <div class="progress-container"><div class="progress-bar"><div class="progress-fill ${p.project_percent>=100?'green':''}" style="width:${p.project_percent||0}%"></div></div></div>
                     </div>
                 </div>
-
-                <div class="footer-branding">
-                    Projet suivi par <a href="#">Néo Storytellers</a>
-                </div>
+                <div class="footer-branding">Projet suivi par <a href="#">Néo Storytellers</a></div>
             `;
-        }
-
-        // Real-time sync
-        if (projectId) {
-            db.channel('neo_projects_detail')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'neo_projects', filter: `id=eq.${projectId}` }, async () => {
-                    const { data } = await db.from('neo_projects').select('*').eq('id', projectId).single();
-                    if (data) {
-                        currentProject = data;
-                        if (document.getElementById('project-content').classList.contains('visible')) {
-                            renderProject(data);
-                        }
-                    }
-                })
-                .subscribe();
-
-            db.channel('project_tasks_detail')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'project_tasks', filter: `project_id=eq.${projectId}` }, async () => {
-                    await loadTasks();
-                    if (document.getElementById('project-content').classList.contains('visible')) {
-                        renderProject(currentProject);
-                    }
-                })
-                .subscribe();
         }
 
         loadProjectData();
