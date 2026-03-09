@@ -414,25 +414,30 @@ function generatePDFFromData(doc, lines) {
     const totLabelW = col3W + col4W;
     const totX = col3X;
 
+    // Totals with wider label column
+    const totLabelW = 55, totValW = 30;
+    const totStartX = col4X + col4W - totLabelW - totValW;
+
     const totals = [
         ['TOTAL MAD HT', formatNum(totalHT)],
         [`T.V.A ${tvaRate}%`, formatNum(tvaAmount)],
         ['TOTAL PHOTO TTC', formatNum(totalPhotoTTC)],
-        ['FRAIS DE DEPLACEMENT TTC', formatNum(frais)],
+        ['FRAIS DEPLACEMENT TTC', formatNum(frais)],
         ['TOTAL TTC', formatNum(totalTTC)]
     ];
 
     totals.forEach((row, i) => {
         pdf.setDrawColor(150, 150, 150);
-        pdf.rect(totX, y, col3W, 7);
-        pdf.rect(col4X, y, col4W, 7);
+        pdf.rect(totStartX, y, totLabelW, 7);
+        pdf.rect(totStartX + totLabelW, y, totValW, 7);
         
         pdf.setFont('helvetica', i === 4 ? 'bold' : 'normal');
-        pdf.setFontSize(8);
-        pdf.text(row[0], totX + 2, y + 5);
+        pdf.setFontSize(7);
+        pdf.text(row[0], totStartX + 2, y + 5);
         
         if (i === 4) pdf.setTextColor(230, 57, 70);
-        pdf.text(row[1], col4X + col4W - 3, y + 5, { align: 'right' });
+        pdf.setFontSize(8);
+        pdf.text(row[1], totStartX + totLabelW + totValW - 2, y + 5, { align: 'right' });
         pdf.setTextColor(0, 0, 0);
         
         y += 7;
