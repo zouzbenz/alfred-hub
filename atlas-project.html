@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projet - Atlas Pose</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+        .container { max-width:1200px; margin:0 auto; padding:20px; }
+        
+        /* Login */
+        .login-screen { display:flex; justify-content:center; align-items:center; min-height:100vh; }
+        .login-box { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:40px; width:100%; max-width:400px; text-align:center; }
+        .login-box h2 { margin-bottom:10px; }
+        .login-box p { color:var(--dim); margin-bottom:30px; }
+        .login-box input { width:100%; padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; font-size:1rem; margin-bottom:15px; text-align:center; }
+        .login-box button { width:100%; padding:14px; background:var(--accent); border:none; border-radius:10px; color:#fff; font-size:1rem; font-weight:600; cursor:pointer; }
+        .login-error { color:var(--danger); margin-top:15px; font-size:.85rem; }
+        
+        .content { display:none; }
+        .content.visible { display:block; }
+        
+        .back-link { display:inline-flex; align-items:center; gap:8px; color:var(--accent); text-decoration:none; font-size:.9rem; margin-bottom:20px; }
+        .back-link:hover { text-decoration:underline; }
+        
+        /* Header */
+        .project-header { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:30px; margin-bottom:25px; }
+        .project-title { font-size:2rem; font-weight:800; margin-bottom:10px; }
+        .project-meta { display:flex; gap:30px; flex-wrap:wrap; color:var(--dim); font-size:.95rem; }
+        .project-meta span { display:flex; align-items:center; gap:6px; }
+        .status-badge { display:inline-block; padding:6px 14px; border-radius:20px; font-size:.8rem; font-weight:600; margin-left:15px; }
+        .status-a_venir { background:rgba(245,158,11,.2); color:var(--warn); }
+        .status-en_cours { background:rgba(59,130,246,.2); color:var(--accent); }
+        .status-termine { background:rgba(16,185,129,.2); color:var(--accent2); }
+        
+        /* Stats */
+        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:15px; margin-bottom:25px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; text-align:center; }
+        .stat-value { font-size:1.8rem; font-weight:800; }
+        .stat-value.blue { color:var(--accent); }
+        .stat-value.green { color:var(--accent2); }
+        .stat-value.orange { color:var(--warn); }
+        .stat-value.red { color:var(--danger); }
+        .stat-label { font-size:.8rem; color:var(--dim); margin-top:5px; }
+        
+        /* Budget vs Réel */
+        .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:25px; margin-bottom:20px; }
+        .section-title { font-size:1.1rem; font-weight:700; margin-bottom:20px; display:flex; align-items:center; gap:10px; }
+        
+        .comparison-table { width:100%; border-collapse:collapse; }
+        .comparison-table th, .comparison-table td { padding:12px 15px; text-align:left; border-bottom:1px solid var(--border); }
+        .comparison-table th { color:var(--dim); font-size:.8rem; text-transform:uppercase; }
+        .comparison-table .cat-name { font-weight:600; }
+        .comparison-table .amount { text-align:right; font-family:monospace; }
+        .comparison-table .budget { color:var(--dim); }
+        .comparison-table .spent { color:var(--accent2); }
+        .comparison-table .reste { font-weight:600; }
+        .comparison-table .reste.negative { color:var(--danger); }
+        .comparison-table .reste.positive { color:var(--accent2); }
+        
+        .progress-cell { width:120px; }
+        .mini-progress { height:6px; background:var(--border); border-radius:3px; overflow:hidden; }
+        .mini-progress-fill { height:100%; border-radius:3px; }
+        .mini-progress-fill.safe { background:var(--accent2); }
+        .mini-progress-fill.warning { background:var(--warn); }
+        .mini-progress-fill.danger { background:var(--danger); }
+        
+        /* Historique */
+        .depense-item { display:flex; justify-content:space-between; align-items:center; padding:15px; background:var(--bg); border-radius:10px; margin-bottom:10px; }
+        .depense-info h4 { font-size:.95rem; margin-bottom:4px; }
+        .depense-meta { font-size:.8rem; color:var(--dim); }
+        .depense-cat { display:inline-block; padding:2px 8px; background:rgba(59,130,246,.2); color:var(--accent); border-radius:4px; font-size:.7rem; margin-right:8px; }
+        .depense-amount { font-size:1.1rem; font-weight:700; color:var(--accent2); }
+        
+        .empty-state { text-align:center; padding:40px; color:var(--dim); }
+        
+        .footer { text-align:center; padding:40px; color:var(--dim); font-size:.85rem; }
+        .footer a { color:var(--accent); text-decoration:none; }
+        
+        @media(max-width:768px) {
+            .project-meta { flex-direction:column; gap:10px; }
+            .comparison-table { font-size:.85rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login -->
+    <div class="login-screen" id="login-screen">
+        <div class="login-box">
+            <h2>🔐 Accès Projet</h2>
+            <p>Entrez le mot de passe du chantier</p>
+            <input type="password" id="password-input" placeholder="Mot de passe" onkeypress="if(event.key==='Enter')checkPassword()">
+            <button onclick="checkPassword()">Accéder</button>
+            <div class="login-error" id="login-error"></div>
+        </div>
+    </div>
+    
+    <!-- Content -->
+    <div class="content" id="content">
+        <div class="container">
+            <a href="./atlas-projects.html" class="back-link" id="back-link">← Retour aux projets</a>
+            
+            <div class="project-header" id="project-header">
+                <div class="project-title">Chargement...</div>
+            </div>
+            
+            <div class="stats-grid" id="stats-grid"></div>
+            
+            <div class="section">
+                <h3 class="section-title">📊 Budget vs Réel par catégorie</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Catégorie</th>
+                            <th class="amount">Budget</th>
+                            <th class="amount">Dépensé</th>
+                            <th class="amount">Reste</th>
+                            <th class="progress-cell">%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparison-tbody"></tbody>
+                    <tfoot id="comparison-tfoot"></tfoot>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h3 class="section-title">📝 Historique des dépenses</h3>
+                <div id="depenses-list"></div>
+            </div>
+            
+            <div class="footer">
+                Suivi par <a href="#">Atlas Pose</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const CATEGORIES = [
+    { id: 'fourniture', label: 'Fourniture' },
+    { id: 'colle', label: 'Colle' },
+    { id: 'joints', label: 'Joints' },
+    { id: 'chape', label: 'Chape' },
+    { id: 'main_oeuvre', label: "Main d'œuvre" },
+    { id: 'transport', label: 'Transport' },
+    { id: 'mise_en_place', label: 'Mise en place' },
+    { id: 'nettoyage', label: 'Nettoyage' },
+    { id: 'materiel', label: 'Matériel' },
+    { id: 'prorata', label: 'Prorata' },
+    { id: 'aleas', label: 'Aléas' }
+];
+
+const projectId = new URLSearchParams(window.location.search).get('id');
+let project = null, budgets = [], depenses = [];
+const isAdmin = sessionStorage.getItem('atlas-auth') === 'true';
+
+async function loadProject() {
+    if (!projectId) {
+        document.getElementById('login-screen').innerHTML = '<div class="login-box"><h2>❌</h2><p>Projet non trouvé</p></div>';
+        return;
+    }
+    
+    const { data, error } = await db.from('atlas_projects').select('*').eq('id', projectId).single();
+    if (error || !data) {
+        document.getElementById('login-screen').innerHTML = '<div class="login-box"><h2>❌</h2><p>Projet non trouvé</p></div>';
+        return;
+    }
+    
+    project = data;
+    
+    // Load budgets and depenses
+    const [bRes, dRes] = await Promise.all([
+        db.from('atlas_budget').select('*').eq('project_id', projectId),
+        db.from('atlas_depenses').select('*').eq('project_id', projectId).order('date_depense', { ascending: false })
+    ]);
+    budgets = bRes.data || [];
+    depenses = dRes.data || [];
+    
+    // Check access
+    if (isAdmin || !project.password) {
+        showContent();
+    }
+}
+
+function checkPassword() {
+    const input = document.getElementById('password-input').value;
+    if (input === project.password) {
+        showContent();
+    } else {
+        document.getElementById('login-error').textContent = 'Mot de passe incorrect';
+    }
+}
+
+function showContent() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('content').classList.add('visible');
+    if (!isAdmin) document.getElementById('back-link').style.display = 'none';
+    render();
+}
+
+function formatMoney(n) {
+    return new Intl.NumberFormat('fr-MA', { maximumFractionDigits: 0 }).format(n || 0);
+}
+
+function getBudgetByCategory(catId) {
+    return budgets.filter(b => b.categorie === catId).reduce((s, b) => s + (parseFloat(b.budget_prevu) || 0), 0);
+}
+
+function getDepensesByCategory(catId) {
+    return depenses.filter(d => d.categorie === catId).reduce((s, d) => s + (parseFloat(d.montant) || 0), 0);
+}
+
+function render() {
+    document.title = `${project.name} - Atlas Pose`;
+    
+    // Header
+    document.getElementById('project-header').innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:15px;">
+            <div>
+                <div class="project-title">${project.name}<span class="status-badge status-${project.status}">${project.status.replace('_', ' ')}</span></div>
+                <div class="project-meta">
+                    <span>🏢 ${project.client_name || 'Non défini'}</span>
+                    <span>📍 ${project.localisation || 'Non défini'}</span>
+                    <span>📐 ${project.surface_m2 || 0} m²</span>
+                    <span>👷 ${project.nb_employes || 0} employés</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Stats
+    const totalBudget = budgets.reduce((s, b) => s + (parseFloat(b.budget_prevu) || 0), 0);
+    const totalSpent = depenses.reduce((s, d) => s + (parseFloat(d.montant) || 0), 0);
+    const reste = totalBudget - totalSpent;
+    const pct = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
+    
+    document.getElementById('stats-grid').innerHTML = `
+        <div class="stat-card"><div class="stat-value blue">${formatMoney(totalBudget)}</div><div class="stat-label">Budget Total (MAD)</div></div>
+        <div class="stat-card"><div class="stat-value green">${formatMoney(totalSpent)}</div><div class="stat-label">Dépensé (MAD)</div></div>
+        <div class="stat-card"><div class="stat-value ${reste < 0 ? 'red' : 'orange'}">${formatMoney(reste)}</div><div class="stat-label">Reste (MAD)</div></div>
+        <div class="stat-card"><div class="stat-value ${pct > 100 ? 'red' : pct > 80 ? 'orange' : 'blue'}">${pct}%</div><div class="stat-label">Consommé</div></div>
+    `;
+    
+    // Comparison table
+    let totalBudgetCalc = 0, totalSpentCalc = 0;
+    const tbody = document.getElementById('comparison-tbody');
+    tbody.innerHTML = CATEGORIES.map(cat => {
+        const budget = getBudgetByCategory(cat.id);
+        const spent = getDepensesByCategory(cat.id);
+        const catReste = budget - spent;
+        const catPct = budget > 0 ? Math.round((spent / budget) * 100) : (spent > 0 ? 100 : 0);
+        const progressClass = catPct > 100 ? 'danger' : catPct > 80 ? 'warning' : 'safe';
+        
+        totalBudgetCalc += budget;
+        totalSpentCalc += spent;
+        
+        if (budget === 0 && spent === 0) return '';
+        
+        return `<tr>
+            <td class="cat-name">${cat.label}</td>
+            <td class="amount budget">${formatMoney(budget)}</td>
+            <td class="amount spent">${formatMoney(spent)}</td>
+            <td class="amount reste ${catReste < 0 ? 'negative' : 'positive'}">${formatMoney(catReste)}</td>
+            <td class="progress-cell">
+                <div class="mini-progress"><div class="mini-progress-fill ${progressClass}" style="width:${Math.min(catPct, 100)}%"></div></div>
+                <div style="font-size:.75rem;text-align:center;margin-top:3px;color:${catPct > 100 ? 'var(--danger)' : 'var(--dim)'}">${catPct}%</div>
+            </td>
+        </tr>`;
+    }).join('');
+    
+    // Footer totals
+    const totalReste = totalBudgetCalc - totalSpentCalc;
+    const totalPct = totalBudgetCalc > 0 ? Math.round((totalSpentCalc / totalBudgetCalc) * 100) : 0;
+    document.getElementById('comparison-tfoot').innerHTML = `
+        <tr style="font-weight:700;background:rgba(59,130,246,.1);">
+            <td>TOTAL</td>
+            <td class="amount">${formatMoney(totalBudgetCalc)}</td>
+            <td class="amount" style="color:var(--accent2)">${formatMoney(totalSpentCalc)}</td>
+            <td class="amount ${totalReste < 0 ? 'negative' : 'positive'}">${formatMoney(totalReste)}</td>
+            <td class="progress-cell"><span style="font-size:.9rem;color:${totalPct > 100 ? 'var(--danger)' : 'var(--accent)'}">${totalPct}%</span></td>
+        </tr>
+    `;
+    
+    // Depenses list
+    const depensesList = document.getElementById('depenses-list');
+    if (!depenses.length) {
+        depensesList.innerHTML = '<div class="empty-state">Aucune dépense enregistrée</div>';
+    } else {
+        depensesList.innerHTML = depenses.slice(0, 20).map(d => {
+            const catLabel = CATEGORIES.find(c => c.id === d.categorie)?.label || d.categorie;
+            return `
+            <div class="depense-item">
+                <div class="depense-info">
+                    <h4>${d.designation}</h4>
+                    <div class="depense-meta">
+                        <span class="depense-cat">${catLabel}</span>
+                        ${d.date_depense} ${d.fournisseur ? '• ' + d.fournisseur : ''}
+                    </div>
+                </div>
+                <div class="depense-amount">${formatMoney(d.montant)} MAD</div>
+            </div>`;
+        }).join('');
+        
+        if (depenses.length > 20) {
+            depensesList.innerHTML += `<div style="text-align:center;padding:15px;color:var(--dim);">+ ${depenses.length - 20} autres dépenses</div>`;
+        }
+    }
+}
+
+loadProject();
+    </script>
+</body>
+</html>

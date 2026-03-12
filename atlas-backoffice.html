@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atlas Pose - Backoffice</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+        .container { max-width:1400px; margin:0 auto; padding:20px; }
+        
+        /* Login */
+        .login-screen { display:flex; justify-content:center; align-items:center; min-height:100vh; }
+        .login-box { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:40px; width:100%; max-width:400px; text-align:center; }
+        .login-box h1 { font-size:1.5rem; margin-bottom:8px; }
+        .login-box p { color:var(--dim); margin-bottom:30px; font-size:.9rem; }
+        .login-box input { width:100%; padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; font-size:1rem; margin-bottom:15px; text-align:center; }
+        .login-box input:focus { outline:none; border-color:var(--accent); }
+        .login-box button { width:100%; padding:14px; background:var(--accent); border:none; border-radius:10px; color:#fff; font-size:1rem; font-weight:600; cursor:pointer; }
+        .login-error { color:var(--danger); margin-top:15px; font-size:.85rem; }
+        
+        /* Backoffice */
+        .backoffice { display:none; }
+        .backoffice.visible { display:block; }
+        
+        .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; flex-wrap:wrap; gap:15px; }
+        .header h1 { font-size:1.8rem; display:flex; align-items:center; gap:10px; }
+        .header-actions { display:flex; gap:10px; flex-wrap:wrap; }
+        
+        .btn { padding:12px 20px; border:none; border-radius:10px; font-weight:600; cursor:pointer; font-size:.9rem; transition:.2s; display:inline-flex; align-items:center; gap:8px; }
+        .btn:hover { transform:translateY(-2px); }
+        .btn-primary { background:var(--accent); color:#fff; }
+        .btn-success { background:var(--accent2); color:#fff; }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+        .btn-danger { background:var(--danger); color:#fff; }
+        .btn-small { padding:8px 14px; font-size:.8rem; }
+        
+        /* Stats */
+        .stats-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:30px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; }
+        .stat-value { font-size:2rem; font-weight:800; color:var(--accent); }
+        .stat-label { font-size:.85rem; color:var(--dim); margin-top:5px; }
+        
+        /* Projects list */
+        .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:25px; margin-bottom:20px; }
+        .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+        .section-title { font-size:1.1rem; font-weight:700; }
+        
+        .project-table { width:100%; border-collapse:collapse; }
+        .project-table th, .project-table td { padding:12px 15px; text-align:left; border-bottom:1px solid var(--border); }
+        .project-table th { color:var(--dim); font-size:.8rem; text-transform:uppercase; font-weight:600; }
+        .project-table tr:hover { background:rgba(255,255,255,.02); }
+        .project-name { font-weight:600; }
+        .status-badge { padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:600; }
+        .status-a_venir { background:rgba(245,158,11,.2); color:var(--warn); }
+        .status-en_cours { background:rgba(59,130,246,.2); color:var(--accent); }
+        .status-termine { background:rgba(16,185,129,.2); color:var(--accent2); }
+        
+        .progress-bar { width:100px; height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
+        .progress-fill { height:100%; background:var(--accent2); border-radius:4px; }
+        .progress-fill.warning { background:var(--warn); }
+        .progress-fill.danger { background:var(--danger); }
+        
+        .actions-cell { display:flex; gap:8px; }
+        
+        /* Modal */
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.8); z-index:1000; justify-content:center; align-items:center; padding:20px; overflow-y:auto; }
+        .modal.visible { display:flex; }
+        .modal-content { background:var(--card); border:1px solid var(--border); border-radius:16px; width:100%; max-width:800px; max-height:90vh; overflow-y:auto; }
+        .modal-header { padding:20px 25px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+        .modal-title { font-size:1.2rem; font-weight:700; }
+        .modal-close { background:none; border:none; color:var(--dim); font-size:1.5rem; cursor:pointer; }
+        .modal-body { padding:25px; }
+        .modal-footer { padding:20px 25px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; }
+        
+        /* Forms */
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px; }
+        .form-row.three { grid-template-columns:1fr 1fr 1fr; }
+        .form-group { display:flex; flex-direction:column; gap:6px; }
+        .form-group.full { grid-column:1/-1; }
+        .form-group label { font-size:.85rem; color:var(--dim); }
+        .form-group input, .form-group select, .form-group textarea { padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:#fff; font-size:.95rem; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:var(--accent); }
+        .form-group textarea { resize:vertical; min-height:80px; }
+        
+        /* Budget table */
+        .budget-section { margin-top:20px; }
+        .budget-section h3 { font-size:1rem; margin-bottom:15px; color:var(--dim); }
+        .budget-table { width:100%; border-collapse:collapse; font-size:.9rem; }
+        .budget-table th, .budget-table td { padding:10px; border:1px solid var(--border); }
+        .budget-table th { background:var(--bg); text-align:left; font-size:.8rem; }
+        .budget-table input { width:100%; padding:8px; background:var(--bg); border:1px solid var(--border); border-radius:4px; color:#fff; }
+        .budget-cat { font-weight:600; background:rgba(59,130,246,.1); }
+        
+        /* Depenses */
+        .depense-card { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:15px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+        .depense-info h4 { font-size:.95rem; margin-bottom:4px; }
+        .depense-meta { font-size:.8rem; color:var(--dim); }
+        .depense-amount { font-size:1.1rem; font-weight:700; color:var(--accent2); }
+        
+        /* Toast */
+        .toast { position:fixed; bottom:30px; right:30px; background:var(--accent2); color:#fff; padding:15px 25px; border-radius:10px; font-weight:600; z-index:2000; opacity:0; transform:translateY(20px); transition:.3s; }
+        .toast.visible { opacity:1; transform:translateY(0); }
+        
+        /* Upload zone */
+        .upload-zone { border:2px dashed var(--border); border-radius:12px; padding:30px; text-align:center; cursor:pointer; transition:.2s; }
+        .upload-zone:hover { border-color:var(--accent); background:rgba(59,130,246,.05); }
+        .upload-zone input { display:none; }
+        
+        @media(max-width:768px) {
+            .form-row { grid-template-columns:1fr; }
+            .form-row.three { grid-template-columns:1fr; }
+            .project-table { font-size:.85rem; }
+            .actions-cell { flex-direction:column; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login -->
+    <div class="login-screen" id="login-screen">
+        <div class="login-box">
+            <h1>🔧 Atlas Pose</h1>
+            <p>Backoffice - Gestion des chantiers</p>
+            <input type="password" id="password-input" placeholder="Mot de passe" onkeypress="if(event.key==='Enter')checkPassword()">
+            <button onclick="checkPassword()">Accéder</button>
+            <div class="login-error" id="login-error"></div>
+        </div>
+    </div>
+    
+    <!-- Backoffice -->
+    <div class="backoffice" id="backoffice">
+        <div class="container">
+            <div class="header">
+                <h1>🔧 Atlas Pose</h1>
+                <div class="header-actions">
+                    <button class="btn btn-outline" onclick="exportExcel()">📥 Export Excel</button>
+                    <button class="btn btn-primary" onclick="openProjectModal()">+ Nouveau Projet</button>
+                </div>
+            </div>
+            
+            <div class="stats-row" id="stats-row">
+                <div class="stat-card"><div class="stat-value" id="stat-projects">0</div><div class="stat-label">Projets actifs</div></div>
+                <div class="stat-card"><div class="stat-value" id="stat-budget">0</div><div class="stat-label">Budget total (MAD)</div></div>
+                <div class="stat-card"><div class="stat-value" id="stat-depenses">0</div><div class="stat-label">Dépensé (MAD)</div></div>
+                <div class="stat-card"><div class="stat-value" id="stat-reste">0</div><div class="stat-label">Reste (MAD)</div></div>
+            </div>
+            
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">📋 Projets</h2>
+                </div>
+                <table class="project-table">
+                    <thead>
+                        <tr>
+                            <th>Projet</th>
+                            <th>Client</th>
+                            <th>Surface</th>
+                            <th>Status</th>
+                            <th>Budget</th>
+                            <th>Dépensé</th>
+                            <th>%</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="projects-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Projet -->
+    <div class="modal" id="project-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="project-modal-title">Nouveau Projet</h3>
+                <button class="modal-close" onclick="closeProjectModal()">×</button>
+            </div>
+            <form id="project-form" onsubmit="saveProject(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="project-id">
+                    
+                    <div class="form-row">
+                        <div class="form-group"><label>Nom du projet *</label><input type="text" id="p-name" required></div>
+                        <div class="form-group"><label>Maître d'ouvrage</label><input type="text" id="p-client"></div>
+                    </div>
+                    <div class="form-row three">
+                        <div class="form-group"><label>Architecte</label><input type="text" id="p-architecte"></div>
+                        <div class="form-group"><label>Prescripteur</label><input type="text" id="p-prescripteur"></div>
+                        <div class="form-group"><label>Status</label>
+                            <select id="p-status">
+                                <option value="a_venir">À venir</option>
+                                <option value="en_cours">En cours</option>
+                                <option value="termine">Terminé</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Localisation</label><input type="text" id="p-localisation"></div>
+                        <div class="form-group"><label>Adresse chantier</label><input type="text" id="p-adresse"></div>
+                    </div>
+                    <div class="form-row three">
+                        <div class="form-group"><label>Surface (m²)</label><input type="number" id="p-surface" min="0"></div>
+                        <div class="form-group"><label>Nb employés</label><input type="number" id="p-employes" min="0"></div>
+                        <div class="form-group"><label>Durée (mois)</label><input type="number" id="p-duree" min="0"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>CA estimatif (MAD)</label><input type="number" id="p-ca" min="0" step="0.01"></div>
+                        <div class="form-group"><label>Date début</label><input type="date" id="p-date"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Mot de passe (accès chantier)</label><input type="text" id="p-password"><button type="button" class="btn btn-small btn-outline" onclick="generatePassword()" style="margin-top:5px">Générer</button></div>
+                        <div class="form-group"><label>Notes</label><textarea id="p-notes"></textarea></div>
+                    </div>
+                    
+                    <div class="budget-section">
+                        <h3>💰 Budget prévisionnel (Devis)</h3>
+                        <table class="budget-table">
+                            <thead>
+                                <tr><th>Catégorie</th><th>Désignation</th><th>Coût unitaire</th><th>Quantité</th><th>Budget (MAD)</th></tr>
+                            </thead>
+                            <tbody id="budget-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeProjectModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary" id="save-project-btn">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal Dépenses -->
+    <div class="modal" id="depenses-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">💸 Dépenses - <span id="depenses-project-name"></span></h3>
+                <button class="modal-close" onclick="closeDepensesModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <h4 style="color:var(--dim)">Historique des dépenses</h4>
+                    <button class="btn btn-primary btn-small" onclick="openAddDepenseForm()">+ Ajouter</button>
+                </div>
+                
+                <div id="add-depense-form" style="display:none;margin-bottom:20px;padding:20px;background:var(--bg);border-radius:10px;">
+                    <div class="form-row three">
+                        <div class="form-group"><label>Catégorie</label>
+                            <select id="d-categorie">
+                                <option value="fourniture">Fourniture</option>
+                                <option value="colle">Colle</option>
+                                <option value="joints">Joints</option>
+                                <option value="chape">Chape</option>
+                                <option value="main_oeuvre">Main d'œuvre</option>
+                                <option value="transport">Transport</option>
+                                <option value="mise_en_place">Mise en place</option>
+                                <option value="nettoyage">Nettoyage</option>
+                                <option value="materiel">Matériel</option>
+                                <option value="prorata">Prorata</option>
+                                <option value="aleas">Aléas</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Désignation</label><input type="text" id="d-designation" placeholder="Ex: 10 sacs colle Pegoland"></div>
+                        <div class="form-group"><label>Date</label><input type="date" id="d-date"></div>
+                    </div>
+                    <div class="form-row three">
+                        <div class="form-group"><label>Quantité</label><input type="number" id="d-quantite" value="1" min="0" step="0.01"></div>
+                        <div class="form-group"><label>Prix unitaire</label><input type="number" id="d-pu" min="0" step="0.01"></div>
+                        <div class="form-group"><label>Montant total (MAD)</label><input type="number" id="d-montant" min="0" step="0.01"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Fournisseur</label><input type="text" id="d-fournisseur"></div>
+                        <div class="form-group"><label>Notes</label><input type="text" id="d-notes"></div>
+                    </div>
+                    <div style="display:flex;gap:10px;margin-top:10px;">
+                        <button class="btn btn-primary btn-small" onclick="saveDepense()">Enregistrer</button>
+                        <button class="btn btn-outline btn-small" onclick="closeAddDepenseForm()">Annuler</button>
+                    </div>
+                </div>
+                
+                <div id="depenses-list"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const PASSWORD = 'atlas2026';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const CATEGORIES = [
+    { id: 'fourniture', label: 'Fourniture (Revêtements)' },
+    { id: 'colle', label: 'Colle' },
+    { id: 'joints', label: 'Joints' },
+    { id: 'chape', label: 'Chape' },
+    { id: 'main_oeuvre', label: "Main d'œuvre" },
+    { id: 'transport', label: 'Transport' },
+    { id: 'mise_en_place', label: 'Mise en place chantier' },
+    { id: 'nettoyage', label: 'Nettoyage' },
+    { id: 'materiel', label: 'Matériel' },
+    { id: 'prorata', label: 'Compte prorata' },
+    { id: 'aleas', label: 'Aléas / Imprévus' }
+];
+
+let projects = [], budgets = [], depenses = [], currentProjectId = null;
+
+if (sessionStorage.getItem('atlas-auth') === 'true') showBackoffice();
+
+function checkPassword() {
+    if (document.getElementById('password-input').value === PASSWORD) {
+        sessionStorage.setItem('atlas-auth', 'true');
+        showBackoffice();
+    } else {
+        document.getElementById('login-error').textContent = 'Mot de passe incorrect';
+    }
+}
+
+async function showBackoffice() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('backoffice').classList.add('visible');
+    await loadData();
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('visible');
+    setTimeout(() => t.classList.remove('visible'), 2500);
+}
+
+function formatMoney(n) {
+    return new Intl.NumberFormat('fr-MA', { maximumFractionDigits: 0 }).format(n || 0);
+}
+
+async function loadData() {
+    const [pRes, bRes, dRes] = await Promise.all([
+        db.from('atlas_projects').select('*').order('created_at', { ascending: false }),
+        db.from('atlas_budget').select('*'),
+        db.from('atlas_depenses').select('*')
+    ]);
+    projects = pRes.data || [];
+    budgets = bRes.data || [];
+    depenses = dRes.data || [];
+    renderProjects();
+    renderStats();
+}
+
+function getBudgetTotal(projectId) {
+    return budgets.filter(b => b.project_id === projectId).reduce((s, b) => s + (parseFloat(b.budget_prevu) || 0), 0);
+}
+
+function getDepensesTotal(projectId) {
+    return depenses.filter(d => d.project_id === projectId).reduce((s, d) => s + (parseFloat(d.montant) || 0), 0);
+}
+
+function renderStats() {
+    const activeProjects = projects.filter(p => p.status === 'en_cours').length;
+    const totalBudget = projects.reduce((s, p) => s + getBudgetTotal(p.id), 0);
+    const totalDepenses = projects.reduce((s, p) => s + getDepensesTotal(p.id), 0);
+    
+    document.getElementById('stat-projects').textContent = activeProjects;
+    document.getElementById('stat-budget').textContent = formatMoney(totalBudget);
+    document.getElementById('stat-depenses').textContent = formatMoney(totalDepenses);
+    document.getElementById('stat-reste').textContent = formatMoney(totalBudget - totalDepenses);
+}
+
+function renderProjects() {
+    const tbody = document.getElementById('projects-tbody');
+    if (!projects.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--dim);padding:40px;">Aucun projet</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = projects.map(p => {
+        const budget = getBudgetTotal(p.id);
+        const spent = getDepensesTotal(p.id);
+        const pct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+        const pctClass = pct > 100 ? 'danger' : pct > 80 ? 'warning' : '';
+        
+        return `<tr>
+            <td class="project-name">${p.name}</td>
+            <td>${p.client_name || '-'}</td>
+            <td>${p.surface_m2 ? p.surface_m2 + ' m²' : '-'}</td>
+            <td><span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span></td>
+            <td>${formatMoney(budget)}</td>
+            <td>${formatMoney(spent)}</td>
+            <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="progress-bar"><div class="progress-fill ${pctClass}" style="width:${Math.min(pct, 100)}%"></div></div>
+                    <span style="font-size:.85rem;${pct > 100 ? 'color:var(--danger)' : ''}">${pct}%</span>
+                </div>
+            </td>
+            <td class="actions-cell">
+                <button class="btn btn-small btn-outline" onclick="openDepensesModal(${p.id}, '${p.name.replace(/'/g, "\\'")}')">💸</button>
+                <button class="btn btn-small btn-outline" onclick="editProject(${p.id})">✏️</button>
+                <button class="btn btn-small btn-danger" onclick="deleteProject(${p.id}, '${p.name.replace(/'/g, "\\'")}')">×</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function generatePassword() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let pwd = '';
+    for (let i = 0; i < 6; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+    document.getElementById('p-password').value = pwd;
+}
+
+function renderBudgetTable(projectBudgets = []) {
+    const tbody = document.getElementById('budget-tbody');
+    tbody.innerHTML = CATEGORIES.map(cat => {
+        const existing = projectBudgets.find(b => b.categorie === cat.id) || {};
+        return `<tr>
+            <td class="budget-cat">${cat.label}</td>
+            <td><input type="text" data-cat="${cat.id}" data-field="designation" value="${existing.designation || ''}"></td>
+            <td><input type="number" data-cat="${cat.id}" data-field="cout_unitaire" value="${existing.cout_unitaire || ''}" min="0" step="0.01"></td>
+            <td><input type="number" data-cat="${cat.id}" data-field="quantite" value="${existing.quantite || ''}" min="0" step="0.01"></td>
+            <td><input type="number" data-cat="${cat.id}" data-field="budget_prevu" value="${existing.budget_prevu || ''}" min="0" step="0.01"></td>
+        </tr>`;
+    }).join('');
+}
+
+function openProjectModal(project = null) {
+    document.getElementById('project-modal-title').textContent = project ? 'Modifier Projet' : 'Nouveau Projet';
+    document.getElementById('project-form').reset();
+    document.getElementById('project-id').value = project?.id || '';
+    
+    if (project) {
+        document.getElementById('p-name').value = project.name || '';
+        document.getElementById('p-client').value = project.client_name || '';
+        document.getElementById('p-architecte').value = project.architecte || '';
+        document.getElementById('p-prescripteur').value = project.prescripteur || '';
+        document.getElementById('p-status').value = project.status || 'a_venir';
+        document.getElementById('p-localisation').value = project.localisation || '';
+        document.getElementById('p-adresse').value = project.adresse || '';
+        document.getElementById('p-surface').value = project.surface_m2 || '';
+        document.getElementById('p-employes').value = project.nb_employes || '';
+        document.getElementById('p-duree').value = project.duree_mois || '';
+        document.getElementById('p-ca').value = project.ca_estimatif || '';
+        document.getElementById('p-date').value = project.date_debut || '';
+        document.getElementById('p-password').value = project.password || '';
+        document.getElementById('p-notes').value = project.notes || '';
+        
+        const projectBudgets = budgets.filter(b => b.project_id === project.id);
+        renderBudgetTable(projectBudgets);
+    } else {
+        renderBudgetTable([]);
+    }
+    
+    document.getElementById('project-modal').classList.add('visible');
+}
+
+function closeProjectModal() {
+    document.getElementById('project-modal').classList.remove('visible');
+}
+
+async function editProject(id) {
+    const project = projects.find(p => p.id === id);
+    if (project) openProjectModal(project);
+}
+
+async function saveProject(e) {
+    e.preventDefault();
+    const btn = document.getElementById('save-project-btn');
+    btn.disabled = true;
+    btn.textContent = '...';
+    
+    const id = document.getElementById('project-id').value;
+    const projectData = {
+        name: document.getElementById('p-name').value,
+        client_name: document.getElementById('p-client').value || null,
+        architecte: document.getElementById('p-architecte').value || null,
+        prescripteur: document.getElementById('p-prescripteur').value || null,
+        status: document.getElementById('p-status').value,
+        localisation: document.getElementById('p-localisation').value || null,
+        adresse: document.getElementById('p-adresse').value || null,
+        surface_m2: parseInt(document.getElementById('p-surface').value) || 0,
+        nb_employes: parseInt(document.getElementById('p-employes').value) || 0,
+        duree_mois: parseInt(document.getElementById('p-duree').value) || 0,
+        ca_estimatif: parseFloat(document.getElementById('p-ca').value) || 0,
+        date_debut: document.getElementById('p-date').value || null,
+        password: document.getElementById('p-password').value || null,
+        notes: document.getElementById('p-notes').value || null
+    };
+    
+    let projectId = id ? parseInt(id) : null;
+    
+    try {
+        if (id) {
+            await db.from('atlas_projects').update(projectData).eq('id', id);
+        } else {
+            const { data } = await db.from('atlas_projects').insert([projectData]).select();
+            projectId = data?.[0]?.id;
+        }
+        
+        // Save budgets
+        if (projectId) {
+            await db.from('atlas_budget').delete().eq('project_id', projectId);
+            
+            const budgetInputs = document.querySelectorAll('#budget-tbody input');
+            const budgetData = {};
+            
+            budgetInputs.forEach(input => {
+                const cat = input.dataset.cat;
+                const field = input.dataset.field;
+                if (!budgetData[cat]) budgetData[cat] = { project_id: projectId, categorie: cat };
+                budgetData[cat][field] = field === 'designation' ? input.value : (parseFloat(input.value) || 0);
+            });
+            
+            const budgetsToInsert = Object.values(budgetData).filter(b => b.budget_prevu > 0 || b.designation);
+            if (budgetsToInsert.length) {
+                await db.from('atlas_budget').insert(budgetsToInsert);
+            }
+        }
+        
+        showToast('Projet enregistré !');
+        closeProjectModal();
+        await loadData();
+    } catch (err) {
+        console.error(err);
+        alert('Erreur: ' + err.message);
+    }
+    
+    btn.disabled = false;
+    btn.textContent = 'Enregistrer';
+}
+
+async function deleteProject(id, name) {
+    if (!confirm(`Supprimer le projet "${name}" ?`)) return;
+    await db.from('atlas_depenses').delete().eq('project_id', id);
+    await db.from('atlas_budget').delete().eq('project_id', id);
+    await db.from('atlas_projects').delete().eq('id', id);
+    showToast('Projet supprimé');
+    await loadData();
+}
+
+// Dépenses Modal
+async function openDepensesModal(projectId, projectName) {
+    currentProjectId = projectId;
+    document.getElementById('depenses-project-name').textContent = projectName;
+    document.getElementById('add-depense-form').style.display = 'none';
+    document.getElementById('d-date').value = new Date().toISOString().split('T')[0];
+    await renderDepenses();
+    document.getElementById('depenses-modal').classList.add('visible');
+}
+
+function closeDepensesModal() {
+    document.getElementById('depenses-modal').classList.remove('visible');
+    currentProjectId = null;
+}
+
+function openAddDepenseForm() {
+    document.getElementById('add-depense-form').style.display = 'block';
+    document.getElementById('d-designation').value = '';
+    document.getElementById('d-quantite').value = '1';
+    document.getElementById('d-pu').value = '';
+    document.getElementById('d-montant').value = '';
+    document.getElementById('d-fournisseur').value = '';
+    document.getElementById('d-notes').value = '';
+}
+
+function closeAddDepenseForm() {
+    document.getElementById('add-depense-form').style.display = 'none';
+}
+
+async function saveDepense() {
+    const data = {
+        project_id: currentProjectId,
+        categorie: document.getElementById('d-categorie').value,
+        designation: document.getElementById('d-designation').value,
+        date_depense: document.getElementById('d-date').value,
+        quantite: parseFloat(document.getElementById('d-quantite').value) || 1,
+        prix_unitaire: parseFloat(document.getElementById('d-pu').value) || 0,
+        montant: parseFloat(document.getElementById('d-montant').value) || 0,
+        fournisseur: document.getElementById('d-fournisseur').value || null,
+        notes: document.getElementById('d-notes').value || null,
+        source: 'manuel'
+    };
+    
+    if (!data.designation || !data.montant) {
+        alert('Désignation et montant requis');
+        return;
+    }
+    
+    try {
+        await db.from('atlas_depenses').insert([data]);
+        showToast('Dépense ajoutée !');
+        closeAddDepenseForm();
+        await loadData();
+        await renderDepenses();
+    } catch (err) {
+        alert('Erreur: ' + err.message);
+    }
+}
+
+async function renderDepenses() {
+    const projectDepenses = depenses.filter(d => d.project_id === currentProjectId).sort((a, b) => new Date(b.date_depense) - new Date(a.date_depense));
+    const container = document.getElementById('depenses-list');
+    
+    if (!projectDepenses.length) {
+        container.innerHTML = '<p style="color:var(--dim);text-align:center;padding:30px;">Aucune dépense enregistrée</p>';
+        return;
+    }
+    
+    container.innerHTML = projectDepenses.map(d => `
+        <div class="depense-card">
+            <div class="depense-info">
+                <h4>${d.designation}</h4>
+                <div class="depense-meta">${CATEGORIES.find(c => c.id === d.categorie)?.label || d.categorie} • ${d.date_depense} ${d.fournisseur ? '• ' + d.fournisseur : ''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:15px;">
+                <div class="depense-amount">${formatMoney(d.montant)} MAD</div>
+                <button class="btn btn-small btn-danger" onclick="deleteDepense(${d.id})">×</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function deleteDepense(id) {
+    if (!confirm('Supprimer cette dépense ?')) return;
+    await db.from('atlas_depenses').delete().eq('id', id);
+    await loadData();
+    await renderDepenses();
+    showToast('Dépense supprimée');
+}
+
+// Export Excel
+async function exportExcel() {
+    const rows = projects.map(p => ({
+        'Projet': p.name,
+        'Client': p.client_name || '',
+        'Status': p.status,
+        'Surface (m²)': p.surface_m2,
+        'Budget': getBudgetTotal(p.id),
+        'Dépensé': getDepensesTotal(p.id),
+        'Reste': getBudgetTotal(p.id) - getDepensesTotal(p.id)
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Projets');
+    XLSX.writeFile(wb, `atlas-pose-${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// Auto-calc montant
+document.getElementById('d-quantite')?.addEventListener('input', calcMontant);
+document.getElementById('d-pu')?.addEventListener('input', calcMontant);
+
+function calcMontant() {
+    const q = parseFloat(document.getElementById('d-quantite').value) || 0;
+    const pu = parseFloat(document.getElementById('d-pu').value) || 0;
+    document.getElementById('d-montant').value = (q * pu).toFixed(2);
+}
+    </script>
+</body>
+</html>

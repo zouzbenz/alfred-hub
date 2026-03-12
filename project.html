@@ -61,6 +61,7 @@
         .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
         @media(max-width:600px) { .two-col { grid-template-columns:1fr; } .project-name { font-size:1.8rem; } .project-header { height:200px; } .action-btn { width:100%; justify-content:center; } }
         .description { color:var(--dim); line-height:1.6; font-size:.95rem; }
+        .client-notes { background:rgba(255,255,255,.03); border-left:3px solid var(--accent); padding:15px 20px; border-radius:0 10px 10px 0; color:var(--dim); line-height:1.6; font-size:.95rem; white-space:pre-wrap; }
         .payment-status { display:flex; align-items:center; gap:15px; }
         .payment-percent { font-size:2.5rem; font-weight:800; }
         .payment-percent.paid { color:var(--success); }
@@ -82,56 +83,6 @@
         .tasks-section-title { font-size:.85rem; color:var(--dim); margin-bottom:15px; display:flex; align-items:center; gap:8px; }
         .tasks-section-title.completed { color:var(--success); }
         .tasks-divider { margin:25px 0; border:none; border-top:1px solid var(--border); }
-        
-        /* Client notes editable */
-        .client-notes-container { margin-top:10px; }
-        .client-notes-textarea {
-            width:100%;
-            min-height:120px;
-            padding:15px;
-            background:rgba(255,255,255,.03);
-            border:1px solid var(--border);
-            border-left:3px solid var(--accent);
-            border-radius:0 10px 10px 0;
-            color:var(--text);
-            font-family:'Inter',sans-serif;
-            font-size:.95rem;
-            line-height:1.6;
-            resize:vertical;
-        }
-        .client-notes-textarea:focus {
-            outline:none;
-            border-color:var(--accent);
-            background:rgba(255,255,255,.05);
-        }
-        .client-notes-textarea::placeholder { color:var(--dim); }
-        .notes-actions {
-            display:flex;
-            justify-content:flex-end;
-            gap:10px;
-            margin-top:10px;
-        }
-        .notes-save-btn {
-            padding:10px 20px;
-            background:var(--success);
-            border:none;
-            border-radius:8px;
-            color:#fff;
-            font-weight:600;
-            cursor:pointer;
-            font-size:.85rem;
-            transition:.2s;
-        }
-        .notes-save-btn:hover { opacity:.9; }
-        .notes-save-btn:disabled { opacity:.5; cursor:not-allowed; }
-        .notes-status {
-            padding:10px 15px;
-            font-size:.85rem;
-            color:var(--dim);
-            display:flex;
-            align-items:center;
-        }
-        .notes-status.saved { color:var(--success); }
     </style>
 </head>
 <body>
@@ -154,7 +105,7 @@
         const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const COMPANY = { name:'INSTA IMMO', bank:'ATTIJARI, Agence PARANFA', rib:'007 780 0000277000000632 80' };
+        const COMPANY = { name:'INSTA IMMO SARL', bank:'ATTIJARI, Agence PARANFA', rib:'007 780 0000277000000632 80' };
 
         const projectId = new URLSearchParams(window.location.search).get('id');
         let currentProject = null, projectTasks = [], projectDocs = [];
@@ -193,7 +144,7 @@
         }
 
         async function loadDocs() {
-            const { data } = await db.from('project_documents').select('*').eq('project_id', projectId);
+            const { data } = await db.from('project_documents').select('*').eq('project_id', projectId).eq('status', 'valide');
             projectDocs = data || [];
         }
 
@@ -207,38 +158,6 @@
             return `<div class="task-item ${t.done?'done':''}"><div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTask(${t.id},${!t.done})"></div><span class="task-text">${t.text}</span></div>`;
         }
 
-        // Client notes functions
-        async function saveClientNotes() {
-            const textarea = document.getElementById('client-notes-input');
-            const btn = document.getElementById('notes-save-btn');
-            const status = document.getElementById('notes-status');
-            
-            if (!textarea || !projectId) return;
-            
-            btn.disabled = true;
-            btn.textContent = '...';
-            status.textContent = '';
-            status.className = 'notes-status';
-            
-            const notes = textarea.value;
-            
-            const { error } = await db.from('neo_projects').update({ client_notes: notes }).eq('id', projectId);
-            
-            if (error) {
-                status.textContent = '❌ Erreur';
-                console.error(error);
-            } else {
-                status.textContent = '✓ Enregistré';
-                status.className = 'notes-status saved';
-                currentProject.client_notes = notes;
-            }
-            
-            btn.disabled = false;
-            btn.textContent = 'Enregistrer';
-            
-            setTimeout(() => { status.textContent = ''; }, 3000);
-        }
-
         async function downloadDocPDF(docId) {
             const { data: doc } = await db.from('project_documents').select('*').eq('id', docId).single();
             const { data: lines } = await db.from('document_lines').select('*').eq('document_id', docId).order('sort_order');
@@ -248,146 +167,84 @@
         function generatePDF(doc, lines) {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const pageW = 210, m = 15;
-            let y = 15;
-            const isFacture = doc.type === 'facture', docLabel = isFacture ? 'FACTURE' : 'DEVIS';
+            const w = 210, m = 15;
+            let y = 20;
 
-            pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
-            pdf.text(`${docLabel} : ${currentProject.name.toUpperCase()}`, pageW / 2, y, { align: 'center' });
-            pdf.setLineWidth(0.5); pdf.line(m + 20, y + 2, pageW - m - 20, y + 2);
-            y += 15;
+            pdf.setFontSize(16); pdf.setFont('helvetica', 'bold');
+            pdf.text(`${doc.type.toUpperCase()} : ${currentProject.name.toUpperCase()}`, m, y);
+            pdf.setFontSize(9); pdf.setFont('helvetica', 'normal');
+            pdf.text(`${doc.type.toUpperCase()} N° : ${doc.doc_number}`, w - m, y, { align: 'right' });
+            pdf.text(`DATE : ${formatDatePDF(doc.doc_date)}`, w - m, y + 5, { align: 'right' });
+            y += 20;
 
-            pdf.setFontSize(28); pdf.text('INSTA IMMO', pageW / 2, y, { align: 'center' });
-            y += 15;
+            const colX = [m, 100, 125, 155];
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(m, y, w - 2 * m, 8, 'F');
+            pdf.setFontSize(8); pdf.setFont('helvetica', 'bold');
+            pdf.text('DÉSIGNATION', colX[0] + 2, y + 5);
+            pdf.text('QTÉ', colX[1] + 2, y + 5);
+            pdf.text('P.U', colX[2] + 2, y + 5);
+            pdf.text('MONTANT MAD HT', colX[3] + 2, y + 5);
+            y += 10;
 
-            const midX = pageW / 2;
-            pdf.setFontSize(9);
-            pdf.setFont('helvetica', 'bold'); pdf.text(`${docLabel}É À :`, m, y);
-            pdf.text(`${docLabel} N° :`, midX + 5, y);
-            pdf.setFont('helvetica', 'normal'); pdf.text(doc.doc_number || '', midX + 35, y);
-            y += 5;
-
-            pdf.text(doc.client_name || '', m, y);
-            pdf.setFont('helvetica', 'bold'); pdf.text(`DATE ${isFacture ? 'DE LA FACTURE' : 'DU DEVIS'} :`, midX + 5, y);
-            pdf.setFont('helvetica', 'normal'); pdf.text(formatDatePDF(doc.doc_date), midX + 50, y);
-            y += 5;
-
-            if (doc.client_ice) { pdf.setFont('helvetica', 'bold'); pdf.text('ICE :', m, y); pdf.setFont('helvetica', 'normal'); pdf.text(doc.client_ice, m + 10, y); }
-            y += 5;
-
-            pdf.setFont('helvetica', 'bold'); pdf.text('Adresse :', m, y);
-            pdf.setFont('helvetica', 'normal'); pdf.text(doc.client_address || '', m + 18, y);
-            pdf.setFont('helvetica', 'bold'); pdf.text('Relative à la Commande :', midX + 5, y);
-            pdf.setFont('helvetica', 'normal'); pdf.text(doc.commande_ref || '', midX + 50, y);
-            y += 12;
-
-            // Table
-            const col1W = 95, col2W = 20, col3W = 25, col4W = 40;
-            const col1X = m, col2X = m + col1W, col3X = col2X + col2W, col4X = col3X + col3W;
-
-            pdf.setFillColor(30, 30, 30);
-            pdf.rect(m, y, col1W + col2W + col3W + col4W, 12, 'F');
-            pdf.setTextColor(255, 255, 255);
-            pdf.setFontSize(9); pdf.setFont('helvetica', 'bold');
-            pdf.text('DÉSIGNATION', col1X + 3, y + 7);
-            pdf.text('QTÉ', col2X + 3, y + 7);
-            pdf.text('P.U', col3X + 3, y + 7);
-            pdf.text('MONTANT', col4X + 3, y + 5);
-            pdf.text('MAD HT', col4X + 3, y + 9);
-            pdf.setTextColor(0, 0, 0);
-            y += 12;
-
+            pdf.setFont('helvetica', 'normal');
             let totalHT = 0;
-            lines.forEach((l, idx) => {
-                const rowH = l.is_category ? 8 : (l.detail ? 14 : 10);
-                pdf.setDrawColor(150, 150, 150);
-                pdf.rect(col1X, y, col1W, rowH);
-                pdf.rect(col2X, y, col2W, rowH);
-                pdf.rect(col3X, y, col3W, rowH);
-                pdf.rect(col4X, y, col4W, rowH);
-
-                if (l.is_category) {
-                    pdf.setFillColor(240, 240, 240);
-                    pdf.rect(col1X + 0.3, y + 0.3, col1W - 0.6, rowH - 0.6, 'F');
-                    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9);
-                    pdf.text((l.designation || '').substring(0, 40), col1X + 3, y + 5.5);
-                    let catTotal = 0;
-                    for (let j = idx + 1; j < lines.length && !lines[j].is_category; j++) catTotal += (lines[j].quantity || 1) * (lines[j].unit_price || 0);
-                    pdf.setTextColor(230, 57, 70);
-                    pdf.text(formatNum(catTotal), col4X + col4W - 3, y + 5.5, { align: 'right' });
-                    pdf.setTextColor(0, 0, 0);
-                } else {
-                    const montant = (l.quantity || 1) * (l.unit_price || 0);
-                    totalHT += montant;
-                    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
-                    pdf.text((l.designation || '').substring(0, 45), col1X + 3, y + 5);
-                    if (l.detail) { pdf.setFontSize(7); pdf.splitTextToSize(l.detail, col1W - 6).slice(0, 2).forEach((dt, di) => pdf.text(dt, col1X + 3, y + 9 + di * 3)); pdf.setFontSize(9); }
-                    pdf.text(String(l.quantity || 1), col2X + col2W/2, y + 5, { align: 'center' });
-                    pdf.text(formatNum(l.unit_price || 0), col3X + col3W - 3, y + 5, { align: 'right' });
-                    pdf.text(formatNum(montant), col4X + col4W - 3, y + 5, { align: 'right' });
+            lines.forEach((l, i) => {
+                const montant = (l.quantity || 1) * (l.unit_price || 0);
+                totalHT += montant;
+                pdf.setFont('helvetica', 'bold');
+                pdf.text(`${i + 1}. ${l.designation || ''}`, colX[0], y + 4);
+                pdf.setFont('helvetica', 'normal');
+                if (l.detail) {
+                    const dls = pdf.splitTextToSize(l.detail, 80);
+                    pdf.setFontSize(7);
+                    dls.forEach((dl, di) => pdf.text(dl, colX[0], y + 9 + di * 4));
+                    pdf.setFontSize(8);
+                    y += dls.length * 4;
                 }
-                y += rowH;
+                pdf.text(String(l.quantity || 1), colX[1] + 2, y + 4);
+                pdf.text(fmtNum(l.unit_price || 0), colX[2] + 2, y + 4);
+                pdf.text(fmtNum(montant), colX[3] + 2, y + 4);
+                y += 15;
                 if (y > 250) { pdf.addPage(); y = 20; }
             });
 
-            y += 3;
-            const tvaRate = doc.tva_rate || 20;
-            const tvaAmount = totalHT * tvaRate / 100;
-            const totalPhotoTTC = totalHT + tvaAmount;
-            const frais = doc.frais_deplacement || 0;
-            const totalTTC = totalPhotoTTC + frais;
+            y += 5;
+            const tva = totalHT * (doc.tva_rate || 20) / 100;
+            const ttc = totalHT + tva + (doc.frais_deplacement || 0);
+            pdf.text('TOTAL MAD HT', colX[2], y); pdf.text(fmtNum(totalHT), colX[3] + 2, y); y += 6;
+            pdf.text(`T.V.A ${doc.tva_rate || 20}%`, colX[2], y); pdf.text(fmtNum(tva), colX[3] + 2, y); y += 6;
+            if (doc.frais_deplacement) { pdf.text('FRAIS DÉPLACEMENT TTC', colX[2], y); pdf.text(fmtNum(doc.frais_deplacement), colX[3] + 2, y); y += 6; }
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('TOTAL TTC', colX[2], y); pdf.text(fmtNum(ttc), colX[3] + 2, y); y += 15;
 
-            const totals = [['TOTAL MAD HT', formatNum(totalHT)], [`T.V.A ${tvaRate}%`, formatNum(tvaAmount)], ['TOTAL TTC', formatNum(totalTTC)]];
-            totals.forEach((row, i) => {
-                pdf.setDrawColor(150, 150, 150);
-                pdf.rect(col3X, y, col3W, 7);
-                pdf.rect(col4X, y, col4W, 7);
-                pdf.setFont('helvetica', i === 2 ? 'bold' : 'normal');
-                pdf.setFontSize(8);
-                pdf.text(row[0], col3X + 2, y + 5);
-                if (i === 2) pdf.setTextColor(230, 57, 70);
-                pdf.text(row[1], col4X + col4W - 3, y + 5, { align: 'right' });
-                pdf.setTextColor(0, 0, 0);
-                y += 7;
-            });
-
-            y += 10;
-            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9);
+            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
             pdf.text(`Arrêté le présent ${doc.type} à la somme de :`, m, y); y += 5;
-            pdf.setFont('helvetica', 'normal');
-            pdf.text(numWords(totalTTC) + ' dirhams toute taxes comprises.', m, y); y += 10;
-
-            pdf.setFont('helvetica', 'bold'); pdf.text('Conditions de règlement :', m, y); y += 5;
-            pdf.setFont('helvetica', 'normal'); pdf.text(doc.conditions || '', m, y); y += 10;
-
-            pdf.setFont('helvetica', 'bold'); pdf.text('À payer par :', m, y); y += 5;
-            pdf.setFont('helvetica', 'normal');
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(numWords(ttc) + ' dirhams', m, y); y += 10;
+            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
+            pdf.text('Conditions de règlement :', m, y); y += 4;
+            pdf.text(doc.conditions || '', m, y); y += 8;
+            pdf.text('À payer par :', m, y); y += 4;
             pdf.text(`Chèque à l'ordre de ${COMPANY.name}`, m, y); y += 4;
-            pdf.text(`ou par virement bancaire sur le compte suivant : INSTA IMMO SARL`, m, y); y += 4;
-            pdf.text(`${COMPANY.bank} - N° de compte : RIB : ${COMPANY.rib}`, m, y); y += 15;
-
-            pdf.setDrawColor(0, 0, 0);
-            pdf.rect(pageW - m - 75, y, 75, 28);
-            pdf.setFontSize(8);
-            pdf.text('Signature et cachet de l\'entreprise', pageW - m - 73, y + 6);
-
-            pdf.setFontSize(7);
-            pdf.text('INSTA IMMO SARL 10, rue ibnou Rifai 3 Appt gauche - Tel : 0687842466 - Patente : 35700518 – RC : 415075', pageW / 2, 287, { align: 'center' });
-            pdf.text('– Identifiant fiscal 26185321 ICE : 002152608000044', pageW / 2, 291, { align: 'center' });
+            pdf.text(`ou par virement bancaire : ${COMPANY.name}`, m, y); y += 8;
+            pdf.text(`${COMPANY.bank} - RIB : ${COMPANY.rib}`, m, y); y += 15;
+            pdf.text('Signature et cachet de l\'entreprise', w - m - 60, y);
 
             pdf.save(`${doc.type}_${doc.doc_number}.pdf`);
         }
 
-        function formatNum(n) { if (typeof n !== 'number') n = parseFloat(n) || 0; return n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace(/\s/g, '.'); }
-        function formatDatePDF(d) { if (!d) return ''; const parts = d.split('-'); if (parts.length !== 3) return d; return `${parts[2]}/${parts[1]}/${parts[0]}`; }
-
+        function fmtNum(n) { return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+        function formatDatePDF(d) { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; }
         function numWords(n) {
             const u = ['','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix','onze','douze','treize','quatorze','quinze','seize','dix-sept','dix-huit','dix-neuf'];
             const t = ['','','vingt','trente','quarante','cinquante','soixante','soixante','quatre-vingt','quatre-vingt'];
-            n = Math.floor(n); if (n === 0) return 'zéro'; if (n < 20) return u[n];
-            if (n < 100) { const x = Math.floor(n/10), r = n%10; if (x === 7 || x === 9) return t[x] + '-' + u[10 + r]; return t[x] + (r === 1 && x !== 8 ? ' et ' : r ? '-' : '') + u[r]; }
-            if (n < 1000) { const h = Math.floor(n/100), r = n%100; return (h === 1 ? 'cent' : u[h] + ' cent') + (h > 1 && r === 0 ? 's' : '') + (r ? ' ' + numWords(r) : ''); }
-            if (n < 1000000) { const th = Math.floor(n/1000), r = n%1000; return (th === 1 ? 'mille' : numWords(th) + ' mille') + (r ? ' ' + numWords(r) : ''); }
+            n = Math.floor(n);
+            if (n === 0) return 'zéro';
+            if (n < 20) return u[n];
+            if (n < 100) { const x = Math.floor(n/10), r = n%10; return (x===7||x===9) ? t[x]+'-'+u[10+r] : t[x]+(r?'-'+u[r]:''); }
+            if (n < 1000) { const h = Math.floor(n/100), r = n%100; return (h===1?'cent':u[h]+' cent')+(r?' '+numWords(r):''); }
+            if (n < 1000000) { const th = Math.floor(n/1000), r = n%1000; return (th===1?'mille':numWords(th)+' mille')+(r?' '+numWords(r):''); }
             return n.toString();
         }
 
@@ -406,34 +263,20 @@
             const pending = projectTasks.filter(t => !t.done);
             const done = projectTasks.filter(t => t.done);
 
-            const devisValide = projectDocs.find(d => d.type === 'devis' && d.status === 'valide');
-            const devisBrouillon = projectDocs.find(d => d.type === 'devis' && d.status !== 'valide');
+            const devis = projectDocs.find(d => d.type === 'devis');
             const facture = projectDocs.find(d => d.type === 'facture');
 
             let btnsHtml = '';
-            if (p.drive_link || p.invoice_path || devisValide || devisBrouillon || facture) {
+            if (p.drive_link || p.invoice_path || devis || facture) {
                 btnsHtml = '<div class="action-buttons">';
                 if (p.drive_link) btnsHtml += `<a href="${p.drive_link}" target="_blank" class="action-btn action-btn-drive"><span class="action-btn-icon">📁</span>Fichiers</a>`;
-                if (devisValide) btnsHtml += `<button class="action-btn action-btn-devis" onclick="downloadDocPDF(${devisValide.id})"><span class="action-btn-icon">📋</span>Devis</button>`;
-                else if (devisBrouillon) btnsHtml += `<button class="action-btn action-btn-devis" style="opacity:0.7" onclick="downloadDocPDF(${devisBrouillon.id})"><span class="action-btn-icon">📋</span>Devis (brouillon)</button>`;
+                if (devis) btnsHtml += `<button class="action-btn action-btn-devis" onclick="downloadDocPDF(${devis.id})"><span class="action-btn-icon">📋</span>Devis</button>`;
                 if (facture) btnsHtml += `<button class="action-btn action-btn-facture" onclick="downloadDocPDF(${facture.id})"><span class="action-btn-icon">📄</span>Facture</button>`;
                 if (p.invoice_path) btnsHtml += `<a href="${getInvoiceUrl(p.invoice_path)}" target="_blank" class="action-btn action-btn-invoice"><span class="action-btn-icon">📄</span>Facture PDF</a>`;
                 btnsHtml += '</div>';
             }
 
-            // Client notes - editable textarea
-            const clientNotesHtml = `
-                <div class="section">
-                    <h3 class="section-title"><span class="section-title-icon">📝</span> Vos notes</h3>
-                    <div class="client-notes-container">
-                        <textarea id="client-notes-input" class="client-notes-textarea" placeholder="Écrivez vos notes, remarques ou demandes ici...">${p.client_notes || ''}</textarea>
-                        <div class="notes-actions">
-                            <span id="notes-status" class="notes-status"></span>
-                            <button id="notes-save-btn" class="notes-save-btn" onclick="saveClientNotes()">Enregistrer</button>
-                        </div>
-                    </div>
-                </div>
-            `;
+            let notesHtml = p.client_notes ? `<div class="section"><h3 class="section-title"><span class="section-title-icon">💬</span> Notes</h3><div class="client-notes">${p.client_notes}</div></div>` : '';
 
             let tasksHtml = '';
             if (projectTasks.length) {
@@ -457,8 +300,8 @@
                     </div>
                 </div>
                 ${btnsHtml}
-                ${p.description?`<div class="section"><h3 class="section-title"><span class="section-title-icon">📄</span> Description</h3><p class="description">${p.description}</p></div>`:''}
-                ${clientNotesHtml}
+                ${p.description?`<div class="section"><h3 class="section-title"><span class="section-title-icon">📝</span> Description</h3><p class="description">${p.description}</p></div>`:''}
+                ${notesHtml}
                 ${tasksHtml}
                 <div class="section"><h3 class="section-title"><span class="section-title-icon">📸</span> Sélection Photos</h3>
                     <div class="stats-grid">
