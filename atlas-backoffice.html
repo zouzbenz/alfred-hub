@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Atlas Pose - Backoffice</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
@@ -10,112 +10,162 @@
     <style>
         :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; }
         * { box-sizing:border-box; margin:0; padding:0; }
-        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
-        .container { max-width:1400px; margin:0 auto; padding:20px; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; -webkit-tap-highlight-color:transparent; }
+        .container { max-width:1400px; margin:0 auto; padding:15px; }
         
         /* Login */
-        .login-screen { display:flex; justify-content:center; align-items:center; min-height:100vh; }
-        .login-box { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:40px; width:100%; max-width:400px; text-align:center; }
-        .login-box h1 { font-size:1.5rem; margin-bottom:8px; }
-        .login-box p { color:var(--dim); margin-bottom:30px; font-size:.9rem; }
-        .login-box input { width:100%; padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; font-size:1rem; margin-bottom:15px; text-align:center; }
-        .login-box input:focus { outline:none; border-color:var(--accent); }
+        .login-screen { display:flex; justify-content:center; align-items:center; min-height:100vh; padding:20px; }
+        .login-box { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:30px; width:100%; max-width:400px; text-align:center; }
+        .login-box h1 { font-size:1.4rem; margin-bottom:8px; }
+        .login-box p { color:var(--dim); margin-bottom:20px; font-size:.85rem; }
+        .login-box input { width:100%; padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; font-size:1rem; margin-bottom:12px; text-align:center; }
+        .login-box select { width:100%; padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; font-size:1rem; margin-bottom:12px; }
         .login-box button { width:100%; padding:14px; background:var(--accent); border:none; border-radius:10px; color:#fff; font-size:1rem; font-weight:600; cursor:pointer; }
-        .login-error { color:var(--danger); margin-top:15px; font-size:.85rem; }
+        .login-error { color:var(--danger); margin-top:12px; font-size:.85rem; }
         
         /* Backoffice */
         .backoffice { display:none; }
         .backoffice.visible { display:block; }
         
-        .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; flex-wrap:wrap; gap:15px; }
-        .header h1 { font-size:1.8rem; display:flex; align-items:center; gap:10px; }
-        .header-actions { display:flex; gap:10px; flex-wrap:wrap; }
+        .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+        .header h1 { font-size:1.4rem; display:flex; align-items:center; gap:8px; }
+        .header-user { background:var(--card); padding:8px 14px; border-radius:20px; font-size:.85rem; color:var(--accent); border:1px solid var(--border); }
+        .header-actions { display:flex; gap:8px; flex-wrap:wrap; }
         
-        .btn { padding:12px 20px; border:none; border-radius:10px; font-weight:600; cursor:pointer; font-size:.9rem; transition:.2s; display:inline-flex; align-items:center; gap:8px; }
-        .btn:hover { transform:translateY(-2px); }
+        .btn { padding:10px 16px; border:none; border-radius:10px; font-weight:600; cursor:pointer; font-size:.85rem; transition:.2s; display:inline-flex; align-items:center; gap:6px; }
+        .btn:hover { transform:translateY(-1px); }
+        .btn:active { transform:scale(0.98); }
         .btn-primary { background:var(--accent); color:#fff; }
         .btn-success { background:var(--accent2); color:#fff; }
         .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
         .btn-danger { background:var(--danger); color:#fff; }
-        .btn-small { padding:8px 14px; font-size:.8rem; }
+        .btn-small { padding:6px 10px; font-size:.75rem; }
+        .btn-icon { padding:8px; min-width:36px; justify-content:center; }
         
         /* Stats */
-        .stats-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:30px; }
-        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; }
-        .stat-value { font-size:2rem; font-weight:800; color:var(--accent); }
-        .stat-label { font-size:.85rem; color:var(--dim); margin-top:5px; }
+        .stats-row { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:20px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; text-align:center; }
+        .stat-value { font-size:1.4rem; font-weight:800; color:var(--accent); }
+        .stat-label { font-size:.75rem; color:var(--dim); margin-top:4px; }
         
         /* Projects list */
-        .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:25px; margin-bottom:20px; }
-        .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
-        .section-title { font-size:1.1rem; font-weight:700; }
+        .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:15px; margin-bottom:15px; }
+        .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px; }
+        .section-title { font-size:1rem; font-weight:700; }
         
-        .project-table { width:100%; border-collapse:collapse; }
-        .project-table th, .project-table td { padding:12px 15px; text-align:left; border-bottom:1px solid var(--border); }
-        .project-table th { color:var(--dim); font-size:.8rem; text-transform:uppercase; font-weight:600; }
+        /* Table responsive */
+        .table-wrapper { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+        .project-table { width:100%; border-collapse:collapse; min-width:600px; }
+        .project-table th, .project-table td { padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); font-size:.85rem; }
+        .project-table th { color:var(--dim); font-size:.7rem; text-transform:uppercase; font-weight:600; white-space:nowrap; }
         .project-table tr:hover { background:rgba(255,255,255,.02); }
         .project-name { font-weight:600; }
-        .status-badge { padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:600; }
+        .status-badge { padding:4px 8px; border-radius:15px; font-size:.7rem; font-weight:600; white-space:nowrap; }
         .status-a_venir { background:rgba(245,158,11,.2); color:var(--warn); }
         .status-en_cours { background:rgba(59,130,246,.2); color:var(--accent); }
         .status-termine { background:rgba(16,185,129,.2); color:var(--accent2); }
         
-        .progress-bar { width:100px; height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
-        .progress-fill { height:100%; background:var(--accent2); border-radius:4px; }
+        .progress-bar { width:80px; height:6px; background:var(--border); border-radius:3px; overflow:hidden; }
+        .progress-fill { height:100%; background:var(--accent2); border-radius:3px; }
         .progress-fill.warning { background:var(--warn); }
         .progress-fill.danger { background:var(--danger); }
         
-        .actions-cell { display:flex; gap:8px; }
+        .actions-cell { display:flex; gap:6px; }
         
         /* Modal */
-        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.8); z-index:1000; justify-content:center; align-items:center; padding:20px; overflow-y:auto; }
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85); z-index:1000; justify-content:center; align-items:flex-start; padding:10px; overflow-y:auto; }
         .modal.visible { display:flex; }
-        .modal-content { background:var(--card); border:1px solid var(--border); border-radius:16px; width:100%; max-width:800px; max-height:90vh; overflow-y:auto; }
-        .modal-header { padding:20px 25px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
-        .modal-title { font-size:1.2rem; font-weight:700; }
-        .modal-close { background:none; border:none; color:var(--dim); font-size:1.5rem; cursor:pointer; }
-        .modal-body { padding:25px; }
-        .modal-footer { padding:20px 25px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; }
+        .modal-content { background:var(--card); border:1px solid var(--border); border-radius:16px; width:100%; max-width:800px; margin:20px auto; }
+        .modal-header { padding:15px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--card); z-index:10; border-radius:16px 16px 0 0; }
+        .modal-title { font-size:1.1rem; font-weight:700; }
+        .modal-close { background:none; border:none; color:var(--dim); font-size:1.5rem; cursor:pointer; padding:5px; }
+        .modal-body { padding:20px; }
+        .modal-footer { padding:15px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
         
         /* Forms */
-        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px; }
+        .form-row { display:grid; grid-template-columns:1fr; gap:12px; margin-bottom:12px; }
+        .form-row.two { grid-template-columns:1fr 1fr; }
         .form-row.three { grid-template-columns:1fr 1fr 1fr; }
-        .form-group { display:flex; flex-direction:column; gap:6px; }
+        .form-group { display:flex; flex-direction:column; gap:5px; }
         .form-group.full { grid-column:1/-1; }
-        .form-group label { font-size:.85rem; color:var(--dim); }
-        .form-group input, .form-group select, .form-group textarea { padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:#fff; font-size:.95rem; }
+        .form-group label { font-size:.8rem; color:var(--dim); }
+        .form-group input, .form-group select, .form-group textarea { padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:#fff; font-size:.9rem; }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:var(--accent); }
-        .form-group textarea { resize:vertical; min-height:80px; }
+        .form-group textarea { resize:vertical; min-height:70px; }
         
         /* Budget table */
-        .budget-section { margin-top:20px; }
-        .budget-section h3 { font-size:1rem; margin-bottom:15px; color:var(--dim); }
-        .budget-table { width:100%; border-collapse:collapse; font-size:.9rem; }
-        .budget-table th, .budget-table td { padding:10px; border:1px solid var(--border); }
-        .budget-table th { background:var(--bg); text-align:left; font-size:.8rem; }
-        .budget-table input { width:100%; padding:8px; background:var(--bg); border:1px solid var(--border); border-radius:4px; color:#fff; }
+        .budget-section { margin-top:15px; }
+        .budget-section h3 { font-size:.95rem; margin-bottom:12px; color:var(--dim); }
+        .budget-table-wrapper { overflow-x:auto; }
+        .budget-table { width:100%; border-collapse:collapse; font-size:.8rem; min-width:500px; }
+        .budget-table th, .budget-table td { padding:8px; border:1px solid var(--border); }
+        .budget-table th { background:var(--bg); text-align:left; font-size:.7rem; }
+        .budget-table input { width:100%; padding:6px; background:var(--bg); border:1px solid var(--border); border-radius:4px; color:#fff; font-size:.8rem; }
         .budget-cat { font-weight:600; background:rgba(59,130,246,.1); }
         
         /* Depenses */
-        .depense-card { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:15px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
-        .depense-info h4 { font-size:.95rem; margin-bottom:4px; }
-        .depense-meta { font-size:.8rem; color:var(--dim); }
-        .depense-amount { font-size:1.1rem; font-weight:700; color:var(--accent2); }
+        .depense-card { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:10px; }
+        .depense-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px; }
+        .depense-info h4 { font-size:.9rem; margin-bottom:4px; }
+        .depense-amount { font-size:1.1rem; font-weight:700; color:var(--accent2); white-space:nowrap; }
+        .depense-meta { display:flex; flex-wrap:wrap; gap:6px; font-size:.75rem; color:var(--dim); }
+        .depense-tag { padding:2px 8px; background:rgba(255,255,255,.05); border-radius:4px; }
+        .depense-tag.whatsapp { background:rgba(37,211,102,.15); color:#25d366; }
+        .depense-tag.backoffice { background:rgba(59,130,246,.15); color:var(--accent); }
+        .depense-tag.vocal { background:rgba(245,158,11,.15); color:var(--warn); }
+        .depense-tag.image { background:rgba(168,85,247,.15); color:#a855f7; }
+        .depense-actions { display:flex; gap:6px; margin-top:8px; }
+        
+        /* Photo Modal */
+        .photo-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.95); z-index:2000; justify-content:center; align-items:center; padding:20px; }
+        .photo-modal.visible { display:flex; }
+        .photo-modal img { max-width:100%; max-height:90vh; object-fit:contain; border-radius:8px; }
+        .photo-modal-close { position:absolute; top:20px; right:20px; background:var(--card); border:none; color:#fff; font-size:1.5rem; padding:10px 15px; border-radius:10px; cursor:pointer; }
+        
+        /* Gallery Modal */
+        .gallery-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; }
+        .gallery-item { aspect-ratio:1; border-radius:10px; overflow:hidden; cursor:pointer; border:2px solid var(--border); transition:.2s; position:relative; }
+        .gallery-item:hover { border-color:var(--accent); }
+        .gallery-item img { width:100%; height:100%; object-fit:cover; }
+        .gallery-item-info { background:linear-gradient(transparent, rgba(0,0,0,.8)); padding:8px; position:absolute; bottom:0; left:0; right:0; font-size:.7rem; }
         
         /* Toast */
-        .toast { position:fixed; bottom:30px; right:30px; background:var(--accent2); color:#fff; padding:15px 25px; border-radius:10px; font-weight:600; z-index:2000; opacity:0; transform:translateY(20px); transition:.3s; }
-        .toast.visible { opacity:1; transform:translateY(0); }
+        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--accent2); color:#fff; padding:12px 24px; border-radius:10px; font-weight:600; z-index:2000; opacity:0; transition:.3s; font-size:.9rem; }
+        .toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
         
-        /* Upload zone */
-        .upload-zone { border:2px dashed var(--border); border-radius:12px; padding:30px; text-align:center; cursor:pointer; transition:.2s; }
-        .upload-zone:hover { border-color:var(--accent); background:rgba(59,130,246,.05); }
-        .upload-zone input { display:none; }
-        
+        /* Mobile optimizations */
         @media(max-width:768px) {
-            .form-row { grid-template-columns:1fr; }
-            .form-row.three { grid-template-columns:1fr; }
-            .project-table { font-size:.85rem; }
-            .actions-cell { flex-direction:column; }
+            .stats-row { grid-template-columns:repeat(2, 1fr); }
+            .stat-card { padding:12px; }
+            .stat-value { font-size:1.2rem; }
+            .form-row.two, .form-row.three { grid-template-columns:1fr; }
+            .header h1 { font-size:1.2rem; }
+            .header-actions { width:100%; justify-content:flex-end; }
+            .btn { padding:8px 12px; font-size:.8rem; }
+            .modal-content { margin:10px; }
+            .modal-body { padding:15px; }
+            .section { padding:12px; }
+            .actions-cell { flex-wrap:wrap; }
+            .depense-header { flex-direction:column; }
+            .gallery-grid { grid-template-columns:repeat(2, 1fr); }
+        }
+        
+        @media(max-width:480px) {
+            .stats-row { grid-template-columns:1fr 1fr; gap:8px; }
+            .stat-card { padding:10px; }
+            .stat-value { font-size:1rem; }
+            .stat-label { font-size:.65rem; }
+            .header { padding:10px 0; }
+            .container { padding:10px; }
+        }
+
+        @media(min-width:769px) and (max-width:1024px) {
+            .stats-row { grid-template-columns:repeat(4, 1fr); }
+            .form-row.three { grid-template-columns:1fr 1fr; }
+        }
+        
+        @media(min-width:1025px) {
+            .stats-row { grid-template-columns:repeat(4, 1fr); }
         }
     </style>
 </head>
@@ -125,6 +175,11 @@
         <div class="login-box">
             <h1>🔧 Atlas Pose</h1>
             <p>Backoffice - Gestion des chantiers</p>
+            <select id="user-select">
+                <option value="">-- Sélectionnez votre nom --</option>
+                <option value="Badr">Badr</option>
+                <option value="Oussama">Oussama</option>
+            </select>
             <input type="password" id="password-input" placeholder="Mot de passe" onkeypress="if(event.key==='Enter')checkPassword()">
             <button onclick="checkPassword()">Accéder</button>
             <div class="login-error" id="login-error"></div>
@@ -136,38 +191,40 @@
         <div class="container">
             <div class="header">
                 <h1>🔧 Atlas Pose</h1>
+                <span class="header-user" id="current-user">👤 Utilisateur</span>
                 <div class="header-actions">
-                    <button class="btn btn-outline" onclick="exportExcel()">📥 Export Excel</button>
-                    <button class="btn btn-primary" onclick="openProjectModal()">+ Nouveau Projet</button>
+                    <button class="btn btn-outline btn-small" onclick="exportExcel()">📥 Export</button>
+                    <button class="btn btn-primary btn-small" onclick="openProjectModal()">+ Projet</button>
                 </div>
             </div>
             
             <div class="stats-row" id="stats-row">
                 <div class="stat-card"><div class="stat-value" id="stat-projects">0</div><div class="stat-label">Projets actifs</div></div>
-                <div class="stat-card"><div class="stat-value" id="stat-budget">0</div><div class="stat-label">Budget total (MAD)</div></div>
-                <div class="stat-card"><div class="stat-value" id="stat-depenses">0</div><div class="stat-label">Dépensé (MAD)</div></div>
-                <div class="stat-card"><div class="stat-value" id="stat-reste">0</div><div class="stat-label">Reste (MAD)</div></div>
+                <div class="stat-card"><div class="stat-value" id="stat-budget">0</div><div class="stat-label">Budget (MAD)</div></div>
+                <div class="stat-card"><div class="stat-value" id="stat-depenses">0</div><div class="stat-label">Dépensé</div></div>
+                <div class="stat-card"><div class="stat-value" id="stat-reste">0</div><div class="stat-label">Reste</div></div>
             </div>
             
             <div class="section">
                 <div class="section-header">
                     <h2 class="section-title">📋 Projets</h2>
                 </div>
-                <table class="project-table">
-                    <thead>
-                        <tr>
-                            <th>Projet</th>
-                            <th>Client</th>
-                            <th>Surface</th>
-                            <th>Status</th>
-                            <th>Budget</th>
-                            <th>Dépensé</th>
-                            <th>%</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="projects-tbody"></tbody>
-                </table>
+                <div class="table-wrapper">
+                    <table class="project-table">
+                        <thead>
+                            <tr>
+                                <th>Projet</th>
+                                <th>Client</th>
+                                <th>Status</th>
+                                <th>Budget</th>
+                                <th>Dépensé</th>
+                                <th>%</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projects-tbody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -183,13 +240,15 @@
                 <div class="modal-body">
                     <input type="hidden" id="project-id">
                     
-                    <div class="form-row">
+                    <div class="form-row two">
                         <div class="form-group"><label>Nom du projet *</label><input type="text" id="p-name" required></div>
                         <div class="form-group"><label>Maître d'ouvrage</label><input type="text" id="p-client"></div>
                     </div>
-                    <div class="form-row three">
+                    <div class="form-row two">
                         <div class="form-group"><label>Architecte</label><input type="text" id="p-architecte"></div>
                         <div class="form-group"><label>Prescripteur</label><input type="text" id="p-prescripteur"></div>
+                    </div>
+                    <div class="form-row two">
                         <div class="form-group"><label>Status</label>
                             <select id="p-status">
                                 <option value="a_venir">À venir</option>
@@ -197,33 +256,33 @@
                                 <option value="termine">Terminé</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="form-row">
                         <div class="form-group"><label>Localisation</label><input type="text" id="p-localisation"></div>
+                    </div>
+                    <div class="form-row two">
                         <div class="form-group"><label>Adresse chantier</label><input type="text" id="p-adresse"></div>
+                        <div class="form-group"><label>Surface (m²)</label><input type="number" id="p-surface" min="0"></div>
                     </div>
                     <div class="form-row three">
-                        <div class="form-group"><label>Surface (m²)</label><input type="number" id="p-surface" min="0"></div>
                         <div class="form-group"><label>Nb employés</label><input type="number" id="p-employes" min="0"></div>
                         <div class="form-group"><label>Durée (mois)</label><input type="number" id="p-duree" min="0"></div>
+                        <div class="form-group"><label>CA estimatif</label><input type="number" id="p-ca" min="0" step="0.01"></div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group"><label>CA estimatif (MAD)</label><input type="number" id="p-ca" min="0" step="0.01"></div>
+                    <div class="form-row two">
                         <div class="form-group"><label>Date début</label><input type="date" id="p-date"></div>
+                        <div class="form-group"><label>Mot de passe chantier</label><input type="text" id="p-password"><button type="button" class="btn btn-small btn-outline" onclick="generatePassword()" style="margin-top:5px">Générer</button></div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group"><label>Mot de passe (accès chantier)</label><input type="text" id="p-password"><button type="button" class="btn btn-small btn-outline" onclick="generatePassword()" style="margin-top:5px">Générer</button></div>
-                        <div class="form-group"><label>Notes</label><textarea id="p-notes"></textarea></div>
-                    </div>
+                    <div class="form-group full"><label>Notes</label><textarea id="p-notes"></textarea></div>
                     
                     <div class="budget-section">
-                        <h3>💰 Budget prévisionnel (Devis)</h3>
-                        <table class="budget-table">
-                            <thead>
-                                <tr><th>Catégorie</th><th>Désignation</th><th>Coût unitaire</th><th>Quantité</th><th>Budget (MAD)</th></tr>
-                            </thead>
-                            <tbody id="budget-tbody"></tbody>
-                        </table>
+                        <h3>💰 Budget prévisionnel</h3>
+                        <div class="budget-table-wrapper">
+                            <table class="budget-table">
+                                <thead>
+                                    <tr><th>Catégorie</th><th>Désignation</th><th>P.U</th><th>Qté</th><th>Budget</th></tr>
+                                </thead>
+                                <tbody id="budget-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -238,17 +297,20 @@
     <div class="modal" id="depenses-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">💸 Dépenses - <span id="depenses-project-name"></span></h3>
+                <h3 class="modal-title">💸 <span id="depenses-project-name"></span></h3>
                 <button class="modal-close" onclick="closeDepensesModal()">×</button>
             </div>
             <div class="modal-body">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                    <h4 style="color:var(--dim)">Historique des dépenses</h4>
-                    <button class="btn btn-primary btn-small" onclick="openAddDepenseForm()">+ Ajouter</button>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
+                    <h4 style="color:var(--dim);font-size:.9rem;">Historique des dépenses</h4>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-outline btn-small" onclick="openGalleryModal()">🖼️ Photos</button>
+                        <button class="btn btn-primary btn-small" onclick="openAddDepenseForm()">+ Ajouter</button>
+                    </div>
                 </div>
                 
-                <div id="add-depense-form" style="display:none;margin-bottom:20px;padding:20px;background:var(--bg);border-radius:10px;">
-                    <div class="form-row three">
+                <div id="add-depense-form" style="display:none;margin-bottom:15px;padding:15px;background:var(--bg);border-radius:10px;">
+                    <div class="form-row two">
                         <div class="form-group"><label>Catégorie</label>
                             <select id="d-categorie">
                                 <option value="fourniture">Fourniture</option>
@@ -264,19 +326,19 @@
                                 <option value="aleas">Aléas</option>
                             </select>
                         </div>
-                        <div class="form-group"><label>Désignation</label><input type="text" id="d-designation" placeholder="Ex: 10 sacs colle Pegoland"></div>
-                        <div class="form-group"><label>Date</label><input type="date" id="d-date"></div>
+                        <div class="form-group"><label>Désignation</label><input type="text" id="d-designation" placeholder="Ex: 10 sacs colle"></div>
                     </div>
                     <div class="form-row three">
                         <div class="form-group"><label>Quantité</label><input type="number" id="d-quantite" value="1" min="0" step="0.01"></div>
                         <div class="form-group"><label>Prix unitaire</label><input type="number" id="d-pu" min="0" step="0.01"></div>
-                        <div class="form-group"><label>Montant total (MAD)</label><input type="number" id="d-montant" min="0" step="0.01"></div>
+                        <div class="form-group"><label>Montant (MAD)</label><input type="number" id="d-montant" min="0" step="0.01"></div>
                     </div>
-                    <div class="form-row">
+                    <div class="form-row two">
                         <div class="form-group"><label>Fournisseur</label><input type="text" id="d-fournisseur"></div>
-                        <div class="form-group"><label>Notes</label><input type="text" id="d-notes"></div>
+                        <div class="form-group"><label>Date</label><input type="date" id="d-date"></div>
                     </div>
-                    <div style="display:flex;gap:10px;margin-top:10px;">
+                    <div class="form-group"><label>Notes</label><input type="text" id="d-notes"></div>
+                    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
                         <button class="btn btn-primary btn-small" onclick="saveDepense()">Enregistrer</button>
                         <button class="btn btn-outline btn-small" onclick="closeAddDepenseForm()">Annuler</button>
                     </div>
@@ -287,35 +349,70 @@
         </div>
     </div>
     
+    <!-- Photo Modal -->
+    <div class="photo-modal" id="photo-modal" onclick="closePhotoModal()">
+        <button class="photo-modal-close" onclick="closePhotoModal()">×</button>
+        <img id="photo-modal-img" src="" alt="Photo">
+    </div>
+    
+    <!-- Gallery Modal -->
+    <div class="modal" id="gallery-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🖼️ Photos du projet</h3>
+                <button class="modal-close" onclick="closeGalleryModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="gallery-grid" id="gallery-grid"></div>
+                <p id="gallery-empty" style="text-align:center;color:var(--dim);padding:30px;display:none;">Aucune photo</p>
+            </div>
+        </div>
+    </div>
+    
     <div class="toast" id="toast"></div>
     
     <script>
 const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
 const PASSWORD = 'atlas2026';
+const STORAGE_BUCKET = 'atlas-factures';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const CATEGORIES = [
-    { id: 'fourniture', label: 'Fourniture (Revêtements)' },
+    { id: 'fourniture', label: 'Fourniture' },
     { id: 'colle', label: 'Colle' },
     { id: 'joints', label: 'Joints' },
     { id: 'chape', label: 'Chape' },
     { id: 'main_oeuvre', label: "Main d'œuvre" },
     { id: 'transport', label: 'Transport' },
-    { id: 'mise_en_place', label: 'Mise en place chantier' },
+    { id: 'mise_en_place', label: 'Mise en place' },
     { id: 'nettoyage', label: 'Nettoyage' },
     { id: 'materiel', label: 'Matériel' },
-    { id: 'prorata', label: 'Compte prorata' },
-    { id: 'aleas', label: 'Aléas / Imprévus' }
+    { id: 'prorata', label: 'Prorata' },
+    { id: 'aleas', label: 'Aléas' }
 ];
 
-let projects = [], budgets = [], depenses = [], currentProjectId = null;
+let projects = [], budgets = [], depenses = [], currentProjectId = null, currentUser = '';
 
-if (sessionStorage.getItem('atlas-auth') === 'true') showBackoffice();
+const savedUser = sessionStorage.getItem('atlas-user');
+if (savedUser && sessionStorage.getItem('atlas-auth') === 'true') {
+    currentUser = savedUser;
+    showBackoffice();
+}
 
 function checkPassword() {
-    if (document.getElementById('password-input').value === PASSWORD) {
+    const user = document.getElementById('user-select').value;
+    const pwd = document.getElementById('password-input').value;
+    
+    if (!user) {
+        document.getElementById('login-error').textContent = 'Sélectionnez votre nom';
+        return;
+    }
+    
+    if (pwd === PASSWORD) {
+        currentUser = user;
         sessionStorage.setItem('atlas-auth', 'true');
+        sessionStorage.setItem('atlas-user', user);
         showBackoffice();
     } else {
         document.getElementById('login-error').textContent = 'Mot de passe incorrect';
@@ -325,6 +422,7 @@ function checkPassword() {
 async function showBackoffice() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('backoffice').classList.add('visible');
+    document.getElementById('current-user').textContent = '👤 ' + currentUser;
     await loadData();
 }
 
@@ -336,14 +434,22 @@ function showToast(msg) {
 }
 
 function formatMoney(n) {
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return Math.round(n / 1000) + 'K';
     return new Intl.NumberFormat('fr-MA', { maximumFractionDigits: 0 }).format(n || 0);
+}
+
+function formatDate(d) {
+    if (!d) return '-';
+    const date = new Date(d);
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
 async function loadData() {
     const [pRes, bRes, dRes] = await Promise.all([
         db.from('atlas_projects').select('*').order('created_at', { ascending: false }),
         db.from('atlas_budget').select('*'),
-        db.from('atlas_depenses').select('*')
+        db.from('atlas_depenses').select('*').order('date_depense', { ascending: false })
     ]);
     projects = pRes.data || [];
     budgets = bRes.data || [];
@@ -374,7 +480,7 @@ function renderStats() {
 function renderProjects() {
     const tbody = document.getElementById('projects-tbody');
     if (!projects.length) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--dim);padding:40px;">Aucun projet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--dim);padding:30px;">Aucun projet</td></tr>';
         return;
     }
     
@@ -387,20 +493,19 @@ function renderProjects() {
         return `<tr>
             <td class="project-name">${p.name}</td>
             <td>${p.client_name || '-'}</td>
-            <td>${p.surface_m2 ? p.surface_m2 + ' m²' : '-'}</td>
             <td><span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span></td>
             <td>${formatMoney(budget)}</td>
             <td>${formatMoney(spent)}</td>
             <td>
-                <div style="display:flex;align-items:center;gap:8px;">
+                <div style="display:flex;align-items:center;gap:6px;">
                     <div class="progress-bar"><div class="progress-fill ${pctClass}" style="width:${Math.min(pct, 100)}%"></div></div>
-                    <span style="font-size:.85rem;${pct > 100 ? 'color:var(--danger)' : ''}">${pct}%</span>
+                    <span style="font-size:.75rem;${pct > 100 ? 'color:var(--danger)' : ''}">${pct}%</span>
                 </div>
             </td>
             <td class="actions-cell">
-                <button class="btn btn-small btn-outline" onclick="openDepensesModal(${p.id}, '${p.name.replace(/'/g, "\\'")}')">💸</button>
-                <button class="btn btn-small btn-outline" onclick="editProject(${p.id})">✏️</button>
-                <button class="btn btn-small btn-danger" onclick="deleteProject(${p.id}, '${p.name.replace(/'/g, "\\'")}')">×</button>
+                <button class="btn btn-small btn-outline btn-icon" onclick="openDepensesModal(${p.id}, '${p.name.replace(/'/g, "\\'")}')">💸</button>
+                <button class="btn btn-small btn-outline btn-icon" onclick="editProject(${p.id})">✏️</button>
+                <button class="btn btn-small btn-danger btn-icon" onclick="deleteProject(${p.id}, '${p.name.replace(/'/g, "\\'")}')">×</button>
             </td>
         </tr>`;
     }).join('');
@@ -500,7 +605,6 @@ async function saveProject(e) {
             projectId = data?.[0]?.id;
         }
         
-        // Save budgets
         if (projectId) {
             await db.from('atlas_budget').delete().eq('project_id', projectId);
             
@@ -541,7 +645,7 @@ async function deleteProject(id, name) {
     await loadData();
 }
 
-// Dépenses Modal
+// === DEPENSES ===
 async function openDepensesModal(projectId, projectName) {
     currentProjectId = projectId;
     document.getElementById('depenses-project-name').textContent = projectName;
@@ -581,7 +685,10 @@ async function saveDepense() {
         montant: parseFloat(document.getElementById('d-montant').value) || 0,
         fournisseur: document.getElementById('d-fournisseur').value || null,
         notes: document.getElementById('d-notes').value || null,
-        source: 'manuel'
+        source: 'manuel',
+        sender_name: currentUser,
+        entry_method: 'backoffice',
+        message_format: 'manuel'
     };
     
     if (!data.designation || !data.montant) {
@@ -601,26 +708,44 @@ async function saveDepense() {
 }
 
 async function renderDepenses() {
-    const projectDepenses = depenses.filter(d => d.project_id === currentProjectId).sort((a, b) => new Date(b.date_depense) - new Date(a.date_depense));
+    const projectDepenses = depenses
+        .filter(d => d.project_id === currentProjectId)
+        .sort((a, b) => new Date(b.date_depense) - new Date(a.date_depense) || new Date(b.created_at) - new Date(a.created_at));
+    
     const container = document.getElementById('depenses-list');
     
     if (!projectDepenses.length) {
-        container.innerHTML = '<p style="color:var(--dim);text-align:center;padding:30px;">Aucune dépense enregistrée</p>';
+        container.innerHTML = '<p style="color:var(--dim);text-align:center;padding:30px;">Aucune dépense</p>';
         return;
     }
     
-    container.innerHTML = projectDepenses.map(d => `
+    container.innerHTML = projectDepenses.map(d => {
+        const catLabel = CATEGORIES.find(c => c.id === d.categorie)?.label || d.categorie;
+        const entryClass = d.entry_method === 'whatsapp' ? 'whatsapp' : 'backoffice';
+        const formatClass = d.message_format === 'vocal' ? 'vocal' : (d.message_format === 'image' ? 'image' : '');
+        
+        return `
         <div class="depense-card">
-            <div class="depense-info">
-                <h4>${d.designation}</h4>
-                <div class="depense-meta">${CATEGORIES.find(c => c.id === d.categorie)?.label || d.categorie} • ${d.date_depense} ${d.fournisseur ? '• ' + d.fournisseur : ''}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:15px;">
+            <div class="depense-header">
+                <div class="depense-info">
+                    <h4>${d.designation}</h4>
+                    <div class="depense-meta">
+                        <span class="depense-tag">${catLabel}</span>
+                        <span class="depense-tag ${entryClass}">${d.entry_method || 'manuel'}</span>
+                        ${d.message_format && d.message_format !== 'manuel' ? `<span class="depense-tag ${formatClass}">${d.message_format}</span>` : ''}
+                        ${d.sender_name ? `<span>👤 ${d.sender_name}</span>` : ''}
+                        <span>📅 ${formatDate(d.date_depense)}</span>
+                        ${d.fournisseur ? `<span>🏪 ${d.fournisseur}</span>` : ''}
+                    </div>
+                </div>
                 <div class="depense-amount">${formatMoney(d.montant)} MAD</div>
-                <button class="btn btn-small btn-danger" onclick="deleteDepense(${d.id})">×</button>
             </div>
-        </div>
-    `).join('');
+            <div class="depense-actions">
+                ${d.photo_path ? `<button class="btn btn-small btn-outline" onclick="viewPhoto('${d.photo_path}')">📷 Photo</button>` : ''}
+                <button class="btn btn-small btn-danger" onclick="deleteDepense(${d.id})">Supprimer</button>
+            </div>
+        </div>`;
+    }).join('');
 }
 
 async function deleteDepense(id) {
@@ -631,7 +756,48 @@ async function deleteDepense(id) {
     showToast('Dépense supprimée');
 }
 
-// Export Excel
+// === PHOTOS ===
+function viewPhoto(path) {
+    const url = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+    document.getElementById('photo-modal-img').src = url;
+    document.getElementById('photo-modal').classList.add('visible');
+}
+
+function closePhotoModal() {
+    document.getElementById('photo-modal').classList.remove('visible');
+}
+
+async function openGalleryModal() {
+    const projectDepenses = depenses.filter(d => d.project_id === currentProjectId && d.photo_path);
+    const grid = document.getElementById('gallery-grid');
+    const empty = document.getElementById('gallery-empty');
+    
+    if (!projectDepenses.length) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+    } else {
+        empty.style.display = 'none';
+        grid.innerHTML = projectDepenses.map(d => {
+            const url = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${d.photo_path}`;
+            return `
+            <div class="gallery-item" onclick="viewPhoto('${d.photo_path}')">
+                <img src="${url}" alt="${d.designation}" loading="lazy">
+                <div class="gallery-item-info">
+                    <div>${d.designation}</div>
+                    <div>${formatDate(d.date_depense)}</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+    
+    document.getElementById('gallery-modal').classList.add('visible');
+}
+
+function closeGalleryModal() {
+    document.getElementById('gallery-modal').classList.remove('visible');
+}
+
+// === EXPORT ===
 async function exportExcel() {
     const rows = projects.map(p => ({
         'Projet': p.name,

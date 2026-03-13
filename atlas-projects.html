@@ -2,67 +2,84 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Atlas Pose - Projets</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <style>
         :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; }
         * { box-sizing:border-box; margin:0; padding:0; }
-        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
-        .container { max-width:1200px; margin:0 auto; padding:20px; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; -webkit-tap-highlight-color:transparent; }
+        .container { max-width:1200px; margin:0 auto; padding:15px; }
         
-        .header { text-align:center; padding:40px 20px; }
-        .header h1 { font-size:2.5rem; margin-bottom:10px; }
-        .header p { color:var(--dim); font-size:1.1rem; }
+        .header { text-align:center; padding:30px 15px; }
+        .header h1 { font-size:2rem; margin-bottom:8px; }
+        .header p { color:var(--dim); font-size:1rem; }
         
-        .stats-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:15px; margin-bottom:40px; }
-        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; text-align:center; }
-        .stat-value { font-size:2rem; font-weight:800; }
+        .stats-row { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:25px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; text-align:center; }
+        .stat-value { font-size:1.5rem; font-weight:800; }
         .stat-value.blue { color:var(--accent); }
         .stat-value.green { color:var(--accent2); }
         .stat-value.orange { color:var(--warn); }
-        .stat-label { font-size:.85rem; color:var(--dim); margin-top:5px; }
+        .stat-label { font-size:.75rem; color:var(--dim); margin-top:4px; }
         
-        .filters { display:flex; gap:10px; margin-bottom:30px; flex-wrap:wrap; justify-content:center; }
-        .filter-btn { padding:10px 20px; background:var(--card); border:1px solid var(--border); border-radius:25px; color:var(--text); cursor:pointer; font-size:.9rem; transition:.2s; }
+        .filters { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; justify-content:center; }
+        .filter-btn { padding:10px 18px; background:var(--card); border:1px solid var(--border); border-radius:25px; color:var(--text); cursor:pointer; font-size:.85rem; transition:.2s; }
         .filter-btn:hover, .filter-btn.active { background:var(--accent); border-color:var(--accent); }
         
-        .projects-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(350px, 1fr)); gap:20px; }
+        .projects-grid { display:grid; grid-template-columns:1fr; gap:15px; }
         
         .project-card { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; transition:.3s; cursor:pointer; }
-        .project-card:hover { transform:translateY(-5px); box-shadow:0 10px 40px rgba(0,0,0,.3); border-color:var(--accent); }
+        .project-card:hover { transform:translateY(-3px); box-shadow:0 10px 30px rgba(0,0,0,.3); border-color:var(--accent); }
+        .project-card:active { transform:scale(0.98); }
         
-        .project-header { padding:20px; border-bottom:1px solid var(--border); }
-        .project-name { font-size:1.3rem; font-weight:700; margin-bottom:8px; }
-        .project-client { color:var(--dim); font-size:.9rem; }
-        .status-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:.75rem; font-weight:600; margin-top:10px; }
+        .project-header { padding:18px; border-bottom:1px solid var(--border); }
+        .project-name { font-size:1.2rem; font-weight:700; margin-bottom:6px; }
+        .project-client { color:var(--dim); font-size:.85rem; }
+        .status-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:.7rem; font-weight:600; margin-top:10px; }
         .status-a_venir { background:rgba(245,158,11,.2); color:var(--warn); }
         .status-en_cours { background:rgba(59,130,246,.2); color:var(--accent); }
         .status-termine { background:rgba(16,185,129,.2); color:var(--accent2); }
         
-        .project-body { padding:20px; }
-        .project-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:15px; }
+        .project-body { padding:18px; }
+        .project-stats { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:15px; }
         .project-stat { text-align:center; }
-        .project-stat-value { font-size:1.1rem; font-weight:700; }
-        .project-stat-label { font-size:.75rem; color:var(--dim); }
+        .project-stat-value { font-size:1rem; font-weight:700; }
+        .project-stat-label { font-size:.7rem; color:var(--dim); }
         
-        .progress-section { margin-top:15px; }
-        .progress-header { display:flex; justify-content:space-between; margin-bottom:8px; font-size:.85rem; }
-        .progress-bar { height:10px; background:var(--border); border-radius:5px; overflow:hidden; }
-        .progress-fill { height:100%; border-radius:5px; transition:width .5s; }
+        .progress-section { margin-top:12px; }
+        .progress-header { display:flex; justify-content:space-between; margin-bottom:6px; font-size:.8rem; }
+        .progress-bar { height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
+        .progress-fill { height:100%; border-radius:4px; transition:width .5s; }
         .progress-fill.safe { background:linear-gradient(90deg, var(--accent2), #34d399); }
         .progress-fill.warning { background:linear-gradient(90deg, var(--warn), #fbbf24); }
         .progress-fill.danger { background:linear-gradient(90deg, var(--danger), #f87171); }
         
-        .project-footer { padding:15px 20px; background:rgba(0,0,0,.2); display:flex; justify-content:space-between; align-items:center; }
-        .project-location { font-size:.85rem; color:var(--dim); }
+        .project-footer { padding:12px 18px; background:rgba(0,0,0,.2); display:flex; justify-content:space-between; align-items:center; }
+        .project-location { font-size:.8rem; color:var(--dim); }
         .project-arrow { color:var(--accent); font-size:1.2rem; }
         
-        .empty-state { text-align:center; padding:60px; color:var(--dim); }
+        .empty-state { text-align:center; padding:50px; color:var(--dim); }
         
-        .footer { text-align:center; padding:40px; color:var(--dim); font-size:.85rem; }
+        .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
         .footer a { color:var(--accent); text-decoration:none; }
+        
+        @media(min-width:600px) {
+            .projects-grid { grid-template-columns:repeat(2, 1fr); }
+            .stats-row { grid-template-columns:repeat(4, 1fr); }
+        }
+        
+        @media(min-width:900px) {
+            .projects-grid { grid-template-columns:repeat(3, 1fr); }
+        }
+        
+        @media(max-width:480px) {
+            .header { padding:20px 10px; }
+            .header h1 { font-size:1.6rem; }
+            .stat-value { font-size:1.2rem; }
+            .filter-btn { padding:8px 14px; font-size:.8rem; }
+        }
     </style>
 </head>
 <body>
@@ -75,8 +92,8 @@
         <div class="stats-row" id="stats-row">
             <div class="stat-card"><div class="stat-value blue" id="stat-total">0</div><div class="stat-label">Projets</div></div>
             <div class="stat-card"><div class="stat-value green" id="stat-encours">0</div><div class="stat-label">En cours</div></div>
-            <div class="stat-card"><div class="stat-value orange" id="stat-budget">0</div><div class="stat-label">Budget total (MAD)</div></div>
-            <div class="stat-card"><div class="stat-value blue" id="stat-spent">0</div><div class="stat-label">Dépensé (MAD)</div></div>
+            <div class="stat-card"><div class="stat-value orange" id="stat-budget">0</div><div class="stat-label">Budget (MAD)</div></div>
+            <div class="stat-card"><div class="stat-value blue" id="stat-spent">0</div><div class="stat-label">Dépensé</div></div>
         </div>
         
         <div class="filters">
@@ -91,7 +108,7 @@
         </div>
         
         <div class="footer">
-            Suivi par <a href="#">Atlas Pose</a> • <a href="./atlas-backoffice.html">Administration</a>
+            <a href="./atlas-backoffice.html">Administration</a> • <a href="./">Alfred Hub</a>
         </div>
     </div>
     
@@ -199,7 +216,6 @@ function renderProjects() {
     }).join('');
 }
 
-// Filters
 document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));

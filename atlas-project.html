@@ -2,58 +2,60 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Projet - Atlas Pose</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <style>
         :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; }
         * { box-sizing:border-box; margin:0; padding:0; }
-        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
-        .container { max-width:1200px; margin:0 auto; padding:20px; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; -webkit-tap-highlight-color:transparent; }
+        .container { max-width:1200px; margin:0 auto; padding:15px; }
         
         /* Login */
-        .login-screen { display:flex; justify-content:center; align-items:center; min-height:100vh; }
-        .login-box { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:40px; width:100%; max-width:400px; text-align:center; }
-        .login-box h2 { margin-bottom:10px; }
-        .login-box p { color:var(--dim); margin-bottom:30px; }
-        .login-box input { width:100%; padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; font-size:1rem; margin-bottom:15px; text-align:center; }
+        .login-screen { display:flex; justify-content:center; align-items:center; min-height:100vh; padding:20px; }
+        .login-box { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:30px; width:100%; max-width:400px; text-align:center; }
+        .login-box h2 { margin-bottom:8px; font-size:1.3rem; }
+        .login-box p { color:var(--dim); margin-bottom:20px; font-size:.85rem; }
+        .login-box input { width:100%; padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; font-size:1rem; margin-bottom:12px; text-align:center; }
         .login-box button { width:100%; padding:14px; background:var(--accent); border:none; border-radius:10px; color:#fff; font-size:1rem; font-weight:600; cursor:pointer; }
-        .login-error { color:var(--danger); margin-top:15px; font-size:.85rem; }
+        .login-error { color:var(--danger); margin-top:12px; font-size:.85rem; }
         
         .content { display:none; }
         .content.visible { display:block; }
         
-        .back-link { display:inline-flex; align-items:center; gap:8px; color:var(--accent); text-decoration:none; font-size:.9rem; margin-bottom:20px; }
-        .back-link:hover { text-decoration:underline; }
+        .back-link { display:inline-flex; align-items:center; gap:6px; color:var(--accent); text-decoration:none; font-size:.85rem; margin-bottom:15px; padding:8px 0; }
         
         /* Header */
-        .project-header { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:30px; margin-bottom:25px; }
-        .project-title { font-size:2rem; font-weight:800; margin-bottom:10px; }
-        .project-meta { display:flex; gap:30px; flex-wrap:wrap; color:var(--dim); font-size:.95rem; }
-        .project-meta span { display:flex; align-items:center; gap:6px; }
-        .status-badge { display:inline-block; padding:6px 14px; border-radius:20px; font-size:.8rem; font-weight:600; margin-left:15px; }
+        .project-header { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:15px; }
+        .project-title { font-size:1.5rem; font-weight:800; margin-bottom:8px; display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+        .project-meta { display:flex; gap:15px; flex-wrap:wrap; color:var(--dim); font-size:.85rem; }
+        .project-meta span { display:flex; align-items:center; gap:4px; }
+        .status-badge { display:inline-block; padding:5px 12px; border-radius:20px; font-size:.75rem; font-weight:600; }
         .status-a_venir { background:rgba(245,158,11,.2); color:var(--warn); }
         .status-en_cours { background:rgba(59,130,246,.2); color:var(--accent); }
         .status-termine { background:rgba(16,185,129,.2); color:var(--accent2); }
         
         /* Stats */
-        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:15px; margin-bottom:25px; }
-        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; text-align:center; }
-        .stat-value { font-size:1.8rem; font-weight:800; }
+        .stats-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:15px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; text-align:center; }
+        .stat-value { font-size:1.3rem; font-weight:800; }
         .stat-value.blue { color:var(--accent); }
         .stat-value.green { color:var(--accent2); }
         .stat-value.orange { color:var(--warn); }
         .stat-value.red { color:var(--danger); }
-        .stat-label { font-size:.8rem; color:var(--dim); margin-top:5px; }
+        .stat-label { font-size:.7rem; color:var(--dim); margin-top:4px; }
         
-        /* Budget vs Réel */
-        .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:25px; margin-bottom:20px; }
-        .section-title { font-size:1.1rem; font-weight:700; margin-bottom:20px; display:flex; align-items:center; gap:10px; }
+        /* Sections */
+        .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:15px; margin-bottom:15px; }
+        .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px; }
+        .section-title { font-size:1rem; font-weight:700; display:flex; align-items:center; gap:8px; }
         
-        .comparison-table { width:100%; border-collapse:collapse; }
-        .comparison-table th, .comparison-table td { padding:12px 15px; text-align:left; border-bottom:1px solid var(--border); }
-        .comparison-table th { color:var(--dim); font-size:.8rem; text-transform:uppercase; }
+        /* Table */
+        .table-wrapper { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+        .comparison-table { width:100%; border-collapse:collapse; min-width:450px; font-size:.85rem; }
+        .comparison-table th, .comparison-table td { padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); }
+        .comparison-table th { color:var(--dim); font-size:.7rem; text-transform:uppercase; }
         .comparison-table .cat-name { font-weight:600; }
         .comparison-table .amount { text-align:right; font-family:monospace; }
         .comparison-table .budget { color:var(--dim); }
@@ -62,28 +64,60 @@
         .comparison-table .reste.negative { color:var(--danger); }
         .comparison-table .reste.positive { color:var(--accent2); }
         
-        .progress-cell { width:120px; }
-        .mini-progress { height:6px; background:var(--border); border-radius:3px; overflow:hidden; }
+        .progress-cell { width:100px; }
+        .mini-progress { height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
         .mini-progress-fill { height:100%; border-radius:3px; }
         .mini-progress-fill.safe { background:var(--accent2); }
         .mini-progress-fill.warning { background:var(--warn); }
         .mini-progress-fill.danger { background:var(--danger); }
         
-        /* Historique */
-        .depense-item { display:flex; justify-content:space-between; align-items:center; padding:15px; background:var(--bg); border-radius:10px; margin-bottom:10px; }
-        .depense-info h4 { font-size:.95rem; margin-bottom:4px; }
-        .depense-meta { font-size:.8rem; color:var(--dim); }
-        .depense-cat { display:inline-block; padding:2px 8px; background:rgba(59,130,246,.2); color:var(--accent); border-radius:4px; font-size:.7rem; margin-right:8px; }
-        .depense-amount { font-size:1.1rem; font-weight:700; color:var(--accent2); }
+        /* Depenses */
+        .btn { padding:8px 14px; border:none; border-radius:8px; font-weight:600; cursor:pointer; font-size:.8rem; transition:.2s; display:inline-flex; align-items:center; gap:5px; }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+        .btn-small { padding:6px 10px; font-size:.75rem; }
+        .btn-danger { background:var(--danger); color:#fff; }
         
-        .empty-state { text-align:center; padding:40px; color:var(--dim); }
+        .depense-item { background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px; }
+        .depense-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:6px; }
+        .depense-info h4 { font-size:.9rem; margin-bottom:4px; }
+        .depense-amount { font-size:1rem; font-weight:700; color:var(--accent2); white-space:nowrap; }
+        .depense-meta { display:flex; flex-wrap:wrap; gap:5px; font-size:.7rem; color:var(--dim); }
+        .depense-tag { padding:2px 6px; background:rgba(255,255,255,.05); border-radius:4px; }
+        .depense-tag.whatsapp { background:rgba(37,211,102,.15); color:#25d366; }
+        .depense-tag.backoffice { background:rgba(59,130,246,.15); color:var(--accent); }
+        .depense-tag.vocal { background:rgba(245,158,11,.15); color:var(--warn); }
+        .depense-tag.image { background:rgba(168,85,247,.15); color:#a855f7; }
+        .depense-actions { display:flex; gap:6px; margin-top:8px; }
         
-        .footer { text-align:center; padding:40px; color:var(--dim); font-size:.85rem; }
+        .empty-state { text-align:center; padding:30px; color:var(--dim); }
+        
+        /* Photo Modal */
+        .photo-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.95); z-index:2000; justify-content:center; align-items:center; padding:20px; }
+        .photo-modal.visible { display:flex; }
+        .photo-modal img { max-width:100%; max-height:90vh; object-fit:contain; border-radius:8px; }
+        .photo-modal-close { position:absolute; top:15px; right:15px; background:var(--card); border:none; color:#fff; font-size:1.3rem; padding:10px 15px; border-radius:10px; cursor:pointer; }
+        
+        /* Gallery */
+        .gallery-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:10px; margin-top:15px; }
+        .gallery-item { aspect-ratio:1; border-radius:10px; overflow:hidden; cursor:pointer; border:2px solid var(--border); transition:.2s; position:relative; }
+        .gallery-item:hover { border-color:var(--accent); }
+        .gallery-item img { width:100%; height:100%; object-fit:cover; }
+        .gallery-item-info { background:linear-gradient(transparent, rgba(0,0,0,.8)); padding:6px; position:absolute; bottom:0; left:0; right:0; font-size:.65rem; }
+        
+        .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
         .footer a { color:var(--accent); text-decoration:none; }
         
-        @media(max-width:768px) {
-            .project-meta { flex-direction:column; gap:10px; }
-            .comparison-table { font-size:.85rem; }
+        @media(min-width:768px) {
+            .stats-grid { grid-template-columns:repeat(4, 1fr); }
+            .depense-header { flex-direction:row; }
+        }
+        
+        @media(max-width:480px) {
+            .project-title { font-size:1.2rem; }
+            .project-meta { font-size:.8rem; gap:10px; }
+            .stat-value { font-size:1.1rem; }
+            .comparison-table { font-size:.8rem; }
+            .depense-header { flex-direction:column; }
         }
     </style>
 </head>
@@ -111,36 +145,51 @@
             <div class="stats-grid" id="stats-grid"></div>
             
             <div class="section">
-                <h3 class="section-title">📊 Budget vs Réel par catégorie</h3>
-                <table class="comparison-table">
-                    <thead>
-                        <tr>
-                            <th>Catégorie</th>
-                            <th class="amount">Budget</th>
-                            <th class="amount">Dépensé</th>
-                            <th class="amount">Reste</th>
-                            <th class="progress-cell">%</th>
-                        </tr>
-                    </thead>
-                    <tbody id="comparison-tbody"></tbody>
-                    <tfoot id="comparison-tfoot"></tfoot>
-                </table>
+                <h3 class="section-title">📊 Budget vs Réel</h3>
+                <div class="table-wrapper">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Catégorie</th>
+                                <th class="amount">Budget</th>
+                                <th class="amount">Dépensé</th>
+                                <th class="amount">Reste</th>
+                                <th class="progress-cell">%</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comparison-tbody"></tbody>
+                        <tfoot id="comparison-tfoot"></tfoot>
+                    </table>
+                </div>
             </div>
             
             <div class="section">
-                <h3 class="section-title">📝 Historique des dépenses</h3>
+                <div class="section-header">
+                    <h3 class="section-title">📝 Historique</h3>
+                    <button class="btn btn-outline btn-small" onclick="toggleGallery()">🖼️ Photos</button>
+                </div>
+                <div id="gallery-section" style="display:none;">
+                    <div class="gallery-grid" id="gallery-grid"></div>
+                </div>
                 <div id="depenses-list"></div>
             </div>
             
             <div class="footer">
-                Suivi par <a href="#">Atlas Pose</a>
+                <a href="./atlas-projects.html">Projets</a> • <a href="./">Alfred Hub</a>
             </div>
         </div>
+    </div>
+    
+    <!-- Photo Modal -->
+    <div class="photo-modal" id="photo-modal" onclick="closePhotoModal()">
+        <button class="photo-modal-close" onclick="closePhotoModal()">×</button>
+        <img id="photo-modal-img" src="" alt="Photo">
     </div>
     
     <script>
 const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const STORAGE_BUCKET = 'atlas-factures';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const CATEGORIES = [
@@ -175,7 +224,6 @@ async function loadProject() {
     
     project = data;
     
-    // Load budgets and depenses
     const [bRes, dRes] = await Promise.all([
         db.from('atlas_budget').select('*').eq('project_id', projectId),
         db.from('atlas_depenses').select('*').eq('project_id', projectId).order('date_depense', { ascending: false })
@@ -183,7 +231,6 @@ async function loadProject() {
     budgets = bRes.data || [];
     depenses = dRes.data || [];
     
-    // Check access
     if (isAdmin || !project.password) {
         showContent();
     }
@@ -209,6 +256,11 @@ function formatMoney(n) {
     return new Intl.NumberFormat('fr-MA', { maximumFractionDigits: 0 }).format(n || 0);
 }
 
+function formatDate(d) {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
 function getBudgetByCategory(catId) {
     return budgets.filter(b => b.categorie === catId).reduce((s, b) => s + (parseFloat(b.budget_prevu) || 0), 0);
 }
@@ -222,16 +274,15 @@ function render() {
     
     // Header
     document.getElementById('project-header').innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:15px;">
-            <div>
-                <div class="project-title">${project.name}<span class="status-badge status-${project.status}">${project.status.replace('_', ' ')}</span></div>
-                <div class="project-meta">
-                    <span>🏢 ${project.client_name || 'Non défini'}</span>
-                    <span>📍 ${project.localisation || 'Non défini'}</span>
-                    <span>📐 ${project.surface_m2 || 0} m²</span>
-                    <span>👷 ${project.nb_employes || 0} employés</span>
-                </div>
-            </div>
+        <div class="project-title">
+            ${project.name}
+            <span class="status-badge status-${project.status}">${project.status.replace('_', ' ')}</span>
+        </div>
+        <div class="project-meta">
+            <span>🏢 ${project.client_name || 'Non défini'}</span>
+            <span>📍 ${project.localisation || 'Non défini'}</span>
+            <span>📐 ${project.surface_m2 || 0} m²</span>
+            <span>👷 ${project.nb_employes || 0} employés</span>
         </div>
     `;
     
@@ -242,9 +293,9 @@ function render() {
     const pct = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
     
     document.getElementById('stats-grid').innerHTML = `
-        <div class="stat-card"><div class="stat-value blue">${formatMoney(totalBudget)}</div><div class="stat-label">Budget Total (MAD)</div></div>
-        <div class="stat-card"><div class="stat-value green">${formatMoney(totalSpent)}</div><div class="stat-label">Dépensé (MAD)</div></div>
-        <div class="stat-card"><div class="stat-value ${reste < 0 ? 'red' : 'orange'}">${formatMoney(reste)}</div><div class="stat-label">Reste (MAD)</div></div>
+        <div class="stat-card"><div class="stat-value blue">${formatMoney(totalBudget)}</div><div class="stat-label">Budget (MAD)</div></div>
+        <div class="stat-card"><div class="stat-value green">${formatMoney(totalSpent)}</div><div class="stat-label">Dépensé</div></div>
+        <div class="stat-card"><div class="stat-value ${reste < 0 ? 'red' : 'orange'}">${formatMoney(reste)}</div><div class="stat-label">Reste</div></div>
         <div class="stat-card"><div class="stat-value ${pct > 100 ? 'red' : pct > 80 ? 'orange' : 'blue'}">${pct}%</div><div class="stat-label">Consommé</div></div>
     `;
     
@@ -270,7 +321,7 @@ function render() {
             <td class="amount reste ${catReste < 0 ? 'negative' : 'positive'}">${formatMoney(catReste)}</td>
             <td class="progress-cell">
                 <div class="mini-progress"><div class="mini-progress-fill ${progressClass}" style="width:${Math.min(catPct, 100)}%"></div></div>
-                <div style="font-size:.75rem;text-align:center;margin-top:3px;color:${catPct > 100 ? 'var(--danger)' : 'var(--dim)'}">${catPct}%</div>
+                <div style="font-size:.7rem;text-align:center;margin-top:2px;color:${catPct > 100 ? 'var(--danger)' : 'var(--dim)'}">${catPct}%</div>
             </td>
         </tr>`;
     }).join('');
@@ -284,34 +335,87 @@ function render() {
             <td class="amount">${formatMoney(totalBudgetCalc)}</td>
             <td class="amount" style="color:var(--accent2)">${formatMoney(totalSpentCalc)}</td>
             <td class="amount ${totalReste < 0 ? 'negative' : 'positive'}">${formatMoney(totalReste)}</td>
-            <td class="progress-cell"><span style="font-size:.9rem;color:${totalPct > 100 ? 'var(--danger)' : 'var(--accent)'}">${totalPct}%</span></td>
+            <td class="progress-cell"><span style="font-size:.85rem;color:${totalPct > 100 ? 'var(--danger)' : 'var(--accent)'}">${totalPct}%</span></td>
         </tr>
     `;
     
+    // Gallery
+    renderGallery();
+    
     // Depenses list
-    const depensesList = document.getElementById('depenses-list');
+    renderDepenses();
+}
+
+function renderGallery() {
+    const photosDepenses = depenses.filter(d => d.photo_path);
+    const grid = document.getElementById('gallery-grid');
+    
+    if (!photosDepenses.length) {
+        grid.innerHTML = '<p style="color:var(--dim);padding:20px;text-align:center;">Aucune photo</p>';
+        return;
+    }
+    
+    grid.innerHTML = photosDepenses.map(d => {
+        const url = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${d.photo_path}`;
+        return `
+        <div class="gallery-item" onclick="viewPhoto('${d.photo_path}')">
+            <img src="${url}" alt="${d.designation}" loading="lazy">
+            <div class="gallery-item-info">${formatDate(d.date_depense)}</div>
+        </div>`;
+    }).join('');
+}
+
+function toggleGallery() {
+    const section = document.getElementById('gallery-section');
+    section.style.display = section.style.display === 'none' ? 'block' : 'none';
+}
+
+function renderDepenses() {
+    const container = document.getElementById('depenses-list');
+    
     if (!depenses.length) {
-        depensesList.innerHTML = '<div class="empty-state">Aucune dépense enregistrée</div>';
-    } else {
-        depensesList.innerHTML = depenses.slice(0, 20).map(d => {
-            const catLabel = CATEGORIES.find(c => c.id === d.categorie)?.label || d.categorie;
-            return `
-            <div class="depense-item">
+        container.innerHTML = '<div class="empty-state">Aucune dépense</div>';
+        return;
+    }
+    
+    container.innerHTML = depenses.slice(0, 30).map(d => {
+        const catLabel = CATEGORIES.find(c => c.id === d.categorie)?.label || d.categorie;
+        const entryClass = d.entry_method === 'whatsapp' ? 'whatsapp' : 'backoffice';
+        const formatClass = d.message_format === 'vocal' ? 'vocal' : (d.message_format === 'image' ? 'image' : '');
+        
+        return `
+        <div class="depense-item">
+            <div class="depense-header">
                 <div class="depense-info">
                     <h4>${d.designation}</h4>
                     <div class="depense-meta">
-                        <span class="depense-cat">${catLabel}</span>
-                        ${d.date_depense} ${d.fournisseur ? '• ' + d.fournisseur : ''}
+                        <span class="depense-tag">${catLabel}</span>
+                        <span class="depense-tag ${entryClass}">${d.entry_method || 'manuel'}</span>
+                        ${d.message_format && d.message_format !== 'manuel' ? `<span class="depense-tag ${formatClass}">${d.message_format}</span>` : ''}
+                        ${d.sender_name ? `<span>👤 ${d.sender_name}</span>` : ''}
+                        <span>📅 ${formatDate(d.date_depense)}</span>
+                        ${d.fournisseur ? `<span>🏪 ${d.fournisseur}</span>` : ''}
                     </div>
                 </div>
                 <div class="depense-amount">${formatMoney(d.montant)} MAD</div>
-            </div>`;
-        }).join('');
-        
-        if (depenses.length > 20) {
-            depensesList.innerHTML += `<div style="text-align:center;padding:15px;color:var(--dim);">+ ${depenses.length - 20} autres dépenses</div>`;
-        }
+            </div>
+            ${d.photo_path ? `<div class="depense-actions"><button class="btn btn-outline btn-small" onclick="viewPhoto('${d.photo_path}')">📷 Voir photo</button></div>` : ''}
+        </div>`;
+    }).join('');
+    
+    if (depenses.length > 30) {
+        container.innerHTML += `<div style="text-align:center;padding:15px;color:var(--dim);">+ ${depenses.length - 30} autres dépenses</div>`;
     }
+}
+
+function viewPhoto(path) {
+    const url = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+    document.getElementById('photo-modal-img').src = url;
+    document.getElementById('photo-modal').classList.add('visible');
+}
+
+function closePhotoModal() {
+    document.getElementById('photo-modal').classList.remove('visible');
 }
 
 loadProject();
