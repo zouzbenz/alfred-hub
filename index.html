@@ -10,78 +10,63 @@
         * { box-sizing:border-box; margin:0; padding:0; }
         body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
         
-        .container { max-width:800px; width:100%; }
+        .container { max-width:500px; width:100%; }
         
-        .header { text-align:center; margin-bottom:50px; }
-        .header h1 { font-size:3rem; font-weight:800; margin-bottom:10px; }
-        .header p { color:var(--dim); font-size:1.1rem; }
+        .header { text-align:center; margin-bottom:40px; }
+        .header h1 { font-size:2.2rem; font-weight:800; margin-bottom:8px; }
+        .header p { color:var(--dim); font-size:1rem; }
         
-        .spaces { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:25px; }
+        .spaces { display:flex; flex-direction:column; gap:20px; }
         
         .space-card {
             background:var(--card);
             border:1px solid var(--border);
-            border-radius:20px;
-            padding:35px;
-            text-decoration:none;
-            color:var(--text);
-            transition:.3s;
-            position:relative;
+            border-radius:16px;
             overflow:hidden;
+            transition:.3s;
         }
         .space-card:hover {
-            transform:translateY(-5px);
-            box-shadow:0 15px 40px rgba(0,0,0,.4);
-        }
-        .space-card::before {
-            content:'';
-            position:absolute;
-            top:0; left:0; right:0;
-            height:4px;
+            border-color:#444;
+            box-shadow:0 10px 30px rgba(0,0,0,.3);
         }
         
-        .space-neo::before { background:linear-gradient(90deg, #e63946, #ff6b6b); }
-        .space-neo:hover { border-color:#e63946; }
+        .space-bar { height:4px; }
+        .space-neo .space-bar { background:linear-gradient(90deg, #e63946, #ff6b6b); }
+        .space-atlas .space-bar { background:linear-gradient(90deg, #3b82f6, #10b981); }
         
-        .space-atlas::before { background:linear-gradient(90deg, #3b82f6, #10b981); }
-        .space-atlas:hover { border-color:#3b82f6; }
+        .space-body { padding:25px; }
         
-        .space-icon { font-size:3rem; margin-bottom:20px; }
-        .space-title { font-size:1.5rem; font-weight:700; margin-bottom:10px; }
-        .space-desc { color:var(--dim); font-size:.95rem; line-height:1.5; margin-bottom:20px; }
+        .space-top { display:flex; align-items:center; gap:15px; margin-bottom:15px; }
+        .space-icon { font-size:2rem; }
+        .space-info { flex:1; }
+        .space-title { font-size:1.3rem; font-weight:700; margin-bottom:4px; }
+        .space-desc { color:var(--dim); font-size:.85rem; }
         
-        .space-links { display:flex; gap:10px; flex-wrap:wrap; }
-        .space-link {
-            padding:8px 16px;
+        .space-buttons { display:flex; gap:10px; flex-wrap:wrap; }
+        .space-btn {
+            flex:1;
+            min-width:80px;
+            padding:12px 16px;
             background:rgba(255,255,255,.05);
-            border-radius:8px;
-            font-size:.85rem;
-            color:var(--dim);
+            border:1px solid var(--border);
+            border-radius:10px;
+            color:var(--text);
             text-decoration:none;
+            text-align:center;
+            font-size:.85rem;
+            font-weight:600;
             transition:.2s;
         }
-        .space-link:hover { background:rgba(255,255,255,.1); color:#fff; }
+        .space-btn:hover { background:rgba(255,255,255,.1); border-color:#555; }
         
-        .space-arrow {
-            position:absolute;
-            top:35px; right:35px;
-            font-size:1.5rem;
-            opacity:.3;
-            transition:.3s;
-        }
-        .space-card:hover .space-arrow { opacity:1; transform:translateX(5px); }
-        
-        .footer {
-            margin-top:60px;
-            text-align:center;
-            color:var(--dim);
-            font-size:.85rem;
-        }
+        .footer { margin-top:40px; text-align:center; color:var(--dim); font-size:.8rem; }
         .footer a { color:#e63946; text-decoration:none; }
         
-        @media(max-width:600px) {
-            .header h1 { font-size:2rem; }
-            .spaces { grid-template-columns:1fr; }
+        @media(max-width:400px) {
+            .header h1 { font-size:1.8rem; }
+            .space-body { padding:20px; }
+            .space-title { font-size:1.1rem; }
+            .space-btn { padding:10px 12px; font-size:.8rem; }
         }
     </style>
 </head>
@@ -94,33 +79,45 @@
         
         <div class="spaces">
             <!-- Neo Storytellers -->
-            <a href="./neostorytellers.html" class="space-card space-neo">
-                <span class="space-arrow">→</span>
-                <div class="space-icon">🎬</div>
-                <div class="space-title">Néo Storytellers</div>
-                <div class="space-desc">Production vidéo • Suivi projets clients • Devis & Factures</div>
-                <div class="space-links" onclick="event.stopPropagation()">
-                    <a href="./neo-backoffice.html" class="space-link">Backoffice</a>
-                    <a href="./neo-projects.html" class="space-link">Projets</a>
-                    <a href="./neostorytellers.html" class="space-link">Tasks</a>
+            <div class="space-card space-neo">
+                <div class="space-bar"></div>
+                <div class="space-body">
+                    <div class="space-top">
+                        <div class="space-icon">🎬</div>
+                        <div class="space-info">
+                            <div class="space-title">Néo Storytellers</div>
+                            <div class="space-desc">Production vidéo • Suivi projets • Devis & Factures</div>
+                        </div>
+                    </div>
+                    <div class="space-buttons">
+                        <a href="./neo-backoffice.html" class="space-btn">Backoffice</a>
+                        <a href="./neo-projects.html" class="space-btn">Projets</a>
+                        <a href="./neostorytellers.html" class="space-btn">Tasks</a>
+                    </div>
                 </div>
-            </a>
+            </div>
             
             <!-- Atlas Pose -->
-            <a href="./atlas-projects.html" class="space-card space-atlas">
-                <span class="space-arrow">→</span>
-                <div class="space-icon">🔧</div>
-                <div class="space-title">Atlas Pose</div>
-                <div class="space-desc">Suivi chantiers • Budget vs Réel • Dépenses temps réel</div>
-                <div class="space-links" onclick="event.stopPropagation()">
-                    <a href="./atlas-backoffice.html" class="space-link">Backoffice</a>
-                    <a href="./atlas-projects.html" class="space-link">Projets</a>
+            <div class="space-card space-atlas">
+                <div class="space-bar"></div>
+                <div class="space-body">
+                    <div class="space-top">
+                        <div class="space-icon">🔧</div>
+                        <div class="space-info">
+                            <div class="space-title">Atlas Pose</div>
+                            <div class="space-desc">Suivi chantiers • Budget vs Réel • Dépenses</div>
+                        </div>
+                    </div>
+                    <div class="space-buttons">
+                        <a href="./atlas-backoffice.html" class="space-btn">Backoffice</a>
+                        <a href="./atlas-projects.html" class="space-btn">Projets</a>
+                    </div>
                 </div>
-            </a>
+            </div>
         </div>
         
         <div class="footer">
-            Powered by <a href="#">Alfred</a> • Zouhair Benazzouzouhair
+            Powered by <a href="#">Alfred</a> • Zouhair Benazzou
         </div>
     </div>
 </body>
