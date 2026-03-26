@@ -411,9 +411,6 @@ function generatePDFFromData(doc, lines) {
     const frais = doc.frais_deplacement || 0;
     const totalTTC = totalPhotoTTC + frais;
     
-    const totLabelW = col3W + col4W;
-    const totX = col3X;
-
     // Totals with wider label column
     const totLabelW = 55, totValW = 30;
     const totStartX = col4X + col4W - totLabelW - totValW;
