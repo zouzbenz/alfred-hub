@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Finance Hub - Gestion</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root { 
+            --bg:#0a0a0a; --card:#141414; --card2:#1a1a1a; --border:#2a2a2a; 
+            --text:#fff; --dim:#888; --accent:#6366f1; --accent2:#8b5cf6;
+            --green:#10b981; --red:#ef4444; --orange:#f59e0b; --blue:#3b82f6;
+        }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+        
+        .container { max-width:1200px; margin:0 auto; padding:15px; }
+        
+        /* Header */
+        .header { display:flex; justify-content:space-between; align-items:center; padding:15px 0; margin-bottom:20px; flex-wrap:wrap; gap:15px; }
+        .header h1 { font-size:1.6rem; font-weight:800; display:flex; align-items:center; gap:10px; }
+        .header-links { display:flex; gap:10px; }
+        .header-link { padding:10px 16px; background:var(--card); border:1px solid var(--border); border-radius:10px; color:var(--dim); text-decoration:none; font-size:.85rem; transition:.2s; }
+        .header-link:hover { border-color:var(--accent); color:var(--text); }
+        .header-link.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+        
+        /* Tabs */
+        .tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+        .tab { padding:12px 20px; background:var(--card); border:1px solid var(--border); border-radius:10px; color:var(--dim); font-size:.85rem; font-weight:600; cursor:pointer; transition:.2s; }
+        .tab:hover { border-color:var(--accent); color:var(--text); }
+        .tab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+        
+        /* Tab content */
+        .tab-content { display:none; }
+        .tab-content.active { display:block; }
+        
+        /* Action bar */
+        .action-bar { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+        .btn { padding:12px 20px; border:none; border-radius:10px; font-weight:600; cursor:pointer; font-size:.85rem; transition:.2s; display:inline-flex; align-items:center; gap:6px; }
+        .btn:hover { transform:translateY(-1px); }
+        .btn-primary { background:var(--accent); color:#fff; }
+        .btn-success { background:var(--green); color:#fff; }
+        .btn-danger { background:var(--red); color:#fff; }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+        .btn-small { padding:8px 12px; font-size:.75rem; }
+        
+        /* Section */
+        .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:20px; }
+        .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px; }
+        .section-title { font-size:1rem; font-weight:700; }
+        
+        /* Table */
+        .table-wrapper { overflow-x:auto; }
+        .data-table { width:100%; border-collapse:collapse; min-width:600px; }
+        .data-table th, .data-table td { padding:12px; text-align:left; border-bottom:1px solid var(--border); font-size:.85rem; }
+        .data-table th { color:var(--dim); font-size:.75rem; text-transform:uppercase; font-weight:600; }
+        .data-table tr:hover { background:rgba(255,255,255,.02); }
+        
+        .tag { padding:3px 8px; border-radius:5px; font-size:.7rem; font-weight:600; }
+        .tag.pro { background:rgba(99,102,241,.2); color:var(--accent); }
+        .tag.perso { background:rgba(139,92,246,.2); color:var(--accent2); }
+        .tag.cash { background:rgba(245,158,11,.2); color:var(--orange); }
+        .tag.formel { background:rgba(59,130,246,.2); color:var(--blue); }
+        .tag.depense { background:rgba(239,68,68,.2); color:var(--red); }
+        .tag.revenu { background:rgba(16,185,129,.2); color:var(--green); }
+        
+        .amount { font-weight:700; font-family:monospace; }
+        .amount.expense { color:var(--red); }
+        .amount.income { color:var(--green); }
+        
+        .actions-cell { display:flex; gap:5px; }
+        .btn-icon { width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:8px; }
+        
+        /* Modal */
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.9); z-index:1000; justify-content:center; align-items:flex-start; padding:20px; overflow-y:auto; }
+        .modal.visible { display:flex; }
+        .modal-content { background:var(--card); border:1px solid var(--border); border-radius:16px; width:100%; max-width:500px; margin:20px auto; }
+        .modal-header { padding:20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+        .modal-title { font-size:1.1rem; font-weight:700; }
+        .modal-close { background:none; border:none; color:var(--dim); font-size:1.5rem; cursor:pointer; }
+        .modal-body { padding:20px; }
+        .modal-footer { padding:15px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; }
+        
+        /* Forms */
+        .form-group { margin-bottom:15px; }
+        .form-group label { display:block; margin-bottom:6px; font-size:.85rem; color:var(--dim); }
+        .form-group input, .form-group select, .form-group textarea { 
+            width:100%; padding:12px; background:var(--bg); border:1px solid var(--border); 
+            border-radius:8px; color:#fff; font-size:.9rem; 
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { 
+            outline:none; border-color:var(--accent); 
+        }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
+        @media(max-width:500px) { .form-row { grid-template-columns:1fr; } }
+        
+        /* Toggle buttons in form */
+        .toggle-group { display:flex; gap:8px; }
+        .toggle-btn { flex:1; padding:12px; background:var(--card2); border:1px solid var(--border); border-radius:8px; color:var(--dim); font-size:.85rem; font-weight:600; cursor:pointer; text-align:center; transition:.2s; }
+        .toggle-btn:hover { border-color:var(--accent); }
+        .toggle-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+        .toggle-btn.active.green { background:var(--green); border-color:var(--green); }
+        .toggle-btn.active.red { background:var(--red); border-color:var(--red); }
+        
+        /* Empty state */
+        .empty-state { text-align:center; padding:40px; color:var(--dim); }
+        
+        /* Toast */
+        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--green); color:#fff; padding:12px 24px; border-radius:10px; font-weight:600; z-index:2000; opacity:0; transition:.3s; }
+        .toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
+        
+        /* Footer */
+        .footer { text-align:center; padding:20px; color:var(--dim); font-size:.8rem; }
+        .footer a { color:var(--accent); text-decoration:none; }
+        
+        /* Responsive */
+        @media(max-width:600px) {
+            .tabs { gap:6px; }
+            .tab { padding:10px 14px; font-size:.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>💰 Finance Hub</h1>
+            <div class="header-links">
+                <a href="./" class="header-link">Hub</a>
+                <a href="./finance-dashboard.html" class="header-link">Dashboard</a>
+                <a href="./finance-backoffice.html" class="header-link active">Gestion</a>
+            </div>
+        </header>
+        
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="transactions">💸 Transactions</button>
+            <button class="tab" data-tab="scheduled">⏰ Récurrents</button>
+            <button class="tab" data-tab="budgets">📊 Budgets</button>
+        </div>
+        
+        <!-- Transactions Tab -->
+        <div class="tab-content active" id="tab-transactions">
+            <div class="action-bar">
+                <button class="btn btn-danger" onclick="openTransactionModal('depense')">- Dépense</button>
+                <button class="btn btn-success" onclick="openTransactionModal('revenu')">+ Revenu</button>
+            </div>
+            
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">📝 Toutes les transactions</h2>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Désignation</th>
+                                <th>Catégorie</th>
+                                <th>Type</th>
+                                <th>Montant</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactions-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scheduled Tab -->
+        <div class="tab-content" id="tab-scheduled">
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="openScheduledModal()">+ Récurrent</button>
+            </div>
+            
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">⏰ Dépenses récurrentes</h2>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Désignation</th>
+                                <th>Montant</th>
+                                <th>Catégorie</th>
+                                <th>Jour</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scheduled-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Budgets Tab -->
+        <div class="tab-content" id="tab-budgets">
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="openBudgetModal()">+ Budget</button>
+            </div>
+            
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">📊 Budgets mensuels</h2>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Catégorie</th>
+                                <th>Budget</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="budgets-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <a href="./">Alfred Hub</a> • <a href="./finance-dashboard.html">Dashboard</a>
+        </div>
+    </div>
+    
+    <!-- Transaction Modal -->
+    <div class="modal" id="transaction-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="transaction-modal-title">Nouvelle dépense</h3>
+                <button class="modal-close" onclick="closeTransactionModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="t-id">
+                <input type="hidden" id="t-type" value="depense">
+                
+                <div class="form-group">
+                    <label>Désignation *</label>
+                    <input type="text" id="t-designation" placeholder="Ex: Courses Marjane">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Montant (MAD) *</label>
+                        <input type="number" id="t-montant" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Date *</label>
+                        <input type="date" id="t-date">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Catégorie *</label>
+                    <select id="t-categorie"></select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Pro / Perso</label>
+                    <div class="toggle-group">
+                        <button type="button" class="toggle-btn active" data-field="t-pro-perso" data-value="perso">Perso</button>
+                        <button type="button" class="toggle-btn" data-field="t-pro-perso" data-value="pro">Pro</button>
+                    </div>
+                    <input type="hidden" id="t-pro-perso" value="perso">
+                </div>
+                
+                <div class="form-group">
+                    <label>Mode de paiement</label>
+                    <div class="toggle-group">
+                        <button type="button" class="toggle-btn active" data-field="t-mode" data-value="cash">💵 Cash</button>
+                        <button type="button" class="toggle-btn" data-field="t-mode" data-value="formel">📄 Formel</button>
+                    </div>
+                    <input type="hidden" id="t-mode" value="cash">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <input type="text" id="t-notes" placeholder="Optionnel">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeTransactionModal()">Annuler</button>
+                <button class="btn btn-primary" onclick="saveTransaction()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scheduled Modal -->
+    <div class="modal" id="scheduled-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Nouvelle dépense récurrente</h3>
+                <button class="modal-close" onclick="closeScheduledModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="s-id">
+                
+                <div class="form-group">
+                    <label>Désignation *</label>
+                    <input type="text" id="s-designation" placeholder="Ex: Salaire Hamza">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Montant (MAD) *</label>
+                        <input type="number" id="s-montant" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Jour du mois *</label>
+                        <input type="number" id="s-jour" min="1" max="31" value="1">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Catégorie *</label>
+                    <select id="s-categorie"></select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Récurrence</label>
+                    <select id="s-recurrence">
+                        <option value="mensuel">Mensuel</option>
+                        <option value="annuel">Annuel</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Pro / Perso</label>
+                    <div class="toggle-group">
+                        <button type="button" class="toggle-btn active" data-field="s-pro-perso" data-value="perso">Perso</button>
+                        <button type="button" class="toggle-btn" data-field="s-pro-perso" data-value="pro">Pro</button>
+                    </div>
+                    <input type="hidden" id="s-pro-perso" value="perso">
+                </div>
+                
+                <div class="form-group">
+                    <label>Mode de paiement</label>
+                    <div class="toggle-group">
+                        <button type="button" class="toggle-btn" data-field="s-mode" data-value="cash">💵 Cash</button>
+                        <button type="button" class="toggle-btn active" data-field="s-mode" data-value="formel">📄 Formel</button>
+                    </div>
+                    <input type="hidden" id="s-mode" value="formel">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <input type="text" id="s-notes" placeholder="Optionnel">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeScheduledModal()">Annuler</button>
+                <button class="btn btn-primary" onclick="saveScheduled()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Budget Modal -->
+    <div class="modal" id="budget-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Nouveau budget</h3>
+                <button class="modal-close" onclick="closeBudgetModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="b-id">
+                
+                <div class="form-group">
+                    <label>Catégorie *</label>
+                    <select id="b-categorie"></select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Budget mensuel (MAD) *</label>
+                    <input type="number" id="b-montant" min="0" step="0.01">
+                </div>
+                
+                <div class="form-group">
+                    <label>Pro / Perso</label>
+                    <div class="toggle-group">
+                        <button type="button" class="toggle-btn active" data-field="b-pro-perso" data-value="perso">Perso</button>
+                        <button type="button" class="toggle-btn" data-field="b-pro-perso" data-value="pro">Pro</button>
+                    </div>
+                    <input type="hidden" id="b-pro-perso" value="perso">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeBudgetModal()">Annuler</button>
+                <button class="btn btn-primary" onclick="saveBudget()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const CATEGORIES_PERSO = [
+    { id: 'courses', icon: '🛒', label: 'Courses' },
+    { id: 'fruits_legumes', icon: '🥬', label: 'Fruits & Légumes' },
+    { id: 'maison', icon: '🏠', label: 'Maison' },
+    { id: 'restaurant', icon: '🍽️', label: 'Restaurant' },
+    { id: 'transport', icon: '🚗', label: 'Transport' },
+    { id: 'loisirs', icon: '🎬', label: 'Loisirs' },
+    { id: 'shopping', icon: '👕', label: 'Shopping' },
+    { id: 'sante', icon: '💊', label: 'Santé' },
+    { id: 'abonnements_perso', icon: '📱', label: 'Abonnements' },
+    { id: 'cadeaux', icon: '🎁', label: 'Cadeaux' },
+    { id: 'autre_perso', icon: '💸', label: 'Autre' }
+];
+
+const CATEGORIES_PRO = [
+    { id: 'production_neo', icon: '🎬', label: 'Production Neo' },
+    { id: 'materiel', icon: '💼', label: 'Matériel' },
+    { id: 'deplacements_pro', icon: '🚚', label: 'Déplacements' },
+    { id: 'salaires', icon: '💰', label: 'Salaires' },
+    { id: 'abonnements_pro', icon: '📋', label: 'Abonnements Pro' },
+    { id: 'autre_pro', icon: '💸', label: 'Autre Pro' }
+];
+
+const CATEGORIES_REVENU = [
+    { id: 'paiement_client', icon: '💵', label: 'Paiement client' },
+    { id: 'virement', icon: '🏦', label: 'Virement' },
+    { id: 'autre_revenu', icon: '💰', label: 'Autre revenu' }
+];
+
+const ALL_CATEGORIES = [...CATEGORIES_PERSO, ...CATEGORIES_PRO, ...CATEGORIES_REVENU];
+
+let transactions = [], scheduled = [], budgets = [];
+
+// Tabs
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+});
+
+// Toggle buttons
+document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const field = btn.dataset.field;
+        const value = btn.dataset.value;
+        const group = btn.parentElement;
+        
+        group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(field).value = value;
+        
+        // Update categories if pro/perso changed
+        if (field === 't-pro-perso') updateTransactionCategories();
+        if (field === 's-pro-perso') updateScheduledCategories();
+        if (field === 'b-pro-perso') updateBudgetCategories();
+    });
+});
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('visible');
+    setTimeout(() => t.classList.remove('visible'), 2500);
+}
+
+function formatMoney(n) {
+    return new Intl.NumberFormat('fr-MA', { maximumFractionDigits: 0 }).format(n || 0);
+}
+
+function getCategoryLabel(id) {
+    const cat = ALL_CATEGORIES.find(c => c.id === id);
+    return cat ? `${cat.icon} ${cat.label}` : id;
+}
+
+// Load data
+async function loadData() {
+    const [tRes, sRes, bRes] = await Promise.all([
+        db.from('finance_transactions').select('*').order('date_transaction', { ascending: false }),
+        db.from('finance_scheduled').select('*').order('jour_echeance', { ascending: true }),
+        db.from('finance_budgets').select('*').order('categorie', { ascending: true })
+    ]);
+    
+    transactions = tRes.data || [];
+    scheduled = sRes.data || [];
+    budgets = bRes.data || [];
+    
+    renderTransactions();
+    renderScheduled();
+    renderBudgets();
+}
+
+// === TRANSACTIONS ===
+function updateTransactionCategories() {
+    const type = document.getElementById('t-type').value;
+    const proPerso = document.getElementById('t-pro-perso').value;
+    const select = document.getElementById('t-categorie');
+    
+    let cats = [];
+    if (type === 'revenu') cats = CATEGORIES_REVENU;
+    else cats = proPerso === 'pro' ? CATEGORIES_PRO : CATEGORIES_PERSO;
+    
+    select.innerHTML = cats.map(c => `<option value="${c.id}">${c.icon} ${c.label}</option>`).join('');
+}
+
+function openTransactionModal(type = 'depense') {
+    document.getElementById('t-id').value = '';
+    document.getElementById('t-type').value = type;
+    document.getElementById('t-designation').value = '';
+    document.getElementById('t-montant').value = '';
+    document.getElementById('t-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('t-notes').value = '';
+    
+    // Reset toggles
+    document.querySelectorAll('[data-field="t-pro-perso"]').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-field="t-pro-perso"][data-value="perso"]').classList.add('active');
+    document.getElementById('t-pro-perso').value = 'perso';
+    
+    document.querySelectorAll('[data-field="t-mode"]').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-field="t-mode"][data-value="cash"]').classList.add('active');
+    document.getElementById('t-mode').value = 'cash';
+    
+    document.getElementById('transaction-modal-title').textContent = type === 'depense' ? 'Nouvelle dépense' : 'Nouveau revenu';
+    updateTransactionCategories();
+    document.getElementById('transaction-modal').classList.add('visible');
+}
+
+function closeTransactionModal() {
+    document.getElementById('transaction-modal').classList.remove('visible');
+}
+
+async function saveTransaction() {
+    const data = {
+        type: document.getElementById('t-type').value,
+        designation: document.getElementById('t-designation').value,
+        montant: parseFloat(document.getElementById('t-montant').value),
+        date_transaction: document.getElementById('t-date').value,
+        categorie: document.getElementById('t-categorie').value,
+        pro_perso: document.getElementById('t-pro-perso').value,
+        mode_paiement: document.getElementById('t-mode').value,
+        notes: document.getElementById('t-notes').value || null,
+        entry_method: 'backoffice'
+    };
+    
+    if (!data.designation || !data.montant || !data.date_transaction) {
+        alert('Remplissez les champs obligatoires');
+        return;
+    }
+    
+    const id = document.getElementById('t-id').value;
+    
+    try {
+        if (id) {
+            await db.from('finance_transactions').update(data).eq('id', id);
+        } else {
+            await db.from('finance_transactions').insert([data]);
+        }
+        showToast('Transaction enregistrée !');
+        closeTransactionModal();
+        await loadData();
+    } catch (err) {
+        alert('Erreur: ' + err.message);
+    }
+}
+
+async function deleteTransaction(id) {
+    if (!confirm('Supprimer cette transaction ?')) return;
+    await db.from('finance_transactions').delete().eq('id', id);
+    showToast('Supprimé');
+    await loadData();
+}
+
+function renderTransactions() {
+    const tbody = document.getElementById('transactions-tbody');
+    
+    if (!transactions.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Aucune transaction</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = transactions.map(t => {
+        const isExpense = t.type === 'depense';
+        const date = new Date(t.date_transaction).toLocaleDateString('fr-FR');
+        
+        return `<tr>
+            <td>${date}</td>
+            <td>${t.designation}</td>
+            <td>${getCategoryLabel(t.categorie)}</td>
+            <td>
+                <span class="tag ${t.pro_perso}">${t.pro_perso}</span>
+                <span class="tag ${t.mode_paiement}">${t.mode_paiement}</span>
+            </td>
+            <td class="amount ${isExpense ? 'expense' : 'income'}">${isExpense ? '-' : '+'}${formatMoney(t.montant)}</td>
+            <td class="actions-cell">
+                <button class="btn btn-small btn-outline btn-icon" onclick="editTransaction(${t.id})">✏️</button>
+                <button class="btn btn-small btn-danger btn-icon" onclick="deleteTransaction(${t.id})">×</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function editTransaction(id) {
+    const t = transactions.find(x => x.id === id);
+    if (!t) return;
+    
+    document.getElementById('t-id').value = t.id;
+    document.getElementById('t-type').value = t.type;
+    document.getElementById('t-designation').value = t.designation;
+    document.getElementById('t-montant').value = t.montant;
+    document.getElementById('t-date').value = t.date_transaction;
+    document.getElementById('t-notes').value = t.notes || '';
+    
+    // Set toggles
+    document.querySelectorAll('[data-field="t-pro-perso"]').forEach(b => b.classList.remove('active'));
+    document.querySelector(`[data-field="t-pro-perso"][data-value="${t.pro_perso}"]`).classList.add('active');
+    document.getElementById('t-pro-perso').value = t.pro_perso;
+    
+    document.querySelectorAll('[data-field="t-mode"]').forEach(b => b.classList.remove('active'));
+    document.querySelector(`[data-field="t-mode"][data-value="${t.mode_paiement}"]`).classList.add('active');
+    document.getElementById('t-mode').value = t.mode_paiement;
+    
+    document.getElementById('transaction-modal-title').textContent = 'Modifier ' + (t.type === 'depense' ? 'dépense' : 'revenu');
+    updateTransactionCategories();
+    document.getElementById('t-categorie').value = t.categorie;
+    document.getElementById('transaction-modal').classList.add('visible');
+}
+
+// === SCHEDULED ===
+function updateScheduledCategories() {
+    const proPerso = document.getElementById('s-pro-perso').value;
+    const select = document.getElementById('s-categorie');
+    const cats = proPerso === 'pro' ? CATEGORIES_PRO : CATEGORIES_PERSO;
+    select.innerHTML = cats.map(c => `<option value="${c.id}">${c.icon} ${c.label}</option>`).join('');
+}
+
+function openScheduledModal() {
+    document.getElementById('s-id').value = '';
+    document.getElementById('s-designation').value = '';
+    document.getElementById('s-montant').value = '';
+    document.getElementById('s-jour').value = '1';
+    document.getElementById('s-recurrence').value = 'mensuel';
+    document.getElementById('s-notes').value = '';
+    
+    document.querySelectorAll('[data-field="s-pro-perso"]').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-field="s-pro-perso"][data-value="perso"]').classList.add('active');
+    document.getElementById('s-pro-perso').value = 'perso';
+    
+    document.querySelectorAll('[data-field="s-mode"]').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-field="s-mode"][data-value="formel"]').classList.add('active');
+    document.getElementById('s-mode').value = 'formel';
+    
+    updateScheduledCategories();
+    document.getElementById('scheduled-modal').classList.add('visible');
+}
+
+function closeScheduledModal() {
+    document.getElementById('scheduled-modal').classList.remove('visible');
+}
+
+async function saveScheduled() {
+    const data = {
+        designation: document.getElementById('s-designation').value,
+        montant: parseFloat(document.getElementById('s-montant').value),
+        jour_echeance: parseInt(document.getElementById('s-jour').value),
+        categorie: document.getElementById('s-categorie').value,
+        recurrence: document.getElementById('s-recurrence').value,
+        pro_perso: document.getElementById('s-pro-perso').value,
+        mode_paiement: document.getElementById('s-mode').value,
+        notes: document.getElementById('s-notes').value || null
+    };
+    
+    if (!data.designation || !data.montant) {
+        alert('Remplissez les champs obligatoires');
+        return;
+    }
+    
+    const id = document.getElementById('s-id').value;
+    
+    try {
+        if (id) {
+            await db.from('finance_scheduled').update(data).eq('id', id);
+        } else {
+            await db.from('finance_scheduled').insert([data]);
+        }
+        showToast('Enregistré !');
+        closeScheduledModal();
+        await loadData();
+    } catch (err) {
+        alert('Erreur: ' + err.message);
+    }
+}
+
+async function deleteScheduled(id) {
+    if (!confirm('Supprimer ?')) return;
+    await db.from('finance_scheduled').delete().eq('id', id);
+    showToast('Supprimé');
+    await loadData();
+}
+
+function renderScheduled() {
+    const tbody = document.getElementById('scheduled-tbody');
+    
+    if (!scheduled.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Aucune dépense récurrente</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = scheduled.map(s => `<tr>
+        <td>${s.designation}</td>
+        <td class="amount expense">-${formatMoney(s.montant)}</td>
+        <td>${getCategoryLabel(s.categorie)}</td>
+        <td>${s.jour_echeance}</td>
+        <td>
+            <span class="tag ${s.pro_perso}">${s.pro_perso}</span>
+            <span class="tag ${s.mode_paiement}">${s.mode_paiement}</span>
+        </td>
+        <td class="actions-cell">
+            <button class="btn btn-small btn-outline btn-icon" onclick="editScheduled(${s.id})">✏️</button>
+            <button class="btn btn-small btn-danger btn-icon" onclick="deleteScheduled(${s.id})">×</button>
+        </td>
+    </tr>`).join('');
+}
+
+async function editScheduled(id) {
+    const s = scheduled.find(x => x.id === id);
+    if (!s) return;
+    
+    document.getElementById('s-id').value = s.id;
+    document.getElementById('s-designation').value = s.designation;
+    document.getElementById('s-montant').value = s.montant;
+    document.getElementById('s-jour').value = s.jour_echeance;
+    document.getElementById('s-recurrence').value = s.recurrence;
+    document.getElementById('s-notes').value = s.notes || '';
+    
+    document.querySelectorAll('[data-field="s-pro-perso"]').forEach(b => b.classList.remove('active'));
+    document.querySelector(`[data-field="s-pro-perso"][data-value="${s.pro_perso}"]`).classList.add('active');
+    document.getElementById('s-pro-perso').value = s.pro_perso;
+    
+    document.querySelectorAll('[data-field="s-mode"]').forEach(b => b.classList.remove('active'));
+    document.querySelector(`[data-field="s-mode"][data-value="${s.mode_paiement}"]`).classList.add('active');
+    document.getElementById('s-mode').value = s.mode_paiement;
+    
+    updateScheduledCategories();
+    document.getElementById('s-categorie').value = s.categorie;
+    document.getElementById('scheduled-modal').classList.add('visible');
+}
+
+// === BUDGETS ===
+function updateBudgetCategories() {
+    const proPerso = document.getElementById('b-pro-perso').value;
+    const select = document.getElementById('b-categorie');
+    const cats = proPerso === 'pro' ? CATEGORIES_PRO : CATEGORIES_PERSO;
+    select.innerHTML = cats.map(c => `<option value="${c.id}">${c.icon} ${c.label}</option>`).join('');
+}
+
+function openBudgetModal() {
+    document.getElementById('b-id').value = '';
+    document.getElementById('b-montant').value = '';
+    
+    document.querySelectorAll('[data-field="b-pro-perso"]').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-field="b-pro-perso"][data-value="perso"]').classList.add('active');
+    document.getElementById('b-pro-perso').value = 'perso';
+    
+    updateBudgetCategories();
+    document.getElementById('budget-modal').classList.add('visible');
+}
+
+function closeBudgetModal() {
+    document.getElementById('budget-modal').classList.remove('visible');
+}
+
+async function saveBudget() {
+    const data = {
+        categorie: document.getElementById('b-categorie').value,
+        budget_mensuel: parseFloat(document.getElementById('b-montant').value),
+        pro_perso: document.getElementById('b-pro-perso').value
+    };
+    
+    if (!data.budget_mensuel) {
+        alert('Entrez un montant');
+        return;
+    }
+    
+    const id = document.getElementById('b-id').value;
+    
+    try {
+        if (id) {
+            await db.from('finance_budgets').update(data).eq('id', id);
+        } else {
+            // Check if budget exists for this category
+            const existing = budgets.find(b => b.categorie === data.categorie);
+            if (existing) {
+                await db.from('finance_budgets').update(data).eq('id', existing.id);
+            } else {
+                await db.from('finance_budgets').insert([data]);
+            }
+        }
+        showToast('Budget enregistré !');
+        closeBudgetModal();
+        await loadData();
+    } catch (err) {
+        alert('Erreur: ' + err.message);
+    }
+}
+
+async function deleteBudget(id) {
+    if (!confirm('Supprimer ce budget ?')) return;
+    await db.from('finance_budgets').delete().eq('id', id);
+    showToast('Supprimé');
+    await loadData();
+}
+
+function renderBudgets() {
+    const tbody = document.getElementById('budgets-tbody');
+    
+    if (!budgets.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Aucun budget défini</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = budgets.map(b => `<tr>
+        <td>${getCategoryLabel(b.categorie)}</td>
+        <td class="amount">${formatMoney(b.budget_mensuel)} MAD</td>
+        <td><span class="tag ${b.pro_perso}">${b.pro_perso}</span></td>
+        <td class="actions-cell">
+            <button class="btn btn-small btn-outline btn-icon" onclick="editBudget(${b.id})">✏️</button>
+            <button class="btn btn-small btn-danger btn-icon" onclick="deleteBudget(${b.id})">×</button>
+        </td>
+    </tr>`).join('');
+}
+
+async function editBudget(id) {
+    const b = budgets.find(x => x.id === id);
+    if (!b) return;
+    
+    document.getElementById('b-id').value = b.id;
+    document.getElementById('b-montant').value = b.budget_mensuel;
+    
+    document.querySelectorAll('[data-field="b-pro-perso"]').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`[data-field="b-pro-perso"][data-value="${b.pro_perso}"]`).classList.add('active');
+    document.getElementById('b-pro-perso').value = b.pro_perso;
+    
+    updateBudgetCategories();
+    document.getElementById('b-categorie').value = b.categorie;
+    document.getElementById('budget-modal').classList.add('visible');
+}
+
+loadData();
+    </script>
+</body>
+</html>
