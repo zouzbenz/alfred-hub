@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insta Immo - Bien</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root{--bg:#fff;--card:#f8f9fa;--card2:#f0f0f0;--border:#e0e0e0;--text:#1a1a1a;--dim:#666;--accent:#FFC107;}
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;}
+        .container{max-width:1000px;margin:0 auto;padding:20px;}
+        .back{display:inline-flex;align-items:center;gap:6px;color:var(--dim);text-decoration:none;margin-bottom:20px;font-size:.9rem;}
+        .back:hover{color:var(--text);}
+        .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;flex-wrap:wrap;gap:20px;}
+        .header-info h1{font-size:1.8rem;font-weight:800;margin-bottom:10px;}
+        .header-ref{display:inline-block;background:var(--accent);color:#000;padding:6px 12px;border-radius:8px;font-size:.8rem;font-weight:700;margin-left:10px;}
+        .header-location{color:var(--dim);font-size:1rem;display:flex;align-items:center;gap:6px;}
+        .header-price{text-align:right;}
+        .header-price .price{font-size:2rem;font-weight:800;color:var(--accent);}
+        .header-price .nego{font-size:.85rem;color:var(--dim);}
+        .badges{display:flex;gap:10px;margin-bottom:30px;flex-wrap:wrap;}
+        .badge{padding:10px 16px;background:var(--card);border-radius:10px;font-size:.9rem;display:flex;align-items:center;gap:6px;}
+        .hero{width:100%;height:400px;background:var(--card);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:6rem;color:var(--dim);margin-bottom:30px;overflow:hidden;}
+        .hero img{width:100%;height:100%;object-fit:cover;}
+        .video-section{margin-bottom:40px;}
+        .video-container{position:relative;padding-bottom:56.25%;height:0;border-radius:16px;overflow:hidden;background:#000;}
+        .video-container.vertical{padding-bottom:177.78%;max-width:350px;margin:0 auto;}
+        .video-container iframe{position:absolute;top:0;left:0;width:100%;height:100%;}
+        .section{margin-bottom:40px;}
+        .section-title{font-size:1.3rem;font-weight:700;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid var(--accent);display:flex;align-items:center;gap:10px;}
+        .description{font-size:1rem;line-height:1.8;color:var(--dim);}
+        .features-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:15px;}
+        .feature{display:flex;align-items:center;gap:10px;padding:15px;background:var(--card);border-radius:10px;}
+        .feature-icon{font-size:1.3rem;}
+        .feature-info{flex:1;}
+        .feature-label{font-size:.75rem;color:var(--dim);}
+        .feature-value{font-weight:600;}
+        .space-section{background:var(--card);border-radius:16px;padding:25px;margin-bottom:20px;}
+        .space-title{font-size:1.1rem;font-weight:700;margin-bottom:15px;display:flex;align-items:center;gap:8px;}
+        .space-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:15px;}
+        .space-photo{height:120px;background:var(--card2);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:2rem;}
+        .space-desc{color:var(--dim);font-size:.9rem;}
+        .cta-box{background:linear-gradient(135deg,#1a1a1a,#333);border-radius:16px;padding:30px;color:#fff;text-align:center;margin-top:40px;}
+        .cta-title{font-size:1.5rem;font-weight:700;margin-bottom:10px;}
+        .cta-text{opacity:.8;margin-bottom:20px;}
+        .cta-buttons{display:flex;gap:15px;justify-content:center;flex-wrap:wrap;}
+        .cta-btn{padding:15px 30px;border-radius:10px;font-weight:600;text-decoration:none;font-size:1rem;transition:.2s;}
+        .cta-btn.primary{background:var(--accent);color:#000;}
+        .cta-btn.secondary{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);}
+        .cta-btn:hover{transform:translateY(-2px);}
+        .footer{text-align:center;padding:40px;color:var(--dim);font-size:.85rem;margin-top:40px;}
+        @media(max-width:600px){.header{flex-direction:column;}.header-price{text-align:left;}.hero{height:250px;}.header-info h1{font-size:1.4rem;}}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="./immo-biens.html" class="back">← Retour aux biens</a>
+        
+        <div id="content">
+            <div style="text-align:center;padding:100px;color:var(--dim);">Chargement...</div>
+        </div>
+    </div>
+    
+    <script>
+const SUPABASE_URL='https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const TYPE_LABELS={studio:'Studio',appartement:'Appartement',villa:'Villa',terrain:'Terrain',local_commercial:'Local commercial',bureau:'Bureau'};
+const ZONE_LABELS={anfa:'Anfa',ain_diab:'Ain Diab',cfc:'CFC',bourgogne:'Bourgogne',bouskoura:'Bouskoura'};
+
+const params=new URLSearchParams(window.location.search);
+const ref=params.get('ref');
+
+async function loadBien(){
+    if(!ref){document.getElementById('content').innerHTML='<p style="text-align:center;padding:50px;">Référence manquante</p>';return;}
+    
+    const{data:bien}=await db.from('immo_biens').select('*').eq('reference',ref).single();
+    if(!bien){document.getElementById('content').innerHTML='<p style="text-align:center;padding:50px;">Bien non trouvé</p>';return;}
+    
+    const{data:photos}=await db.from('immo_bien_photos').select('*').eq('bien_id',bien.id).order('ordre');
+    const{data:sections}=await db.from('immo_bien_sections').select('*').eq('bien_id',bien.id).order('ordre');
+    
+    document.title=`${bien.titre} - Insta Immo`;
+    render(bien,photos||[],sections||[]);
+}
+
+function formatMoney(n){return new Intl.NumberFormat('fr-MA').format(n||0);}
+
+function getYouTubeId(url){
+    if(!url)return null;
+    const match=url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([^&\s]+)/);
+    return match?match[1]:null;
+}
+
+function render(bien,photos,sections){
+    const ytId=getYouTubeId(bien.video_youtube);
+    const isVertical=bien.video_format==='vertical';
+    
+    const featuresHTML=`
+        ${bien.surface_m2?`<div class="feature"><span class="feature-icon">📐</span><div class="feature-info"><div class="feature-label">Surface</div><div class="feature-value">${bien.surface_m2} m²</div></div></div>`:''}
+        ${bien.chambres?`<div class="feature"><span class="feature-icon">🛏️</span><div class="feature-info"><div class="feature-label">Chambres</div><div class="feature-value">${bien.chambres}</div></div></div>`:''}
+        ${bien.salons?`<div class="feature"><span class="feature-icon">🛋️</span><div class="feature-info"><div class="feature-label">Salons</div><div class="feature-value">${bien.salons}</div></div></div>`:''}
+        ${bien.sdb?`<div class="feature"><span class="feature-icon">🚿</span><div class="feature-info"><div class="feature-label">Salles de bain</div><div class="feature-value">${bien.sdb}</div></div></div>`:''}
+        ${bien.etage!==null?`<div class="feature"><span class="feature-icon">🏢</span><div class="feature-info"><div class="feature-label">Étage</div><div class="feature-value">${bien.etage}</div></div></div>`:''}
+        ${bien.orientation?`<div class="feature"><span class="feature-icon">🧭</span><div class="feature-info"><div class="feature-label">Orientation</div><div class="feature-value">${bien.orientation}</div></div></div>`:''}
+        ${bien.annee_construction?`<div class="feature"><span class="feature-icon">📅</span><div class="feature-info"><div class="feature-label">Année</div><div class="feature-value">${bien.annee_construction}</div></div></div>`:''}
+        ${bien.parking>0?`<div class="feature"><span class="feature-icon">🚗</span><div class="feature-info"><div class="feature-label">Parking</div><div class="feature-value">${bien.parking} place(s)</div></div></div>`:''}
+    `;
+    
+    const equipementsHTML=`
+        ${bien.ascenseur?'<div class="badge">✅ Ascenseur</div>':''}
+        ${bien.parking>0?'<div class="badge">✅ Parking</div>':''}
+        ${bien.terrasse_m2>0?'<div class="badge">✅ Terrasse</div>':''}
+        ${bien.balcon?'<div class="badge">✅ Balcon</div>':''}
+        ${bien.cave?'<div class="badge">✅ Cave</div>':''}
+        ${bien.gardien?'<div class="badge">✅ Gardien</div>':''}
+        ${bien.chambre_personnel?'<div class="badge">✅ Ch. personnel</div>':''}
+        ${bien.piscine?'<div class="badge">✅ Piscine</div>':''}
+    `;
+    
+    // Group photos by section
+    const photosBySection={};
+    photos.forEach(p=>{
+        if(!photosBySection[p.section])photosBySection[p.section]=[];
+        photosBySection[p.section].push(p);
+    });
+    
+    const SECTION_LABELS={
+        hero:'Photos principales',espaces_vie:'Espaces de vie',chambres:'Chambres',cuisine:'Cuisine',
+        sdb:'Salles de bain',exterieurs:'Extérieurs',annexes:'Annexes',vues:'Vues',immeuble:'Immeuble',
+        rdc:'Rez-de-chaussée',etage_1:'Étage 1',etage_2:'Étage 2',sous_sol:'Sous-sol',jardin:'Jardin',piscine:'Piscine',garage:'Garage'
+    };
+    
+    let sectionsHTML='';
+    Object.keys(photosBySection).forEach(sec=>{
+        if(sec==='hero')return;
+        const sectionInfo=sections.find(s=>s.section===sec);
+        sectionsHTML+=`
+            <div class="space-section">
+                <div class="space-title">📸 ${SECTION_LABELS[sec]||sec}</div>
+                <div class="space-photos">
+                    ${photosBySection[sec].map(p=>`<div class="space-photo">🖼️</div>`).join('')}
+                </div>
+                ${sectionInfo?.description?`<div class="space-desc">${sectionInfo.description}</div>`:''}
+            </div>
+        `;
+    });
+    
+    document.getElementById('content').innerHTML=`
+        <div class="header">
+            <div class="header-info">
+                <h1>${bien.titre}<span class="header-ref">${bien.reference}</span></h1>
+                <p class="header-location">📍 ${ZONE_LABELS[bien.zone]||bien.zone}${bien.quartier?' - '+bien.quartier:''}</p>
+            </div>
+            <div class="header-price">
+                <div class="price">${formatMoney(bien.prix)} MAD</div>
+                ${bien.negociable?'<div class="nego">Prix négociable</div>':''}
+            </div>
+        </div>
+        
+        <div class="badges">
+            <div class="badge">🏠 ${TYPE_LABELS[bien.type_bien]}</div>
+            <div class="badge">📊 ${bien.etat==='neuf'?'Neuf':bien.etat==='a_renover'?'À rénover':'Bon état'}</div>
+            ${equipementsHTML}
+        </div>
+        
+        <div class="hero">🏠</div>
+        
+        ${ytId?`
+        <div class="video-section">
+            <h2 class="section-title">🎬 Visite vidéo</h2>
+            <div class="video-container ${isVertical?'vertical':''}">
+                <iframe src="https://www.youtube.com/embed/${ytId}" frameborder="0" allowfullscreen></iframe>
+            </div>
+        </div>
+        `:''}
+        
+        ${bien.description?`
+        <div class="section">
+            <h2 class="section-title">📝 Description</h2>
+            <p class="description">${bien.description.replace(/\n/g,'<br>')}</p>
+        </div>
+        `:''}
+        
+        <div class="section">
+            <h2 class="section-title">📊 Caractéristiques</h2>
+            <div class="features-grid">${featuresHTML}</div>
+        </div>
+        
+        ${sectionsHTML?`
+        <div class="section">
+            <h2 class="section-title">🏠 Découvrir le bien</h2>
+            ${sectionsHTML}
+        </div>
+        `:''}
+        
+        <div class="cta-box">
+            <h3 class="cta-title">Intéressé par ce bien ?</h3>
+            <p class="cta-text">Contactez-nous pour organiser une visite</p>
+            <div class="cta-buttons">
+                <a href="https://wa.me/212687842466?text=Bonjour, je suis intéressé par le bien ${bien.reference} - ${bien.titre}" class="cta-btn primary">💬 WhatsApp</a>
+                <a href="tel:+212687842466" class="cta-btn secondary">📞 Appeler</a>
+            </div>
+        </div>
+        
+        <footer class="footer">
+            <p>🏠 Insta Immo - Zouhair Benazzou</p>
+            <p>Spécialiste immobilier Casablanca</p>
+        </footer>
+    `;
+}
+
+loadBien();
+    </script>
+</body>
+</html>

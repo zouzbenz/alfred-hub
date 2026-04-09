@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insta Immo - Espace Propriétaire</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root{--bg:#fff;--card:#f8f9fa;--border:#e0e0e0;--text:#1a1a1a;--dim:#666;--accent:#FFC107;--green:#10b981;--orange:#f59e0b;}
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;}
+        .container{max-width:900px;margin:0 auto;padding:20px;}
+        .header{text-align:center;padding:30px 0;border-bottom:1px solid var(--border);margin-bottom:30px;}
+        .header h1{font-size:1.8rem;font-weight:800;margin-bottom:5px;}
+        .header h1 span{color:var(--accent);}
+        .header p{color:var(--dim);}
+        .login-box{max-width:400px;margin:80px auto;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;text-align:center;}
+        .login-box h2{margin-bottom:20px;}
+        .login-box input{width:100%;padding:15px;margin-bottom:15px;border:1px solid var(--border);border-radius:10px;font-size:1rem;}
+        .login-box button{width:100%;padding:15px;background:var(--accent);border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;}
+        .login-error{color:#ef4444;margin-top:10px;font-size:.9rem;}
+        .welcome{background:linear-gradient(135deg,var(--accent),#FFD54F);border-radius:16px;padding:30px;margin-bottom:30px;color:#000;}
+        .welcome h2{font-size:1.5rem;margin-bottom:10px;}
+        .welcome p{opacity:.8;}
+        .section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:25px;margin-bottom:20px;}
+        .section-title{font-size:1.2rem;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+        .bien-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:15px;}
+        .bien-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;}
+        .bien-ref{background:var(--accent);color:#000;padding:4px 10px;border-radius:6px;font-size:.75rem;font-weight:700;}
+        .bien-title{font-size:1.1rem;font-weight:700;}
+        .bien-price{font-size:1.3rem;font-weight:800;color:var(--accent);}
+        .bien-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:15px;padding-top:15px;border-top:1px solid var(--border);}
+        .stat{text-align:center;}
+        .stat-value{font-size:1.5rem;font-weight:800;}
+        .stat-label{font-size:.75rem;color:var(--dim);}
+        .timeline{position:relative;padding-left:30px;}
+        .timeline::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--border);}
+        .timeline-item{position:relative;padding-bottom:25px;}
+        .timeline-item:last-child{padding-bottom:0;}
+        .timeline-dot{position:absolute;left:-24px;width:16px;height:16px;border-radius:50%;border:3px solid var(--border);background:#fff;}
+        .timeline-dot.done{background:var(--green);border-color:var(--green);}
+        .timeline-dot.current{background:var(--orange);border-color:var(--orange);animation:pulse 2s infinite;}
+        @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.4);}50%{box-shadow:0 0 0 8px rgba(245,158,11,0);}}
+        .timeline-content{background:#fff;border:1px solid var(--border);border-radius:10px;padding:15px;}
+        .timeline-content.done{border-color:var(--green);background:rgba(16,185,129,.05);}
+        .timeline-content.current{border-color:var(--orange);background:rgba(245,158,11,.05);}
+        .timeline-title{font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:8px;}
+        .timeline-date{font-size:.8rem;color:var(--dim);}
+        .timeline-notes{font-size:.85rem;color:var(--dim);margin-top:8px;}
+        .visites-list{display:flex;flex-direction:column;gap:10px;}
+        .visite-item{display:flex;align-items:center;gap:15px;padding:15px;background:#fff;border:1px solid var(--border);border-radius:10px;}
+        .visite-date{font-weight:600;}
+        .visite-info{flex:1;}
+        .visite-client{font-size:.9rem;}
+        .visite-feedback{font-size:.85rem;color:var(--dim);}
+        .badge{padding:4px 10px;border-radius:6px;font-size:.75rem;font-weight:600;}
+        .badge-green{background:rgba(16,185,129,.15);color:var(--green);}
+        .badge-orange{background:rgba(245,158,11,.15);color:var(--orange);}
+        .badge-blue{background:rgba(59,130,246,.15);color:#3b82f6;}
+        .offres-list{display:flex;flex-direction:column;gap:10px;}
+        .offre-item{display:flex;align-items:center;gap:15px;padding:15px;background:#fff;border:1px solid var(--border);border-radius:10px;}
+        .offre-amount{font-size:1.2rem;font-weight:800;color:var(--accent);}
+        .offre-info{flex:1;}
+        .empty{text-align:center;padding:30px;color:var(--dim);}
+        .contact-box{background:linear-gradient(135deg,#1a1a1a,#333);border-radius:16px;padding:30px;color:#fff;text-align:center;margin-top:30px;}
+        .contact-title{font-size:1.3rem;font-weight:700;margin-bottom:15px;}
+        .contact-btn{display:inline-block;padding:15px 30px;background:var(--accent);color:#000;border-radius:10px;text-decoration:none;font-weight:600;margin:5px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🏠 Insta <span>Immo</span></h1>
+            <p>Espace Propriétaire</p>
+        </header>
+        
+        <div id="login-screen">
+            <div class="login-box">
+                <h2>🔑 Accès Propriétaire</h2>
+                <input type="text" id="login-code" placeholder="Votre code d'accès">
+                <button onclick="login()">Accéder</button>
+                <div class="login-error" id="login-error"></div>
+            </div>
+        </div>
+        
+        <div id="main-app" style="display:none;"></div>
+    </div>
+    
+    <script>
+const SUPABASE_URL='https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const params=new URLSearchParams(window.location.search);
+const urlId=params.get('id');
+const urlCode=params.get('code');
+
+let proprio=null,biens=[],visites=[],offres=[],etapes=[];
+
+const ETAPE_LABELS={
+    prise_contact:'Prise de contact',
+    premiere_visite:'Première visite du bien',
+    expertise:'Expertise & Estimation',
+    photos_video:'Photos & Vidéo',
+    signature_mandat:'Signature du mandat',
+    mise_en_ligne:'Mise en ligne',
+    visites:'Visites acheteurs',
+    offres:'Réception des offres',
+    negociation:'Négociation',
+    compromis:'Compromis de vente',
+    acte_definitif:'Acte définitif',
+    commission_encaissee:'Commission encaissée'
+};
+
+const ETAPE_ORDER=['prise_contact','premiere_visite','expertise','photos_video','signature_mandat','mise_en_ligne','visites','offres','negociation','compromis','acte_definitif','commission_encaissee'];
+
+async function login(){
+    const code=document.getElementById('login-code').value.toLowerCase().trim();
+    if(!code){document.getElementById('login-error').textContent='Entrez votre code';return;}
+    
+    const{data}=await db.from('immo_proprietaires').select('*').eq('code_acces',code).single();
+    if(data){
+        proprio=data;
+        document.getElementById('login-screen').style.display='none';
+        document.getElementById('main-app').style.display='block';
+        await loadData();
+    }else{
+        document.getElementById('login-error').textContent='Code invalide';
+    }
+}
+
+async function loadData(){
+    const[biensR,visitesR,offresR,etapesR]=await Promise.all([
+        db.from('immo_biens').select('*').eq('proprietaire_id',proprio.id),
+        db.from('immo_visites').select('*,immo_clients(nom,prenom)').in('bien_id',biens.map(b=>b.id)||[0]),
+        db.from('immo_offres').select('*,immo_clients(nom,prenom)').in('bien_id',biens.map(b=>b.id)||[0]),
+        db.from('immo_bien_etapes').select('*').in('bien_id',biens.map(b=>b.id)||[0])
+    ]);
+    
+    biens=biensR.data||[];
+    
+    // Reload with correct bien IDs
+    if(biens.length){
+        const bienIds=biens.map(b=>b.id);
+        const[v,o,e]=await Promise.all([
+            db.from('immo_visites').select('*,immo_clients(nom,prenom),immo_biens(reference)').in('bien_id',bienIds).order('date_visite',{ascending:false}),
+            db.from('immo_offres').select('*,immo_clients(nom,prenom),immo_biens(reference)').in('bien_id',bienIds).order('date_offre',{ascending:false}),
+            db.from('immo_bien_etapes').select('*,immo_biens(reference)').in('bien_id',bienIds).order('date_etape',{ascending:true})
+        ]);
+        visites=v.data||[];
+        offres=o.data||[];
+        etapes=e.data||[];
+    }
+    
+    render();
+}
+
+function formatMoney(n){return new Intl.NumberFormat('fr-MA').format(n||0);}
+function formatDate(d){return d?new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):'-';}
+
+function render(){
+    const app=document.getElementById('main-app');
+    
+    const biensHTML=biens.map(b=>{
+        const bienVisites=visites.filter(v=>v.bien_id===b.id);
+        const bienOffres=offres.filter(o=>o.bien_id===b.id);
+        const bienEtapes=etapes.filter(e=>e.bien_id===b.id);
+        
+        // Build timeline
+        let timelineHTML='';
+        const completedEtapes=bienEtapes.map(e=>e.etape);
+        const lastCompleted=completedEtapes.length?completedEtapes[completedEtapes.length-1]:null;
+        const currentIndex=lastCompleted?ETAPE_ORDER.indexOf(lastCompleted)+1:0;
+        
+        ETAPE_ORDER.forEach((etape,idx)=>{
+            const etapeData=bienEtapes.find(e=>e.etape===etape);
+            const isDone=completedEtapes.includes(etape);
+            const isCurrent=idx===currentIndex;
+            
+            if(isDone||isCurrent||idx<=currentIndex+1){
+                timelineHTML+=`
+                    <div class="timeline-item">
+                        <div class="timeline-dot ${isDone?'done':isCurrent?'current':''}"></div>
+                        <div class="timeline-content ${isDone?'done':isCurrent?'current':''}">
+                            <div class="timeline-title">
+                                ${isDone?'✅':''}${isCurrent?'⏳':''}${!isDone&&!isCurrent?'⬜':''} 
+                                ${ETAPE_LABELS[etape]}
+                            </div>
+                            ${etapeData?`<div class="timeline-date">${formatDate(etapeData.date_etape)}</div>`:''}
+                            ${etapeData?.notes?`<div class="timeline-notes">${etapeData.notes}</div>`:''}
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        return`
+            <div class="bien-card">
+                <div class="bien-header">
+                    <div>
+                        <span class="bien-ref">${b.reference}</span>
+                        <h3 class="bien-title">${b.titre}</h3>
+                    </div>
+                    <div class="bien-price">${formatMoney(b.prix)} MAD</div>
+                </div>
+                <div class="bien-stats">
+                    <div class="stat"><div class="stat-value">${bienVisites.length}</div><div class="stat-label">Visites</div></div>
+                    <div class="stat"><div class="stat-value">${bienOffres.length}</div><div class="stat-label">Offres</div></div>
+                    <div class="stat"><div class="stat-value">${Math.round((completedEtapes.length/ETAPE_ORDER.length)*100)}%</div><div class="stat-label">Avancement</div></div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3 class="section-title">📈 Avancement de la vente</h3>
+                <div class="timeline">${timelineHTML}</div>
+            </div>
+        `;
+    }).join('');
+    
+    const visitesHTML=visites.length?visites.slice(0,10).map(v=>{
+        const client=v.immo_clients||{};
+        const intLabels={tres_interesse:'🔥 Très intéressé',interesse:'👍 Intéressé',bof:'😐 Bof',pas_interesse:'👎 Pas intéressé'};
+        return`
+            <div class="visite-item">
+                <div class="visite-date">${formatDate(v.date_visite)}</div>
+                <div class="visite-info">
+                    <div class="visite-client">${v.immo_biens?.reference||''}</div>
+                    <div class="visite-feedback">${intLabels[v.interet]||'En attente de retour'}</div>
+                </div>
+                <span class="badge badge-blue">${(v.type_visite||'').replace('_',' ')}</span>
+            </div>
+        `;
+    }).join(''):'<div class="empty">Aucune visite pour le moment</div>';
+    
+    const offresHTML=offres.length?offres.map(o=>{
+        const statColors={en_attente:'badge-orange',acceptee:'badge-green',refusee:'badge-red'};
+        return`
+            <div class="offre-item">
+                <div class="offre-amount">${formatMoney(o.montant)} MAD</div>
+                <div class="offre-info">
+                    <div>${o.immo_biens?.reference||''} - ${formatDate(o.date_offre)}</div>
+                    ${o.conditions?`<div style="font-size:.85rem;color:var(--dim);">${o.conditions}</div>`:''}
+                </div>
+                <span class="badge ${statColors[o.statut]||'badge-orange'}">${o.statut.replace('_',' ')}</span>
+            </div>
+        `;
+    }).join(''):'<div class="empty">Aucune offre pour le moment</div>';
+    
+    app.innerHTML=`
+        <div class="welcome">
+            <h2>Bonjour ${proprio.prenom||proprio.nom} 👋</h2>
+            <p>Suivez l'avancement de la vente de vos biens en temps réel</p>
+        </div>
+        
+        ${biens.length?biensHTML:'<div class="section"><div class="empty">Aucun bien enregistré</div></div>'}
+        
+        <div class="section">
+            <h3 class="section-title">📅 Dernières visites</h3>
+            <div class="visites-list">${visitesHTML}</div>
+        </div>
+        
+        <div class="section">
+            <h3 class="section-title">💰 Offres reçues</h3>
+            <div class="offres-list">${offresHTML}</div>
+        </div>
+        
+        <div class="contact-box">
+            <h3 class="contact-title">Une question ?</h3>
+            <a href="https://wa.me/212687842466" class="contact-btn">💬 WhatsApp</a>
+            <a href="tel:+212687842466" class="contact-btn">📞 Appeler</a>
+        </div>
+    `;
+}
+
+// Auto-login if code in URL
+if(urlCode){
+    document.getElementById('login-code').value=urlCode;
+    login();
+}
+    </script>
+</body>
+</html>
