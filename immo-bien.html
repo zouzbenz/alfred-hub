@@ -128,10 +128,16 @@ function render(bien,photos,sections){
     });
     
     const SECTION_LABELS={
-        hero:'Photos principales',espaces_vie:'Espaces de vie',chambres:'Chambres',cuisine:'Cuisine',
-        sdb:'Salles de bain',exterieurs:'Extérieurs',annexes:'Annexes',vues:'Vues',immeuble:'Immeuble',
-        rdc:'Rez-de-chaussée',etage_1:'Étage 1',etage_2:'Étage 2',sous_sol:'Sous-sol',jardin:'Jardin',piscine:'Piscine',garage:'Garage'
+        hero:'Photos principales',espaces_vie:'🛋️ Espaces de vie',chambres:'🛏️ Chambres',cuisine:'🍳 Cuisine',
+        sdb:'🚿 Salles de bain',exterieurs:'🌳 Extérieurs',annexes:'📦 Annexes',vues:'👁️ Vues',immeuble:'🏢 Immeuble',
+        rdc:'🏠 Rez-de-chaussée',etage_1:'⬆️ Étage 1',etage_2:'⬆️ Étage 2',sous_sol:'⬇️ Sous-sol',jardin:'🌳 Jardin',piscine:'🏊 Piscine',garage:'🚗 Garage'
     };
+    
+    const STORAGE_URL=SUPABASE_URL+'/storage/v1/object/public/immo-photos/';
+    
+    // Hero photo
+    const heroPhotos=photosBySection['hero']||[];
+    const heroImg=heroPhotos.length?STORAGE_URL+heroPhotos[0].storage_path:null;
     
     let sectionsHTML='';
     Object.keys(photosBySection).forEach(sec=>{
@@ -139,9 +145,9 @@ function render(bien,photos,sections){
         const sectionInfo=sections.find(s=>s.section===sec);
         sectionsHTML+=`
             <div class="space-section">
-                <div class="space-title">📸 ${SECTION_LABELS[sec]||sec}</div>
+                <div class="space-title">${SECTION_LABELS[sec]||sec}</div>
                 <div class="space-photos">
-                    ${photosBySection[sec].map(p=>`<div class="space-photo">🖼️</div>`).join('')}
+                    ${photosBySection[sec].map(p=>`<div class="space-photo"><img src="${STORAGE_URL}${p.storage_path}" alt="${sec}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;"></div>`).join('')}
                 </div>
                 ${sectionInfo?.description?`<div class="space-desc">${sectionInfo.description}</div>`:''}
             </div>
@@ -166,7 +172,7 @@ function render(bien,photos,sections){
             ${equipementsHTML}
         </div>
         
-        <div class="hero">🏠</div>
+        <div class="hero">${heroImg?`<img src="${heroImg}" alt="${bien.titre}">`:'🏠'}</div>
         
         ${ytId?`
         <div class="video-section">
