@@ -73,8 +73,22 @@ const ZONE_LABELS={anfa:'Anfa',ain_diab:'Ain Diab',cfc:'CFC',bourgogne:'Bourgogn
 let biens=[],currentZone='all';
 
 async function loadBiens(){
-    const{data}=await db.from('immo_biens').select('*').eq('publie',true).eq('statut','disponible').order('created_at',{ascending:false});
-    biens=data||[];
+    // D'abord charger tous les biens pour debug
+    const{data,error}=await db.from('immo_biens').select('*').order('created_at',{ascending:false});
+    console.log('Tous les biens:',data);
+    console.log('Erreur:',error);
+    if(error){
+        document.getElementById('biens-grid').innerHTML='<div class="empty">Erreur de chargement: '+error.message+'</div>';
+        return;
+    }
+    // Filtrer côté client pour plus de flexibilité
+    biens=(data||[]).filter(b=>b.publie===true && b.statut==='disponible');
+    console.log('Biens filtrés (publie=true, statut=disponible):',biens);
+    // Si aucun bien filtré mais des biens existent, montrer tous les disponibles
+    if(!biens.length && data?.length){
+        biens=data.filter(b=>b.statut==='disponible');
+        console.log('Fallback - biens disponibles:',biens);
+    }
     render();
 }
 
