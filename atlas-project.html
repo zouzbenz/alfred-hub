@@ -103,6 +103,20 @@
         .separator-line { height: 1px; background: var(--border); margin: 15px 0; position: relative; }
         .separator-line::after { content: "TÂCHES TERMINÉES"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); padding: 0 15px; font-size: 0.7rem; color: var(--dim); font-weight: 600; }
         
+        /* Modal Styles */
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85); z-index:1000; justify-content:center; align-items:flex-start; padding:10px; overflow-y:auto; }
+        .modal.visible { display:flex; }
+        .modal-content { background:var(--card); border:1px solid var(--border); border-radius:16px; width:100%; max-width:500px; margin:20px auto; }
+        .modal-header { padding:15px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--card); z-index:10; border-radius:16px 16px 0 0; }
+        .modal-title { font-size:1.1rem; font-weight:700; }
+        .modal-close { background:none; border:none; color:var(--dim); font-size:1.5rem; cursor:pointer; padding:5px; }
+        .modal-body { padding:20px; }
+        .modal-footer { padding:15px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
+        .form-group { display:flex; flex-direction:column; gap:5px; margin-bottom:15px; }
+        .form-group label { font-size:.8rem; color:var(--dim); }
+        .form-group input, .form-group textarea { padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:#fff; font-size:.9rem; width:100%; }
+        .form-group textarea { resize:vertical; min-height:80px; }
+        
         .empty-state { text-align:center; padding:30px; color:var(--dim); }
         .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
         .footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
@@ -171,7 +185,7 @@
     
     <!-- Modal Ajout Tâche -->
     <div class="modal" id="task-modal">
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title"> Nouvelle Tâche</h3>
                 <button class="modal-close" onclick="closeTaskModal()">×</button>
@@ -181,9 +195,9 @@
                     <label>Titre *</label>
                     <input type="text" id="task-title" placeholder="Ex: Commander matériaux">
                 </div>
-                <div class="form-group" style="margin-top: 15px;">
+                <div class="form-group">
                     <label>Description</label>
-                    <textarea id="task-description" placeholder="Détails supplémentaires..." rows="3"></textarea>
+                    <textarea id="task-description" placeholder="Détails supplémentaires..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -438,7 +452,7 @@ async function saveTask() {
     }
     
     const taskData = {
-        project_id: projectId,
+        project_id: parseInt(projectId),
         titre: titre,
         description: document.getElementById('task-description').value || null
     };
@@ -482,7 +496,11 @@ function showToast(msg) {
     toast.style.zIndex = '2000';
     toast.textContent = msg;
     document.body.appendChild(toast);
-    setTimeout(() => document.body.removeChild(toast), 2500);
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 2500);
 }
 
 loadProject();
