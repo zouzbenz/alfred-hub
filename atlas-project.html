@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <style>
-        :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; }
+        :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; --purple:#8b5cf6; }
         * { box-sizing:border-box; margin:0; padding:0; }
         body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
         .container { max-width:1200px; margin:0 auto; padding:15px; }
@@ -93,13 +93,20 @@
         .task-list { margin-top: 15px; }
         .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-radius: 10px; margin-bottom: 8px; background: var(--bg); border: 1px solid var(--border); }
         .task-item.completed { opacity: 0.7; background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2); }
+        .task-item.priority-high { border-left: 3px solid var(--danger); }
+        .task-item.priority-medium { border-left: 3px solid var(--warn); }
+        .task-item.priority-low { border-left: 3px solid var(--accent2); }
         .task-checkbox { margin-top: 2px; width: 18px; height: 18px; accent-color: var(--accent2); }
         .task-content { flex: 1; }
         .task-title { font-weight: 600; margin-bottom: 4px; }
         .task-description { font-size: 0.8rem; color: var(--dim); margin-bottom: 6px; }
-        .task-meta { display: flex; gap: 12px; font-size: 0.7rem; color: var(--dim); }
+        .task-meta { display: flex; gap: 12px; font-size: 0.7rem; color: var(--dim); flex-wrap: wrap; }
         .task-completed-by::before { content: "✅ "; }
         .task-completed-at::before { content: "🕐 "; }
+        .task-priority { padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; }
+        .priority-high-tag { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+        .priority-medium-tag { background: rgba(245, 158, 11, 0.2); color: var(--warn); }
+        .priority-low-tag { background: rgba(16, 185, 129, 0.2); color: var(--accent2); }
         .separator-line { height: 1px; background: var(--border); margin: 15px 0; position: relative; }
         .separator-line::after { content: "TÂCHES TERMINÉES"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); padding: 0 15px; font-size: 0.7rem; color: var(--dim); font-weight: 600; }
         
@@ -114,7 +121,7 @@
         .modal-footer { padding:15px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
         .form-group { display:flex; flex-direction:column; gap:5px; margin-bottom:15px; }
         .form-group label { font-size:.8rem; color:var(--dim); }
-        .form-group input, .form-group textarea { padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:#fff; font-size:.9rem; width:100%; }
+        .form-group input, .form-group textarea, .form-group select { padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:#fff; font-size:.9rem; width:100%; }
         .form-group textarea { resize:vertical; min-height:80px; }
         
         .empty-state { text-align:center; padding:30px; color:var(--dim); }
@@ -174,7 +181,7 @@
                 <div id="depenses-list"></div>
             </div>
             
-            <div class="footer"><a href="./atlas-projects.html">Projets</a><a href="./">Alfred Hub</a></div>
+            <div class="footer"><a href="./atlas-projects.html">Projets</a><a href="./atlas-tasks.html">📋 Tâches globales</a><a href="./">Alfred Hub</a></div>
         </div>
     </div>
     
@@ -198,6 +205,14 @@
                 <div class="form-group">
                     <label>Description</label>
                     <textarea id="task-description" placeholder="Détails supplémentaires..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Priorité</label>
+                    <select id="task-priority">
+                        <option value="low">Basse</option>
+                        <option value="medium" selected>Moyenne</option>
+                        <option value="high">Haute</option>
+                    </select>
                 </div>
             </div>
             <div class="modal-footer">
@@ -380,12 +395,13 @@ function renderTasks() {
     // Tâches en attente
     if (pendingTasks.length > 0) {
         html += pendingTasks.map(task => `
-            <div class="task-item" data-task-id="${task.id}">
+            <div class="task-item ${task.priority ? 'priority-' + task.priority : ''}" data-task-id="${task.id}">
                 <input type="checkbox" class="task-checkbox" onchange="toggleTask(${task.id}, this.checked)" ${task.completed ? 'checked' : ''}>
                 <div class="task-content">
                     <div class="task-title">${task.titre}</div>
                     ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
                     <div class="task-meta">
+                        ${task.priority ? `<span class="task-priority priority-${task.priority}-tag">${task.priority === 'high' ? 'Haute' : task.priority === 'medium' ? 'Moyenne' : 'Basse'}</span>` : ''}
                         ${task.created_at ? `Créée: ${formatDateTime(task.created_at)}` : ''}
                     </div>
                 </div>
@@ -401,12 +417,13 @@ function renderTasks() {
     // Tâches terminées
     if (completedTasks.length > 0) {
         html += completedTasks.map(task => `
-            <div class="task-item completed" data-task-id="${task.id}">
+            <div class="task-item completed ${task.priority ? 'priority-' + task.priority : ''}" data-task-id="${task.id}">
                 <input type="checkbox" class="task-checkbox" onchange="toggleTask(${task.id}, this.checked)" checked>
                 <div class="task-content">
                     <div class="task-title">${task.titre}</div>
                     ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
                     <div class="task-meta">
+                        ${task.priority ? `<span class="task-priority priority-${task.priority}-tag">${task.priority === 'high' ? 'Haute' : task.priority === 'medium' ? 'Moyenne' : 'Basse'}</span>` : ''}
                         ${task.completed_by ? `<span class="task-completed-by">${task.completed_by}</span>` : ''}
                         ${task.completed_at ? `<span class="task-completed-at">${formatDateTime(task.completed_at)}</span>` : ''}
                     </div>
@@ -454,7 +471,8 @@ async function saveTask() {
     const taskData = {
         project_id: parseInt(projectId),
         titre: titre,
-        description: document.getElementById('task-description').value || null
+        description: document.getElementById('task-description').value || null,
+        priority: document.getElementById('task-priority').value || 'medium'
     };
     
     try {
@@ -465,6 +483,7 @@ async function saveTask() {
         closeTaskModal();
         document.getElementById('task-title').value = '';
         document.getElementById('task-description').value = '';
+        document.getElementById('task-priority').value = 'medium';
         renderTasks();
         showToast('Tâche ajoutée !');
     } catch (error) {
