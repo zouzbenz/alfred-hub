@@ -88,6 +88,21 @@
         .photo-modal img { max-width:100%; max-height:90vh; object-fit:contain; border-radius:8px; }
         .photo-modal-close { position:absolute; top:15px; right:15px; background:var(--card); border:none; color:#fff; font-size:1.3rem; padding:10px 15px; border-radius:10px; cursor:pointer; }
         
+        /* Tâches Styles */
+        .task-section { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 15px; margin-bottom: 15px; }
+        .task-list { margin-top: 15px; }
+        .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-radius: 10px; margin-bottom: 8px; background: var(--bg); border: 1px solid var(--border); }
+        .task-item.completed { opacity: 0.7; background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2); }
+        .task-checkbox { margin-top: 2px; width: 18px; height: 18px; accent-color: var(--accent2); }
+        .task-content { flex: 1; }
+        .task-title { font-weight: 600; margin-bottom: 4px; }
+        .task-description { font-size: 0.8rem; color: var(--dim); margin-bottom: 6px; }
+        .task-meta { display: flex; gap: 12px; font-size: 0.7rem; color: var(--dim); }
+        .task-completed-by::before { content: "✅ "; }
+        .task-completed-at::before { content: "🕐 "; }
+        .separator-line { height: 1px; background: var(--border); margin: 15px 0; position: relative; }
+        .separator-line::after { content: "TÂCHES TERMINÉES"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); padding: 0 15px; font-size: 0.7rem; color: var(--dim); font-weight: 600; }
+        
         .empty-state { text-align:center; padding:30px; color:var(--dim); }
         .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
         .footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
@@ -128,6 +143,14 @@
                 </div>
             </div>
             
+            <div class="section task-section">
+                <div class="section-header">
+                    <h3 class="section-title">📋 Tâches du projet</h3>
+                    <button class="btn btn-outline btn-small" onclick="openAddTaskModal()">+ Ajouter tâche</button>
+                </div>
+                <div id="tasks-container"></div>
+            </div>
+            
             <div class="section">
                 <div class="section-header">
                     <h3 class="section-title">📝 Historique</h3>
@@ -144,6 +167,30 @@
     <div class="photo-modal" id="photo-modal" onclick="closePhotoModal()">
         <button class="photo-modal-close" onclick="closePhotoModal()">×</button>
         <img id="photo-modal-img" src="" alt="Photo">
+    </div>
+    
+    <!-- Modal Ajout Tâche -->
+    <div class="modal" id="task-modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title"> Nouvelle Tâche</h3>
+                <button class="modal-close" onclick="closeTaskModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Titre *</label>
+                    <input type="text" id="task-title" placeholder="Ex: Commander matériaux">
+                </div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>Description</label>
+                    <textarea id="task-description" placeholder="Détails supplémentaires..." rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeTaskModal()">Annuler</button>
+                <button class="btn btn-primary" onclick="saveTask()">Ajouter</button>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -167,8 +214,9 @@ const CATEGORIES = [
 ];
 
 const projectId = new URLSearchParams(location.search).get('id');
-let project = null, budgets = [], depenses = [];
+let project = null, budgets = [], depenses = [], taches = [];
 const isAdmin = sessionStorage.getItem('atlas-auth') === 'true';
+const currentUser = sessionStorage.getItem('atlas-user') || 'Utilisateur';
 
 async function loadProject() {
     if (!projectId) { document.getElementById('login-screen').innerHTML = '<div class="login-box"><h2>❌</h2><p>Projet non trouvé</p></div>'; return; }
@@ -177,12 +225,14 @@ async function loadProject() {
     if (!data) { document.getElementById('login-screen').innerHTML = '<div class="login-box"><h2>❌</h2><p>Projet non trouvé</p></div>'; return; }
     
     project = data;
-    const [bRes, dRes] = await Promise.all([
+    const [bRes, dRes, tRes] = await Promise.all([
         db.from('atlas_budget').select('*').eq('project_id', projectId),
-        db.from('atlas_depenses').select('*').eq('project_id', projectId).order('created_at', { ascending: false })
+        db.from('atlas_depenses').select('*').eq('project_id', projectId).order('created_at', { ascending: false }),
+        db.from('atlas_taches').select('*').eq('project_id', projectId).order('created_at', { ascending: true })
     ]);
     budgets = bRes.data || [];
     depenses = dRes.data || [];
+    taches = tRes.data || [];
     
     if (isAdmin || !project.password) showContent();
 }
@@ -247,6 +297,7 @@ function render() {
     
     renderGallery();
     renderDepenses();
+    renderTasks(); // Ajout des tâches
 }
 
 function renderGallery() {
@@ -297,6 +348,142 @@ function viewPhoto(path) {
     document.getElementById('photo-modal').classList.add('visible');
 }
 function closePhotoModal() { document.getElementById('photo-modal').classList.remove('visible'); }
+
+// === FONCTIONS POUR LES TÂCHES ===
+function renderTasks() {
+    const container = document.getElementById('tasks-container');
+    
+    if (!taches.length) {
+        container.innerHTML = '<div class="empty-state">Aucune tâche</div>';
+        return;
+    }
+    
+    const pendingTasks = taches.filter(t => !t.completed);
+    const completedTasks = taches.filter(t => t.completed).reverse();
+    
+    let html = '';
+    
+    // Tâches en attente
+    if (pendingTasks.length > 0) {
+        html += pendingTasks.map(task => `
+            <div class="task-item" data-task-id="${task.id}">
+                <input type="checkbox" class="task-checkbox" onchange="toggleTask(${task.id}, this.checked)" ${task.completed ? 'checked' : ''}>
+                <div class="task-content">
+                    <div class="task-title">${task.titre}</div>
+                    ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
+                    <div class="task-meta">
+                        ${task.created_at ? `Créée: ${formatDateTime(task.created_at)}` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    // Ligne de séparation
+    if (pendingTasks.length > 0 && completedTasks.length > 0) {
+        html += '<div class="separator-line"></div>';
+    }
+    
+    // Tâches terminées
+    if (completedTasks.length > 0) {
+        html += completedTasks.map(task => `
+            <div class="task-item completed" data-task-id="${task.id}">
+                <input type="checkbox" class="task-checkbox" onchange="toggleTask(${task.id}, this.checked)" checked>
+                <div class="task-content">
+                    <div class="task-title">${task.titre}</div>
+                    ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
+                    <div class="task-meta">
+                        ${task.completed_by ? `<span class="task-completed-by">${task.completed_by}</span>` : ''}
+                        ${task.completed_at ? `<span class="task-completed-at">${formatDateTime(task.completed_at)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    container.innerHTML = html;
+}
+
+async function toggleTask(taskId, completed) {
+    const task = taches.find(t => t.id === taskId);
+    if (!task) return;
+    
+    const updateData = {
+        completed: completed,
+        completed_at: completed ? new Date().toISOString() : null,
+        completed_by: completed ? currentUser : null
+    };
+    
+    try {
+        await db.from('atlas_taches').update(updateData).eq('id', taskId);
+        // Mettre à jour localement
+        const taskIndex = taches.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+            taches[taskIndex] = { ...taches[taskIndex], ...updateData };
+        }
+        renderTasks(); // Rafraîchir l'affichage
+    } catch (error) {
+        console.error('Erreur:', error);
+        // Rétablir l'état précédent en cas d'erreur
+        const checkbox = document.querySelector(`[data-task-id="${taskId}"] .task-checkbox`);
+        if (checkbox) checkbox.checked = !completed;
+    }
+}
+
+async function saveTask() {
+    const titre = document.getElementById('task-title').value.trim();
+    if (!titre) {
+        alert('Titre requis');
+        return;
+    }
+    
+    const taskData = {
+        project_id: projectId,
+        titre: titre,
+        description: document.getElementById('task-description').value || null
+    };
+    
+    try {
+        const { data } = await db.from('atlas_taches').insert([taskData]).select();
+        if (data && data[0]) {
+            taches.push(data[0]); // Ajouter localement
+        }
+        closeTaskModal();
+        document.getElementById('task-title').value = '';
+        document.getElementById('task-description').value = '';
+        renderTasks();
+        showToast('Tâche ajoutée !');
+    } catch (error) {
+        alert('Erreur: ' + error.message);
+    }
+}
+
+// Fonctions modal
+function openAddTaskModal() {
+    document.getElementById('task-modal').classList.add('visible');
+}
+
+function closeTaskModal() {
+    document.getElementById('task-modal').classList.remove('visible');
+}
+
+function showToast(msg) {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.style.position = 'fixed';
+    toast.style.bottom = '20px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.background = 'var(--accent2)';
+    toast.style.color = '#fff';
+    toast.style.padding = '12px 24px';
+    toast.style.borderRadius = '8px';
+    toast.style.fontWeight = '600';
+    toast.style.zIndex = '2000';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => document.body.removeChild(toast), 2500);
+}
 
 loadProject();
     </script>
