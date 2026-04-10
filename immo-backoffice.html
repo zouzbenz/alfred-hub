@@ -6,6 +6,7 @@
     <title>Insta Immo - Backoffice</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root{--bg:#fff;--card:#f8f9fa;--card2:#f0f0f0;--border:#e0e0e0;--text:#1a1a1a;--dim:#666;--accent:#FFC107;--green:#10b981;--red:#ef4444;--orange:#f59e0b;--blue:#3b82f6;}
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -395,6 +396,7 @@ function renderVisites(){
             <td>${intLabels[v.interet]||'-'}</td>
             <td>${v.bon_signe?'<span class="tag tag-green">✅ Signé</span>':'<a href="./immo-visite.html?visite=${v.id}" target="_blank" class="btn btn-small btn-outline">Signer</a>'}</td>
             <td class="actions-cell">
+                <button class="btn btn-small btn-outline btn-icon" onclick="genererBonVisitePDF(${v.id})" title="PDF">📄</button>
                 <button class="btn btn-small btn-outline btn-icon" onclick="editVisite(${v.id})">✏️</button>
                 <button class="btn btn-small btn-danger btn-icon" onclick="deleteVisite(${v.id})">×</button>
             </td>
@@ -1069,23 +1071,318 @@ function openMandatVenteModal(){
 
 function closeMandatModal(){document.getElementById('modals-container').innerHTML='';}
 
-function genererMandatRecherche(){
-    const clientId=document.getElementById('mandat-client')?.value;
-    if(!clientId){alert('Sélectionnez un client');return;}
-    const c=clients.find(x=>x.id==clientId);
-    if(!c){alert('Client introuvable');return;}
-    // Pour l'instant on affiche les infos - génération PDF à implémenter
-    showToast('Mandat recherche pour '+c.nom+' - PDF à venir');
+// ==================== PDF GENERATION ====================
+const { jsPDF } = window.jspdf;
+
+function pdfHeader(doc, title) {
+    // En-tête jaune
+    doc.setFillColor(255, 193, 7);
+    doc.rect(0, 0, 210, 35, 'F');
+    
+    // Logo texte
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INSTA IMMO', 20, 18);
+    
+    // Sous-titre
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Votre partenaire immobilier à Casablanca', 20, 26);
+    
+    // Titre document
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(title, 210 - 20, 22, { align: 'right' });
+    
+    // Reset couleur
+    doc.setTextColor(0, 0, 0);
+    return 45; // Y position après header
+}
+
+function pdfFooter(doc) {
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text('INSTA IMMO - Zouhair Benazzou', 105, pageHeight - 20, { align: 'center' });
+    doc.text('Tél: +212 687 842 466 | Email: contact@instaimmo.ma', 105, pageHeight - 15, { align: 'center' });
+    doc.text('Casablanca, Maroc', 105, pageHeight - 10, { align: 'center' });
+}
+
+function pdfSection(doc, y, title) {
+    doc.setFillColor(245, 245, 245);
+    doc.rect(15, y - 5, 180, 8, 'F');
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(title, 20, y);
+    return y + 10;
+}
+
+function pdfField(doc, y, label, value) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(label + ':', 20, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(value || '-'), 70, y);
+    return y + 7;
+}
+
+function pdfParagraph(doc, y, text, maxWidth = 170) {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    const lines = doc.splitTextToSize(text, maxWidth);
+    doc.text(lines, 20, y);
+    return y + (lines.length * 5) + 3;
+}
+
+function genererMandatRecherche() {
+    const clientId = document.getElementById('mandat-client')?.value;
+    if (!clientId) { alert('Sélectionnez un client'); return; }
+    const c = clients.find(x => x.id == clientId);
+    if (!c) { alert('Client introuvable'); return; }
+    
+    const commission = document.getElementById('mandat-comm').value || '2';
+    const duree = document.getElementById('mandat-duree').value || '6';
+    const today = new Date().toLocaleDateString('fr-FR');
+    
+    const doc = new jsPDF();
+    let y = pdfHeader(doc, 'MANDAT DE RECHERCHE');
+    
+    // Numéro et date
+    doc.setFontSize(10);
+    doc.text(`N° MR-${Date.now().toString().slice(-6)}`, 20, y);
+    doc.text(`Date: ${today}`, 160, y);
+    y += 15;
+    
+    // Section Mandant
+    y = pdfSection(doc, y, 'LE MANDANT');
+    y = pdfField(doc, y, 'Nom', `${c.nom} ${c.prenom || ''}`);
+    y = pdfField(doc, y, 'Téléphone', c.telephone);
+    y = pdfField(doc, y, 'Email', c.email || '-');
+    y += 5;
+    
+    // Section Mandataire
+    y = pdfSection(doc, y, 'LE MANDATAIRE');
+    y = pdfField(doc, y, 'Société', 'INSTA IMMO');
+    y = pdfField(doc, y, 'Représentant', 'Zouhair Benazzou');
+    y = pdfField(doc, y, 'Téléphone', '+212 687 842 466');
+    y += 5;
+    
+    // Section Recherche
+    y = pdfSection(doc, y, 'OBJET DE LA RECHERCHE');
+    const types = (c.types_souhaites || []).map(t => TYPE_LABELS[t] || t).join(', ') || 'Non spécifié';
+    const zones = (c.zones_souhaitees || []).map(z => ZONE_LABELS[z] || z).join(', ') || 'Non spécifié';
+    const budget = c.budget_min || c.budget_max ? `${formatMoney(c.budget_min || 0)} - ${formatMoney(c.budget_max || '∞')} MAD` : 'Non spécifié';
+    
+    y = pdfField(doc, y, 'Types de biens', types);
+    y = pdfField(doc, y, 'Zones', zones);
+    y = pdfField(doc, y, 'Budget', budget);
+    y = pdfField(doc, y, 'Chambres min', c.chambres_min || '-');
+    y += 5;
+    
+    // Critères
+    let criteres = [];
+    if (c.crit_ascenseur) criteres.push('Ascenseur');
+    if (c.crit_parking) criteres.push('Parking');
+    if (c.crit_terrasse) criteres.push('Terrasse');
+    if (c.crit_vue_mer) criteres.push('Vue mer');
+    if (criteres.length) {
+        y = pdfField(doc, y, 'Critères', criteres.join(', '));
+    }
+    y += 5;
+    
+    // Section Conditions
+    y = pdfSection(doc, y, 'CONDITIONS');
+    y = pdfField(doc, y, 'Durée du mandat', `${duree} mois`);
+    y = pdfField(doc, y, 'Commission', `${commission}% HT du prix de vente`);
+    y += 5;
+    
+    // Clauses
+    y = pdfSection(doc, y, 'CLAUSES');
+    const clauses = `Le mandant confie au mandataire la mission exclusive de rechercher un bien immobilier correspondant aux critères définis ci-dessus. Le mandataire s'engage à présenter au mandant les biens correspondant à ses critères. En cas d'acquisition d'un bien présenté par le mandataire, le mandant s'engage à verser la commission convenue. Ce mandat est valable pour une durée de ${duree} mois à compter de sa signature.`;
+    y = pdfParagraph(doc, y, clauses);
+    y += 10;
+    
+    // Signatures
+    y = pdfSection(doc, y, 'SIGNATURES');
+    doc.setFontSize(10);
+    doc.text('Le Mandant:', 30, y + 10);
+    doc.text('Le Mandataire:', 130, y + 10);
+    doc.rect(20, y + 15, 70, 30);
+    doc.rect(120, y + 15, 70, 30);
+    doc.text('Lu et approuvé', 35, y + 50);
+    doc.text('INSTA IMMO', 140, y + 50);
+    
+    pdfFooter(doc);
+    
+    doc.save(`Mandat_Recherche_${c.nom}_${today.replace(/\//g, '-')}.pdf`);
+    showToast('PDF généré !');
     closeMandatModal();
 }
 
-function genererMandatVente(){
-    const bienId=document.getElementById('mandat-bien')?.value;
-    if(!bienId){alert('Sélectionnez un bien');return;}
-    const b=biens.find(x=>x.id==bienId);
-    if(!b){alert('Bien introuvable');return;}
-    showToast('Mandat vente pour '+b.reference+' - PDF à venir');
+function genererMandatVente() {
+    const bienId = document.getElementById('mandat-bien')?.value;
+    if (!bienId) { alert('Sélectionnez un bien'); return; }
+    const b = biens.find(x => x.id == bienId);
+    if (!b) { alert('Bien introuvable'); return; }
+    
+    const proprio = proprietaires.find(p => p.id == b.proprietaire_id);
+    const commission = document.getElementById('mandat-vcomm').value || '2';
+    const duree = document.getElementById('mandat-vduree').value || '6';
+    const exclusif = document.getElementById('mandat-exclusif').value === 'oui';
+    const today = new Date().toLocaleDateString('fr-FR');
+    
+    const doc = new jsPDF();
+    let y = pdfHeader(doc, exclusif ? 'MANDAT DE VENTE EXCLUSIF' : 'MANDAT DE VENTE');
+    
+    // Numéro et date
+    doc.setFontSize(10);
+    doc.text(`N° MV-${b.reference}`, 20, y);
+    doc.text(`Date: ${today}`, 160, y);
+    y += 15;
+    
+    // Section Mandant (Proprio)
+    y = pdfSection(doc, y, 'LE MANDANT (PROPRIÉTAIRE)');
+    if (proprio) {
+        y = pdfField(doc, y, 'Nom', `${proprio.nom} ${proprio.prenom || ''}`);
+        y = pdfField(doc, y, 'Téléphone', proprio.telephone);
+        y = pdfField(doc, y, 'Email', proprio.email || '-');
+        y = pdfField(doc, y, 'Adresse', proprio.adresse || '-');
+    } else {
+        y = pdfField(doc, y, 'Nom', '______________________________');
+        y = pdfField(doc, y, 'Téléphone', '______________________________');
+    }
+    y += 5;
+    
+    // Section Mandataire
+    y = pdfSection(doc, y, 'LE MANDATAIRE');
+    y = pdfField(doc, y, 'Société', 'INSTA IMMO');
+    y = pdfField(doc, y, 'Représentant', 'Zouhair Benazzou');
+    y = pdfField(doc, y, 'Téléphone', '+212 687 842 466');
+    y += 5;
+    
+    // Section Bien
+    y = pdfSection(doc, y, 'DÉSIGNATION DU BIEN');
+    y = pdfField(doc, y, 'Référence', b.reference);
+    y = pdfField(doc, y, 'Type', TYPE_LABELS[b.type_bien] || b.type_bien);
+    y = pdfField(doc, y, 'Adresse', `${getZoneLabel(b.zone)}${b.quartier ? ' - ' + b.quartier : ''}`);
+    y = pdfField(doc, y, 'Surface', b.surface_m2 ? `${b.surface_m2} m²` : '-');
+    y = pdfField(doc, y, 'Étage', b.etage !== null ? b.etage : '-');
+    y = pdfField(doc, y, 'Chambres', b.chambres || '-');
+    y += 5;
+    
+    // Section Prix
+    y = pdfSection(doc, y, 'CONDITIONS FINANCIÈRES');
+    y = pdfField(doc, y, 'Prix de vente', `${formatMoney(b.prix)} MAD`);
+    y = pdfField(doc, y, 'Commission', `${commission}% HT`);
+    y = pdfField(doc, y, 'Montant commission', `${formatMoney(b.prix * commission / 100)} MAD HT`);
+    y += 5;
+    
+    // Section Conditions
+    y = pdfSection(doc, y, 'DURÉE ET CONDITIONS');
+    y = pdfField(doc, y, 'Type de mandat', exclusif ? 'EXCLUSIF' : 'Simple');
+    y = pdfField(doc, y, 'Durée', `${duree} mois`);
+    y += 5;
+    
+    // Clauses
+    const clauseExclusif = exclusif ? 
+        `Ce mandat est EXCLUSIF. Pendant toute la durée du mandat, le mandant s'interdit de confier la vente du bien à un autre intermédiaire et de traiter directement avec un acquéreur.` :
+        `Ce mandat est simple. Le mandant conserve la possibilité de vendre directement ou par l'intermédiaire d'un autre mandataire.`;
+    
+    y = pdfParagraph(doc, y, clauseExclusif);
+    y = pdfParagraph(doc, y, `Le mandataire s'engage à mettre en œuvre tous les moyens nécessaires pour réaliser la vente: publicité, visites, négociation. La commission sera due dès la signature de l'acte authentique de vente.`);
+    y += 10;
+    
+    // Signatures
+    if (y > 230) { doc.addPage(); y = 30; }
+    y = pdfSection(doc, y, 'SIGNATURES');
+    doc.setFontSize(10);
+    doc.text('Le Mandant (Propriétaire):', 25, y + 10);
+    doc.text('Le Mandataire:', 130, y + 10);
+    doc.rect(20, y + 15, 70, 30);
+    doc.rect(120, y + 15, 70, 30);
+    doc.text('Lu et approuvé', 35, y + 50);
+    doc.text('INSTA IMMO', 140, y + 50);
+    
+    pdfFooter(doc);
+    
+    doc.save(`Mandat_Vente_${b.reference}_${today.replace(/\//g, '-')}.pdf`);
+    showToast('PDF généré !');
     closeMandatModal();
+}
+
+// ==================== BON DE VISITE PDF ====================
+async function genererBonVisitePDF(visiteId) {
+    const v = visites.find(x => x.id == visiteId);
+    if (!v) { alert('Visite introuvable'); return; }
+    
+    const bien = biens.find(b => b.id == v.bien_id) || {};
+    const client = clients.find(c => c.id == v.client_id) || {};
+    const today = new Date().toLocaleDateString('fr-FR');
+    const dateVisite = v.date_visite ? new Date(v.date_visite).toLocaleDateString('fr-FR') : today;
+    const heureVisite = v.date_visite ? new Date(v.date_visite).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) : '';
+    
+    const doc = new jsPDF();
+    let y = pdfHeader(doc, 'BON DE VISITE');
+    
+    // Numéro et date
+    doc.setFontSize(10);
+    doc.text(`N° BV-${visiteId}`, 20, y);
+    doc.text(`Date: ${today}`, 160, y);
+    y += 15;
+    
+    // Section Bien
+    y = pdfSection(doc, y, 'BIEN VISITÉ');
+    y = pdfField(doc, y, 'Référence', bien.reference || '-');
+    y = pdfField(doc, y, 'Désignation', bien.titre || '-');
+    y = pdfField(doc, y, 'Type', TYPE_LABELS[bien.type_bien] || '-');
+    y = pdfField(doc, y, 'Localisation', `${getZoneLabel(bien.zone || '')}${bien.quartier ? ' - ' + bien.quartier : ''}`);
+    y = pdfField(doc, y, 'Prix', bien.prix ? `${formatMoney(bien.prix)} MAD` : '-');
+    y += 5;
+    
+    // Section Visiteur
+    y = pdfSection(doc, y, 'LE VISITEUR');
+    y = pdfField(doc, y, 'Nom', client.nom ? `${client.nom} ${client.prenom || ''}` : '______________________________');
+    y = pdfField(doc, y, 'Téléphone', client.telephone || '______________________________');
+    y = pdfField(doc, y, 'Email', client.email || '______________________________');
+    y += 5;
+    
+    // Section Visite
+    y = pdfSection(doc, y, 'LA VISITE');
+    y = pdfField(doc, y, 'Date de visite', dateVisite);
+    y = pdfField(doc, y, 'Heure', heureVisite || '______');
+    y = pdfField(doc, y, 'Agent', v.agent || currentUser.prenom);
+    y += 5;
+    
+    // Clause légale
+    y = pdfSection(doc, y, 'ENGAGEMENT');
+    const clause = `Le(a) soussigné(e) reconnaît avoir visité le bien désigné ci-dessus par l'intermédiaire exclusif d'INSTA IMMO. Toute transaction conclue directement avec le propriétaire ou par un autre intermédiaire, dans un délai de 24 mois suivant cette visite, engagera la responsabilité du visiteur au paiement de la commission convenue, sans préjudice de dommages et intérêts. Le présent bon de visite constitue une preuve de la mise en relation.`;
+    y = pdfParagraph(doc, y, clause);
+    y += 10;
+    
+    // Signatures
+    y = pdfSection(doc, y, 'SIGNATURES');
+    doc.setFontSize(10);
+    doc.text('Le Visiteur:', 30, y + 10);
+    doc.text("L'Agent:", 130, y + 10);
+    doc.rect(20, y + 15, 70, 35);
+    doc.rect(120, y + 15, 70, 35);
+    
+    // Ajouter signature si existante
+    if (v.signature_data) {
+        try {
+            doc.addImage(v.signature_data, 'PNG', 22, y + 17, 66, 31);
+        } catch(e) { console.log('Erreur signature:', e); }
+    }
+    
+    doc.text('Lu et approuvé', 35, y + 55);
+    doc.text('INSTA IMMO', 140, y + 55);
+    
+    pdfFooter(doc);
+    
+    doc.save(`Bon_Visite_${bien.reference || 'BV'}_${client.nom || 'Client'}_${dateVisite.replace(/\//g, '-')}.pdf`);
+    showToast('Bon de visite PDF généré !');
 }
     </script>
 </body>
