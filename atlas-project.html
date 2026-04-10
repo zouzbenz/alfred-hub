@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <style>
-        :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; --purple:#8b5cf6; }
+        :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; --purple:#8b5cf6; --info:#0ea5e9; }
         * { box-sizing:border-box; margin:0; padding:0; }
         body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
         .container { max-width:1200px; margin:0 auto; padding:15px; }
@@ -50,6 +50,9 @@
         .btn { padding:8px 14px; border:none; border-radius:8px; font-weight:600; cursor:pointer; font-size:.8rem; display:inline-flex; align-items:center; gap:5px; }
         .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
         .btn-small { padding:6px 10px; font-size:.75rem; }
+        .btn-icon { padding:6px; min-width:32px; justify-content:center; }
+        .btn-warning { background:var(--warn); color:#fff; }
+        .btn-info { background:var(--info); color:#fff; }
         
         .table-wrapper { overflow-x:auto; }
         .comparison-table { width:100%; border-collapse:collapse; min-width:450px; font-size:.85rem; }
@@ -91,22 +94,33 @@
         /* Tâches Styles */
         .task-section { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 15px; margin-bottom: 15px; }
         .task-list { margin-top: 15px; }
-        .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-radius: 10px; margin-bottom: 8px; background: var(--bg); border: 1px solid var(--border); }
+        .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-radius: 10px; margin-bottom: 8px; background: var(--bg); border: 1px solid var(--border); position: relative; }
         .task-item.completed { opacity: 0.7; background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2); }
         .task-item.priority-high { border-left: 3px solid var(--danger); }
         .task-item.priority-medium { border-left: 3px solid var(--warn); }
         .task-item.priority-low { border-left: 3px solid var(--accent2); }
+        .task-item.has-reminder::after { 
+            content: "⏰"; 
+            position: absolute; 
+            top: 8px; 
+            right: 8px; 
+            font-size: 0.8rem; 
+            color: var(--info);
+        }
         .task-checkbox { margin-top: 2px; width: 18px; height: 18px; accent-color: var(--accent2); }
         .task-content { flex: 1; }
         .task-title { font-weight: 600; margin-bottom: 4px; }
         .task-description { font-size: 0.8rem; color: var(--dim); margin-bottom: 6px; }
-        .task-meta { display: flex; gap: 12px; font-size: 0.7rem; color: var(--dim); flex-wrap: wrap; }
+        .task-meta { display: flex; gap: 12px; font-size: 0.7rem; color: var(--dim); flex-wrap: wrap; align-items: center; }
         .task-completed-by::before { content: "✅ "; }
         .task-completed-at::before { content: "🕐 "; }
+        .task-reminder { color: var(--info); font-weight: 600; }
         .task-priority { padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; }
         .priority-high-tag { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
         .priority-medium-tag { background: rgba(245, 158, 11, 0.2); color: var(--warn); }
         .priority-low-tag { background: rgba(16, 185, 129, 0.2); color: var(--accent2); }
+        .task-actions { display: flex; gap: 4px; margin-top: 8px; }
+        .task-action-btn { padding: 4px 8px; font-size: 0.7rem; border-radius: 4px; }
         .separator-line { height: 1px; background: var(--border); margin: 15px 0; position: relative; }
         .separator-line::after { content: "TÂCHES TERMINÉES"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); padding: 0 15px; font-size: 0.7rem; color: var(--dim); font-weight: 600; }
         
@@ -123,13 +137,14 @@
         .form-group label { font-size:.8rem; color:var(--dim); }
         .form-group input, .form-group textarea, .form-group select { padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:#fff; font-size:.9rem; width:100%; }
         .form-group textarea { resize:vertical; min-height:80px; }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
         
         .empty-state { text-align:center; padding:30px; color:var(--dim); }
         .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
         .footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
         
         @media(min-width:768px) { .stats-grid { grid-template-columns:repeat(4, 1fr); } }
-        @media(max-width:480px) { .depense-header { flex-direction:column; } }
+        @media(max-width:480px) { .depense-header { flex-direction:column; } .form-row { grid-template-columns:1fr; } }
     </style>
 </head>
 <body>
@@ -190,35 +205,44 @@
         <img id="photo-modal-img" src="" alt="Photo">
     </div>
     
-    <!-- Modal Ajout Tâche -->
+    <!-- Modal Ajout/Édition Tâche -->
     <div class="modal" id="task-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title"> Nouvelle Tâche</h3>
+                <h3 class="modal-title" id="task-modal-title"> Nouvelle Tâche</h3>
                 <button class="modal-close" onclick="closeTaskModal()">×</button>
             </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Titre *</label>
-                    <input type="text" id="task-title" placeholder="Ex: Commander matériaux">
+            <form onsubmit="saveTask(event)">
+                <input type="hidden" id="task-id">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Titre *</label>
+                        <input type="text" id="task-title" placeholder="Ex: Commander matériaux" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="task-description" placeholder="Détails supplémentaires..."></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Priorité</label>
+                            <select id="task-priority">
+                                <option value="low">Basse</option>
+                                <option value="medium" selected>Moyenne</option>
+                                <option value="high">Haute</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Rappel (optionnel)</label>
+                            <input type="datetime-local" id="task-reminder">
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea id="task-description" placeholder="Détails supplémentaires..."></textarea>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeTaskModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary" id="save-task-btn">Enregistrer</button>
                 </div>
-                <div class="form-group">
-                    <label>Priorité</label>
-                    <select id="task-priority">
-                        <option value="low">Basse</option>
-                        <option value="medium" selected>Moyenne</option>
-                        <option value="high">Haute</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeTaskModal()">Annuler</button>
-                <button class="btn btn-primary" onclick="saveTask()">Ajouter</button>
-            </div>
+            </form>
         </div>
     </div>
     
@@ -247,6 +271,9 @@ let project = null, budgets = [], depenses = [], taches = [];
 const isAdmin = sessionStorage.getItem('atlas-auth') === 'true';
 const currentUser = sessionStorage.getItem('atlas-user') || 'Utilisateur';
 
+// Vérifier les rappels périodiquement
+setInterval(checkReminders, 60000); // Vérifie toutes les minutes
+
 async function loadProject() {
     if (!projectId) { document.getElementById('login-screen').innerHTML = '<div class="login-box"><h2>❌</h2><p>Projet non trouvé</p></div>'; return; }
     
@@ -264,6 +291,7 @@ async function loadProject() {
     taches = tRes.data || [];
     
     if (isAdmin || !project.password) showContent();
+    checkReminders(); // Vérifier les rappels au chargement
 }
 
 function checkPassword() {
@@ -282,6 +310,12 @@ function formatDateTime(d) {
     if (!d) return '-';
     const date = new Date(d);
     return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' + date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatReminderDateTime(d) {
+    if (!d) return '';
+    const date = new Date(d);
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' à ' + date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
 function getBudgetByCategory(catId) { return budgets.filter(b => b.categorie === catId).reduce((s, b) => s + (parseFloat(b.budget_prevu) || 0), 0); }
@@ -394,19 +428,26 @@ function renderTasks() {
     
     // Tâches en attente
     if (pendingTasks.length > 0) {
-        html += pendingTasks.map(task => `
-            <div class="task-item ${task.priority ? 'priority-' + task.priority : ''}" data-task-id="${task.id}">
+        html += pendingTasks.map(task => {
+            const hasReminder = task.reminder_datetime && new Date(task.reminder_datetime) > new Date();
+            return `
+            <div class="task-item ${task.priority ? 'priority-' + task.priority : ''} ${hasReminder ? 'has-reminder' : ''}" data-task-id="${task.id}">
                 <input type="checkbox" class="task-checkbox" onchange="toggleTask(${task.id}, this.checked)" ${task.completed ? 'checked' : ''}>
                 <div class="task-content">
                     <div class="task-title">${task.titre}</div>
                     ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
                     <div class="task-meta">
                         ${task.priority ? `<span class="task-priority priority-${task.priority}-tag">${task.priority === 'high' ? 'Haute' : task.priority === 'medium' ? 'Moyenne' : 'Basse'}</span>` : ''}
+                        ${hasReminder ? `<span class="task-reminder">⏰ ${formatReminderDateTime(task.reminder_datetime)}</span>` : ''}
                         ${task.created_at ? `Créée: ${formatDateTime(task.created_at)}` : ''}
                     </div>
+                    <div class="task-actions">
+                        <button class="btn btn-outline btn-small task-action-btn" onclick="editTask(${task.id})">✏️ Éditer</button>
+                        ${hasReminder ? `<button class="btn btn-info btn-small task-action-btn" onclick="clearReminder(${task.id})">🚫 Annuler rappel</button>` : ''}
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
     }
     
     // Ligne de séparation
@@ -416,20 +457,26 @@ function renderTasks() {
     
     // Tâches terminées
     if (completedTasks.length > 0) {
-        html += completedTasks.map(task => `
-            <div class="task-item completed ${task.priority ? 'priority-' + task.priority : ''}" data-task-id="${task.id}">
+        html += completedTasks.map(task => {
+            const hasReminder = task.reminder_datetime && new Date(task.reminder_datetime) > new Date();
+            return `
+            <div class="task-item completed ${task.priority ? 'priority-' + task.priority : ''} ${hasReminder ? 'has-reminder' : ''}" data-task-id="${task.id}">
                 <input type="checkbox" class="task-checkbox" onchange="toggleTask(${task.id}, this.checked)" checked>
                 <div class="task-content">
                     <div class="task-title">${task.titre}</div>
                     ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
                     <div class="task-meta">
                         ${task.priority ? `<span class="task-priority priority-${task.priority}-tag">${task.priority === 'high' ? 'Haute' : task.priority === 'medium' ? 'Moyenne' : 'Basse'}</span>` : ''}
+                        ${hasReminder ? `<span class="task-reminder">⏰ ${formatReminderDateTime(task.reminder_datetime)}</span>` : ''}
                         ${task.completed_by ? `<span class="task-completed-by">${task.completed_by}</span>` : ''}
                         ${task.completed_at ? `<span class="task-completed-at">${formatDateTime(task.completed_at)}</span>` : ''}
                     </div>
+                    <div class="task-actions">
+                        <button class="btn btn-outline btn-small task-action-btn" onclick="editTask(${task.id})">✏️ Éditer</button>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
     }
     
     container.innerHTML = html;
@@ -461,13 +508,57 @@ async function toggleTask(taskId, completed) {
     }
 }
 
-async function saveTask() {
+function editTask(taskId) {
+    const task = taches.find(t => t.id === taskId);
+    if (!task) return;
+    
+    document.getElementById('task-modal-title').textContent = 'Modifier Tâche';
+    document.getElementById('task-id').value = task.id;
+    document.getElementById('task-title').value = task.titre;
+    document.getElementById('task-description').value = task.description || '';
+    document.getElementById('task-priority').value = task.priority || 'medium';
+    
+    // Formatage de la date pour l'input datetime-local
+    if (task.reminder_datetime) {
+        const date = new Date(task.reminder_datetime);
+        const formatted = date.toISOString().slice(0, 16);
+        document.getElementById('task-reminder').value = formatted;
+    } else {
+        document.getElementById('task-reminder').value = '';
+    }
+    
+    document.getElementById('task-modal').classList.add('visible');
+}
+
+function openAddTaskModal() {
+    document.getElementById('task-modal-title').textContent = 'Nouvelle Tâche';
+    document.getElementById('task-id').value = '';
+    document.getElementById('task-title').value = '';
+    document.getElementById('task-description').value = '';
+    document.getElementById('task-priority').value = 'medium';
+    document.getElementById('task-reminder').value = '';
+    document.getElementById('task-modal').classList.add('visible');
+}
+
+function closeTaskModal() {
+    document.getElementById('task-modal').classList.remove('visible');
+}
+
+async function saveTask(e) {
+    e.preventDefault();
+    const btn = document.getElementById('save-task-btn');
+    btn.disabled = true;
+    btn.textContent = '...';
+    
     const titre = document.getElementById('task-title').value.trim();
     if (!titre) {
         alert('Titre requis');
+        btn.disabled = false;
+        btn.textContent = 'Enregistrer';
         return;
     }
     
+    const taskId = document.getElementById('task-id').value;
     const taskData = {
         project_id: parseInt(projectId),
         titre: titre,
@@ -475,29 +566,61 @@ async function saveTask() {
         priority: document.getElementById('task-priority').value || 'medium'
     };
     
+    // Ajouter le rappel si présent
+    const reminderValue = document.getElementById('task-reminder').value;
+    if (reminderValue) {
+        taskData.reminder_datetime = new Date(reminderValue).toISOString();
+        taskData.reminder_sent = false;
+    }
+    
     try {
-        const { data } = await db.from('atlas_taches').insert([taskData]).select();
-        if (data && data[0]) {
-            taches.push(data[0]); // Ajouter localement
+        if (taskId) {
+            // Modification
+            await db.from('atlas_taches').update(taskData).eq('id', taskId);
+            // Mettre à jour localement
+            const taskIndex = taches.findIndex(t => t.id === parseInt(taskId));
+            if (taskIndex !== -1) {
+                taches[taskIndex] = { ...taches[taskIndex], ...taskData };
+            }
+        } else {
+            // Création
+            const { data } = await db.from('atlas_taches').insert([taskData]).select();
+            if (data && data[0]) {
+                taches.push(data[0]); // Ajouter localement
+            }
         }
+        
         closeTaskModal();
-        document.getElementById('task-title').value = '';
-        document.getElementById('task-description').value = '';
-        document.getElementById('task-priority').value = 'medium';
         renderTasks();
-        showToast('Tâche ajoutée !');
+        showToast(taskId ? 'Tâche modifiée !' : 'Tâche ajoutée !');
     } catch (error) {
         alert('Erreur: ' + error.message);
     }
+    
+    btn.disabled = false;
+    btn.textContent = 'Enregistrer';
 }
 
-// Fonctions modal
-function openAddTaskModal() {
-    document.getElementById('task-modal').classList.add('visible');
-}
-
-function closeTaskModal() {
-    document.getElementById('task-modal').classList.remove('visible');
+async function clearReminder(taskId) {
+    try {
+        await db.from('atlas_taches').update({
+            reminder_datetime: null,
+            reminder_sent: null
+        }).eq('id', taskId);
+        
+        // Mettre à jour localement
+        const taskIndex = taches.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+            taches[taskIndex].reminder_datetime = null;
+            taches[taskIndex].reminder_sent = null;
+        }
+        
+        renderTasks();
+        showToast('Rappel annulé');
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur lors de l\'annulation du rappel');
+    }
 }
 
 function showToast(msg) {
@@ -520,6 +643,50 @@ function showToast(msg) {
             toast.parentNode.removeChild(toast);
         }
     }, 2500);
+}
+
+// === SYSTEME DE RAPPELS ===
+async function checkReminders() {
+    const now = new Date();
+    const tasksWithReminders = taches.filter(task => 
+        task.reminder_datetime && 
+        !task.reminder_sent && 
+        !task.completed &&
+        new Date(task.reminder_datetime) <= now
+    );
+    
+    for (const task of tasksWithReminders) {
+        try {
+            // Afficher notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('🔔 Rappel de tâche', {
+                    body: `Tâche: ${task.titre}\nProjet: ${project.name}`,
+                    icon: './favicon.ico'
+                });
+            } else if ('Notification' in window && Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
+            
+            // Marquer comme envoyé
+            await db.from('atlas_taches').update({ reminder_sent: true }).eq('id', task.id);
+            
+            // Mettre à jour localement
+            const taskIndex = taches.findIndex(t => t.id === task.id);
+            if (taskIndex !== -1) {
+                taches[taskIndex].reminder_sent = true;
+            }
+            
+        } catch (error) {
+            console.error('Erreur rappel:', error);
+        }
+    }
+}
+
+// Demander permission pour les notifications
+if ('Notification' in window) {
+    if (Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
 }
 
 loadProject();
