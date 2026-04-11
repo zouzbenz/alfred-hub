@@ -164,7 +164,7 @@
         <div class="login-box">
             <h1>🔧 Atlas Pose</h1>
             <p>Backoffice - Gestion des chantiers</p>
-            <select id="user-select" style="width:100%;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:#fff;font-size:1rem;margin-bottom:12px;">
+            <select id="user-select">
                 <option value="">-- Sélectionnez votre nom --</option>
                 <option value="Badr">Badr</option>
                 <option value="Oussama">Oussama</option>
@@ -180,6 +180,8 @@
         <div class="container">
             <div class="top-bar">
                 <a href="./atlas-projects.html" class="back-link">← Retour aux projets</a>
+                <a href="./atlas-tasks.html" class="back-link">📋 Tâches</a>
+                <a href="./atlas-suppliers.html" class="back-link">🏢 Fournisseurs</a>
                 <a href="./" class="back-link">🏠 Alfred Hub</a>
             </div>
             
@@ -188,8 +190,6 @@
                 <span id="current-user-display" style="background:var(--card);padding:6px 12px;border-radius:15px;font-size:.8rem;color:var(--accent);border:1px solid var(--border);">👤</span>
                 <div class="header-actions">
                     <button class="btn btn-outline btn-small" onclick="exportExcel()">📥 Export</button>
-                    <button class="btn btn-primary btn-small" onclick="openTab('projects')">📋 Projets</button>
-                    <button class="btn btn-primary btn-small" onclick="openTab('suppliers')">🏢 Fournisseurs</button>
                 </div>
             </div>
             
@@ -373,7 +373,7 @@
         </div>
     </div>
     
-    <!-- Modal Dépenses (existante - inchangée) -->
+    <!-- Modal Dépenses -->
     <div class="modal" id="depenses-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -423,8 +423,8 @@
                     </div>
                     <div class="form-group"><label>Notes</label><input type="text" id="d-notes"></div>
                     <div style="display:flex;gap:8px;margin-top:12px;">
-                        <button class="btn btn-primary btn-small" onclick="saveDepense()">Enregistrer</button>
-                        <button class="btn btn-outline btn-small" onclick="closeAddDepenseForm()">Annuler</button>
+                        <button type="button" class="btn btn-primary btn-small" onclick="saveDepense()">Enregistrer</button>
+                        <button type="button" class="btn btn-outline btn-small" onclick="closeAddDepenseForm()">Annuler</button>
                     </div>
                 </div>
                 
@@ -433,13 +433,13 @@
         </div>
     </div>
     
-    <!-- Photo Modal (existante - inchangée) -->
+    <!-- Photo Modal -->
     <div class="photo-modal" id="photo-modal" onclick="closePhotoModal()">
         <button class="photo-modal-close" onclick="closePhotoModal()">×</button>
         <img id="photo-modal-img" src="" alt="Photo">
     </div>
     
-    <!-- Gallery Modal (existante - inchangée) -->
+    <!-- Gallery Modal -->
     <div class="modal" id="gallery-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -456,9 +456,12 @@
     <div class="toast" id="toast"></div>
     
     <script>
+// ==================== CONFIGURATION ====================
 const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const STORAGE_BUCKET = 'atlas-factures';
 const PASSWORD = 'atlas2026';
+
 let currentUser = '';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -489,7 +492,7 @@ const CATEGORIES_SERVICES = [
 
 let projects = [], budgets = [], depenses = [], suppliers = [], operations = [], currentProjectId = null;
 
-// Utiliser le même système d'authentification que les autres pages
+// ==================== AUTHENTIFICATION ====================
 if (sessionStorage.getItem('atlas-auth') === 'true') {
     currentUser = sessionStorage.getItem('atlas-user') || '';
     showBackoffice();
@@ -521,6 +524,7 @@ async function showBackoffice() {
     await loadData();
 }
 
+// ==================== UTILITAIRES ====================
 function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -540,40 +544,46 @@ function formatDateTime(d) {
     return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' + date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
-async function loadData() {
-    const [pRes, bRes, dRes, sRes, oRes] = await Promise.all([
-        db.from('atlas_projects').select('*').order('created_at', { ascending: false }),
-        db.from('atlas_budget').select('*'),
-        db.from('atlas_depenses').select('*').order('created_at', { ascending: false }),
-        db.from('atlas_fournisseurs').select('*').order('nom', { ascending: true }),
-        db.from('atlas_operations').select('*')
-    ]);
-    projects = pRes.data || [];
-    budgets = bRes.data || [];
-    depenses = dRes.data || [];
-    suppliers = sRes.data || [];
-    operations = oRes.data || [];
-    renderProjects();
-    renderSuppliers();
-    renderStats();
+function getCategoryLabel(catId) {
+    const cat = CATEGORIES.find(c => c.id === catId);
+    return cat ? cat.label : catId;
 }
 
-// === TABS MANAGEMENT ===
+// ==================== CHARGEMENT DONNÉES ====================
+async function loadData() {
+    try {
+        const [pRes, bRes, dRes, sRes, oRes] = await Promise.all([
+            db.from('atlas_projects').select('*').order('created_at', { ascending: false }),
+            db.from('atlas_budget').select('*'),
+            db.from('atlas_depenses').select('*').order('created_at', { ascending: false }),
+            db.from('atlas_fournisseurs').select('*').order('nom', { ascending: true }),
+            db.from('atlas_operations').select('*')
+        ]);
+        projects = pRes.data || [];
+        budgets = bRes.data || [];
+        depenses = dRes.data || [];
+        suppliers = sRes.data || [];
+        operations = oRes.data || [];
+        renderProjects();
+        renderSuppliers();
+        renderStats();
+    } catch (err) {
+        console.error('Erreur chargement:', err);
+        showToast('Erreur de chargement');
+    }
+}
+
+// ==================== TABS ====================
 function switchTab(tabName) {
-    // Masquer tous les tabs
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-    
-    // Afficher le tab sélectionné
     document.getElementById(tabName + '-tab').classList.add('active');
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
 }
 
-function openTab(tabName) {
-    switchTab(tabName);
-}
+function openTab(tabName) { switchTab(tabName); }
 
-// === STATS ===
+// ==================== STATS ====================
 function renderStats() {
     const activeProjects = projects.filter(p => p.status === 'en_cours').length;
     const totalBudget = projects.reduce((s, p) => s + getBudgetTotal(p.id), 0);
@@ -585,7 +595,7 @@ function renderStats() {
     document.getElementById('stat-reste').textContent = formatMoney(totalBudget - totalDepenses);
 }
 
-// === PROJECTS ===
+// ==================== PROJETS ====================
 function getBudgetTotal(projectId) {
     return budgets.filter(b => b.project_id === projectId).reduce((s, b) => s + (parseFloat(b.budget_prevu) || 0), 0);
 }
@@ -629,195 +639,6 @@ function renderProjects() {
     }).join('');
 }
 
-// === SUPPLIERS ===
-function getSupplierTotalDepense(supplierId) {
-    return operations
-        .filter(op => op.fournisseur_id === supplierId)
-        .reduce((sum, op) => sum + (parseFloat(op.montant) || 0), 0);
-}
-
-function getSupplierNbOperations(supplierId) {
-    return operations.filter(op => op.fournisseur_id === supplierId).length;
-}
-
-function renderSuppliers() {
-    const tbody = document.getElementById('suppliers-tbody');
-    if (!suppliers.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--dim);padding:30px;">Aucun fournisseur</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = suppliers.map(s => {
-        const totalDepense = getSupplierTotalDepense(s.id);
-        const nbOperations = getSupplierNbOperations(s.id);
-        const categoriesToShow = s.type === 'vendeur' ? 
-            (s.categories_produits || []) : 
-            (s.categories_services || []);
-        
-        return `<tr>
-            <td class="supplier-name">${s.nom}</td>
-            <td><span class="status-badge type-${s.type}">${s.type === 'vendeur' ? '🛒 Vendeur' : '🛠️ Prestataire'}</span></td>
-            <td>${s.localisation || '-'}</td>
-            <td>
-                <div style="display:flex;flex-wrap:wrap;gap:4px;">
-                    ${categoriesToShow.slice(0, 3).map(cat => `<span style="font-size:0.7rem;background:rgba(139,92,246,.15);color:var(--purple);padding:2px 6px;border-radius:8px;">${cat}</span>`).join('')}
-                    ${categoriesToShow.length > 3 ? `<span style="font-size:0.7rem;color:var(--dim);">+${categoriesToShow.length - 3}</span>` : ''}
-                </div>
-            </td>
-            <td>${formatMoney(totalDepense)} MAD</td>
-            <td>${nbOperations}</td>
-            <td class="actions-cell">
-                <a href="./atlas-supplier.html?id=${s.id}" class="btn btn-small btn-outline btn-icon" title="Voir">👁️</a>
-                <button class="btn btn-small btn-outline btn-icon" onclick="editSupplier(${s.id})">✏️</button>
-                <button class="btn btn-small btn-danger btn-icon" onclick="deleteSupplier(${s.id}, '${s.nom.replace(/'/g, "\\'")}')">×</button>
-            </td>
-        </tr>`;
-    }).join('');
-}
-
-function updateSupplierForm() {
-    const type = document.getElementById('s-type').value;
-    const container = document.getElementById('s-categories-container');
-    const categories = type === 'vendeur' ? CATEGORIES_PRODUITS : CATEGORIES_SERVICES;
-    
-    container.innerHTML = '';
-    categories.forEach(cat => {
-        const div = document.createElement('label');
-        div.className = 'checkbox-item';
-        div.innerHTML = `
-            <input type="checkbox" name="s-categories" value="${cat}"> ${cat}
-        `;
-        container.appendChild(div);
-    });
-}
-
-function openSupplierModal(supplier = null) {
-    document.getElementById('supplier-modal-title').textContent = supplier ? 'Modifier Fournisseur' : 'Nouveau Fournisseur';
-    document.getElementById('supplier-form').reset();
-    document.getElementById('supplier-id').value = supplier?.id || '';
-    
-    if (supplier) {
-        document.getElementById('s-name').value = supplier.nom || '';
-        document.getElementById('s-type').value = supplier.type || 'vendeur';
-        document.getElementById('s-localisation').value = supplier.localisation || '';
-        document.getElementById('s-phone').value = supplier.telephone || '';
-        document.getElementById('s-email').value = supplier.email || '';
-        document.getElementById('s-notes').value = supplier.notes || '';
-        document.getElementById('s-actif').checked = supplier.actif !== false;
-        
-        // Pré-remplir les catégories
-        updateSupplierForm();
-        const categories = supplier.type === 'vendeur' ? 
-            (supplier.categories_produits || []) : 
-            (supplier.categories_services || []);
-        const categoryInputs = document.querySelectorAll('input[name="s-categories"]');
-        categoryInputs.forEach(input => {
-            input.checked = categories.includes(input.value);
-        });
-        document.getElementById('s-categories-libres').value = supplier.specialites_libres || '';
-    } else {
-        document.getElementById('s-type').value = 'vendeur';
-        updateSupplierForm();
-        document.getElementById('s-actif').checked = true;
-    }
-    
-    document.getElementById('supplier-modal').classList.add('visible');
-}
-
-function closeSupplierModal() {
-    document.getElementById('supplier-modal').classList.remove('visible');
-}
-
-async function editSupplier(id) {
-    const supplier = suppliers.find(s => s.id === id);
-    if (supplier) openSupplierModal(supplier);
-}
-
-async function saveSupplier(e) {
-    e.preventDefault();
-    const btn = document.getElementById('save-supplier-btn');
-    btn.disabled = true; btn.textContent = '...';
-    
-    const id = document.getElementById('supplier-id').value;
-    const type = document.getElementById('s-type').value;
-    
-    // Récupérer les catégories cochées
-    const categoryInputs = document.querySelectorAll('input[name="s-categories"]:checked');
-    const categories = Array.from(categoryInputs).map(input => input.value);
-    
-    const supplierData = {
-        nom: document.getElementById('s-name').value,
-        type: type,
-        localisation: document.getElementById('s-localisation').value || null,
-        telephone: document.getElementById('s-phone').value || null,
-        email: document.getElementById('s-email').value || null,
-        notes: document.getElementById('s-notes').value || null,
-        actif: document.getElementById('s-actif').checked,
-        specialites_libres: document.getElementById('s-categories-libres').value || null
-    };
-    
-    // Stocker les catégories selon le type
-    if (type === 'vendeur') {
-        supplierData.categories_produits = categories;
-        supplierData.categories_services = [];
-    } else {
-        supplierData.categories_services = categories;
-        supplierData.categories_produits = [];
-    }
-    
-    try {
-        let supplierId;
-        if (id) {
-            // Modification
-            await db.from('atlas_fournisseurs').update(supplierData).eq('id', id);
-            supplierId = parseInt(id);
-            // Mettre à jour dans le tableau local
-            const index = suppliers.findIndex(s => s.id === supplierId);
-            if (index !== -1) {
-                suppliers[index] = { ...suppliers[index], ...supplierData };
-            }
-        } else {
-            // Création
-            const { data } = await db.from('atlas_fournisseurs').insert([supplierData]).select();
-            if (data && data[0]) {
-                suppliers.push(data[0]);
-                supplierId = data[0].id;
-            }
-        }
-        
-        showToast('Fournisseur enregistré !');
-        closeSupplierModal();
-        renderSuppliers();
-        // Mettre à jour les selects dans les formulaires
-        updateFournisseurSelects();
-    } catch (err) {
-        alert('Erreur: ' + err.message);
-    }
-    
-    btn.disabled = false; btn.textContent = 'Enregistrer';
-}
-
-async function deleteSupplier(id, name) {
-    if (!confirm(`Supprimer "${name}" ?\nToutes les opérations associées seront également supprimées.`)) return;
-    
-    try {
-        // Supprimer d'abord les opérations associées
-        await db.from('atlas_operations').delete().eq('fournisseur_id', id);
-        // Puis le fournisseur
-        await db.from('atlas_fournisseurs').delete().eq('id', id);
-        
-        // Mettre à jour le tableau local
-        suppliers = suppliers.filter(s => s.id !== id);
-        
-        showToast('Fournisseur supprimé');
-        renderSuppliers();
-        updateFournisseurSelects();
-    } catch (err) {
-        alert('Erreur: ' + err.message);
-    }
-}
-
-// === PROJECT MODALS (inchangées) ===
 function generatePassword() {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     let pwd = '';
@@ -929,5 +750,379 @@ async function saveProject(e) {
 }
 
 async function deleteProject(id, name) {
-    if (!confirm(`Supprimer "${name}" ?`)) return;
-    await db.from('atlas_depenses').delete().eq('project_id', id);
+    if (!confirm(`Supprimer "${name}" ?\nToutes les dépenses et budgets associés seront supprimés.`)) return;
+    
+    try {
+        await db.from('atlas_depenses').delete().eq('project_id', id);
+        await db.from('atlas_budget').delete().eq('project_id', id);
+        await db.from('atlas_taches').delete().eq('project_id', id);
+        await db.from('atlas_projects').delete().eq('id', id);
+        showToast('Projet supprimé');
+        await loadData();
+    } catch (err) {
+        alert('Erreur: ' + err.message);
+    }
+}
+
+// ==================== FOURNISSEURS ====================
+function getSupplierTotalDepense(supplierId) {
+    return operations
+        .filter(op => op.fournisseur_id === supplierId)
+        .reduce((sum, op) => sum + (parseFloat(op.montant) || 0), 0);
+}
+
+function getSupplierNbOperations(supplierId) {
+    return operations.filter(op => op.fournisseur_id === supplierId).length;
+}
+
+function renderSuppliers() {
+    const tbody = document.getElementById('suppliers-tbody');
+    if (!suppliers.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--dim);padding:30px;">Aucun fournisseur</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = suppliers.map(s => {
+        const totalDepense = getSupplierTotalDepense(s.id);
+        const nbOperations = getSupplierNbOperations(s.id);
+        const categoriesToShow = s.type === 'vendeur' ? 
+            (s.categories_produits || []) : 
+            (s.categories_services || []);
+        
+        return `<tr>
+            <td class="supplier-name">${s.nom}</td>
+            <td><span class="status-badge type-${s.type}">${s.type === 'vendeur' ? '🛒 Vendeur' : '🛠️ Prestataire'}</span></td>
+            <td>${s.localisation || '-'}</td>
+            <td>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                    ${categoriesToShow.slice(0, 3).map(cat => `<span style="font-size:0.7rem;background:rgba(139,92,246,.15);color:var(--purple);padding:2px 6px;border-radius:8px;">${cat}</span>`).join('')}
+                    ${categoriesToShow.length > 3 ? `<span style="font-size:0.7rem;color:var(--dim);">+${categoriesToShow.length - 3}</span>` : ''}
+                </div>
+            </td>
+            <td>${formatMoney(totalDepense)} MAD</td>
+            <td>${nbOperations}</td>
+            <td class="actions-cell">
+                <a href="./atlas-supplier.html?id=${s.id}" class="btn btn-small btn-outline btn-icon" title="Voir">👁️</a>
+                <button class="btn btn-small btn-outline btn-icon" onclick="editSupplier(${s.id})">✏️</button>
+                <button class="btn btn-small btn-danger btn-icon" onclick="deleteSupplier(${s.id}, '${s.nom.replace(/'/g, "\\'")}')">×</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function updateSupplierForm() {
+    const type = document.getElementById('s-type').value;
+    const container = document.getElementById('s-categories-container');
+    const categories = type === 'vendeur' ? CATEGORIES_PRODUITS : CATEGORIES_SERVICES;
+    
+    container.innerHTML = '';
+    categories.forEach(cat => {
+        const div = document.createElement('label');
+        div.className = 'checkbox-item';
+        div.innerHTML = `<input type="checkbox" name="s-categories" value="${cat}"> ${cat}`;
+        container.appendChild(div);
+    });
+}
+
+function openSupplierModal(supplier = null) {
+    document.getElementById('supplier-modal-title').textContent = supplier ? 'Modifier Fournisseur' : 'Nouveau Fournisseur';
+    document.getElementById('supplier-form').reset();
+    document.getElementById('supplier-id').value = supplier?.id || '';
+    
+    if (supplier) {
+        document.getElementById('s-name').value = supplier.nom || '';
+        document.getElementById('s-type').value = supplier.type || 'vendeur';
+        document.getElementById('s-localisation').value = supplier.localisation || '';
+        document.getElementById('s-phone').value = supplier.telephone || '';
+        document.getElementById('s-email').value = supplier.email || '';
+        document.getElementById('s-notes').value = supplier.notes || '';
+        document.getElementById('s-actif').checked = supplier.actif !== false;
+        
+        updateSupplierForm();
+        const categories = supplier.type === 'vendeur' ? 
+            (supplier.categories_produits || []) : 
+            (supplier.categories_services || []);
+        const categoryInputs = document.querySelectorAll('input[name="s-categories"]');
+        categoryInputs.forEach(input => {
+            input.checked = categories.includes(input.value);
+        });
+        document.getElementById('s-categories-libres').value = supplier.specialites_libres || '';
+    } else {
+        document.getElementById('s-type').value = 'vendeur';
+        updateSupplierForm();
+        document.getElementById('s-actif').checked = true;
+    }
+    
+    document.getElementById('supplier-modal').classList.add('visible');
+}
+
+function closeSupplierModal() { document.getElementById('supplier-modal').classList.remove('visible'); }
+
+async function editSupplier(id) {
+    const supplier = suppliers.find(s => s.id === id);
+    if (supplier) openSupplierModal(supplier);
+}
+
+async function saveSupplier(e) {
+    e.preventDefault();
+    const btn = document.getElementById('save-supplier-btn');
+    btn.disabled = true; btn.textContent = '...';
+    
+    const id = document.getElementById('supplier-id').value;
+    const type = document.getElementById('s-type').value;
+    
+    const categoryInputs = document.querySelectorAll('input[name="s-categories"]:checked');
+    const categories = Array.from(categoryInputs).map(input => input.value);
+    
+    const supplierData = {
+        nom: document.getElementById('s-name').value,
+        type: type,
+        localisation: document.getElementById('s-localisation').value || null,
+        telephone: document.getElementById('s-phone').value || null,
+        email: document.getElementById('s-email').value || null,
+        notes: document.getElementById('s-notes').value || null,
+        actif: document.getElementById('s-actif').checked,
+        specialites_libres: document.getElementById('s-categories-libres').value || null
+    };
+    
+    if (type === 'vendeur') {
+        supplierData.categories_produits = categories;
+        supplierData.categories_services = [];
+    } else {
+        supplierData.categories_services = categories;
+        supplierData.categories_produits = [];
+    }
+    
+    try {
+        if (id) {
+            await db.from('atlas_fournisseurs').update(supplierData).eq('id', id);
+        } else {
+            await db.from('atlas_fournisseurs').insert([supplierData]);
+        }
+        
+        showToast('Fournisseur enregistré !');
+        closeSupplierModal();
+        await loadData();
+    } catch (err) {
+        alert('Erreur: ' + err.message);
+    }
+    
+    btn.disabled = false; btn.textContent = 'Enregistrer';
+}
+
+async function deleteSupplier(id, name) {
+    if (!confirm(`Supprimer "${name}" ?\nToutes les opérations associées seront supprimées.`)) return;
+    
+    try {
+        await db.from('atlas_operations').delete().eq('fournisseur_id', id);
+        await db.from('atlas_fournisseurs').delete().eq('id', id);
+        showToast('Fournisseur supprimé');
+        await loadData();
+    } catch (err) {
+        alert('Erreur: ' + err.message);
+    }
+}
+
+// ==================== DÉPENSES ====================
+function updateFournisseurSelects() {
+    const select = document.getElementById('d-fournisseur');
+    if (select) {
+        select.innerHTML = '<option value="">-- Sélectionner un fournisseur --</option>';
+        suppliers.forEach(supplier => {
+            const option = document.createElement('option');
+            option.value = supplier.id;
+            option.textContent = `${supplier.nom} (${supplier.type === 'vendeur' ? '🛒' : '🛠️'})`;
+            select.appendChild(option);
+        });
+    }
+}
+
+async function openDepensesModal(projectId, projectName) {
+    currentProjectId = projectId;
+    document.getElementById('depenses-project-name').textContent = projectName;
+    document.getElementById('view-project-link').href = `./atlas-project.html?id=${projectId}`;
+    document.getElementById('add-depense-form').style.display = 'none';
+    document.getElementById('d-date').value = new Date().toISOString().split('T')[0];
+    
+    updateFournisseurSelects();
+    await renderDepenses();
+    document.getElementById('depenses-modal').classList.add('visible');
+}
+
+function closeDepensesModal() { 
+    document.getElementById('depenses-modal').classList.remove('visible'); 
+    currentProjectId = null; 
+}
+
+function openAddDepenseForm() {
+    document.getElementById('add-depense-form').style.display = 'block';
+    ['d-designation','d-pu','d-montant','d-notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('d-quantite').value = '1';
+    document.getElementById('d-fournisseur').value = '';
+}
+
+function closeAddDepenseForm() { document.getElementById('add-depense-form').style.display = 'none'; }
+
+async function saveDepense() {
+    const designation = document.getElementById('d-designation').value;
+    const montant = parseFloat(document.getElementById('d-montant').value) || 0;
+    
+    if (!designation || !montant) { 
+        alert('Désignation et montant requis'); 
+        return; 
+    }
+    
+    const data = {
+        project_id: currentProjectId,
+        categorie: document.getElementById('d-categorie').value,
+        designation: designation,
+        date_depense: document.getElementById('d-date').value,
+        quantite: parseFloat(document.getElementById('d-quantite').value) || 1,
+        prix_unitaire: parseFloat(document.getElementById('d-pu').value) || 0,
+        montant: montant,
+        fournisseur: document.getElementById('d-fournisseur').value || null,
+        notes: document.getElementById('d-notes').value || null,
+        source: 'manuel',
+        sender_name: currentUser,
+        entry_method: 'backoffice',
+        message_format: 'manuel'
+    };
+    
+    try {
+        const { data: newDepense } = await db.from('atlas_depenses').insert([data]).select();
+        if (newDepense && newDepense[0]) {
+            depenses.unshift(newDepense[0]);
+        }
+        showToast('Dépense ajoutée !');
+        closeAddDepenseForm();
+        await renderDepenses();
+        renderStats();
+        renderProjects();
+    } catch (err) { 
+        alert('Erreur: ' + err.message); 
+    }
+}
+
+async function renderDepenses() {
+    const projectDepenses = depenses.filter(d => d.project_id === currentProjectId);
+    const list = document.getElementById('depenses-list');
+    
+    if (!projectDepenses.length) {
+        list.innerHTML = '<div style="text-align:center;color:var(--dim);padding:30px;">Aucune dépense</div>';
+        return;
+    }
+    
+    list.innerHTML = projectDepenses.map(d => {
+        const sourceTag = d.entry_method === 'whatsapp' ? 'whatsapp' : 
+                          d.entry_method === 'backoffice' ? 'backoffice' : '';
+        const formatTag = d.message_format === 'vocal' ? 'vocal' : 
+                          d.message_format === 'image' ? 'image' : '';
+        
+        return `<div class="depense-card">
+            <div class="depense-header">
+                <div class="depense-info">
+                    <h4>${d.designation || 'Sans désignation'}</h4>
+                    <div class="depense-meta">
+                        <span class="depense-tag">${getCategoryLabel(d.categorie)}</span>
+                        ${sourceTag ? `<span class="depense-tag ${sourceTag}">${sourceTag}</span>` : ''}
+                        ${formatTag ? `<span class="depense-tag ${formatTag}">${formatTag}</span>` : ''}
+                        <span>📅 ${formatDateTime(d.created_at)}</span>
+                        ${d.sender_name ? `<span>👤 ${d.sender_name}</span>` : ''}
+                    </div>
+                </div>
+                <div class="depense-amount">${formatMoney(d.montant)} MAD</div>
+            </div>
+            ${d.notes ? `<div style="font-size:.8rem;color:var(--dim);margin-top:8px;">📝 ${d.notes}</div>` : ''}
+            <div class="depense-actions">
+                ${d.photo_path ? `<button class="btn btn-small btn-outline" onclick="viewPhoto('${d.photo_path}')">🖼️</button>` : ''}
+                <button class="btn btn-small btn-danger" onclick="deleteDepense(${d.id})">×</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function deleteDepense(id) {
+    if (!confirm('Supprimer cette dépense ?')) return;
+    
+    try {
+        await db.from('atlas_depenses').delete().eq('id', id);
+        depenses = depenses.filter(d => d.id !== id);
+        showToast('Dépense supprimée');
+        await renderDepenses();
+        renderStats();
+        renderProjects();
+    } catch (err) {
+        alert('Erreur: ' + err.message);
+    }
+}
+
+// ==================== PHOTOS / GALLERY ====================
+function viewPhoto(path) {
+    document.getElementById('photo-modal-img').src = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+    document.getElementById('photo-modal').classList.add('visible');
+}
+
+function closePhotoModal() { document.getElementById('photo-modal').classList.remove('visible'); }
+
+function openGalleryModal() {
+    const projectDepenses = depenses.filter(d => d.project_id === currentProjectId && d.photo_path);
+    const grid = document.getElementById('gallery-grid');
+    const empty = document.getElementById('gallery-empty');
+    
+    if (!projectDepenses.length) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+    } else {
+        empty.style.display = 'none';
+        grid.innerHTML = projectDepenses.map(d => `
+            <div class="gallery-item" onclick="viewPhoto('${d.photo_path}')">
+                <img src="${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${d.photo_path}" loading="lazy">
+                <div class="gallery-item-info">${d.designation || 'Photo'}</div>
+            </div>
+        `).join('');
+    }
+    
+    document.getElementById('gallery-modal').classList.add('visible');
+}
+
+function closeGalleryModal() { document.getElementById('gallery-modal').classList.remove('visible'); }
+
+// ==================== EXPORT EXCEL ====================
+function exportExcel() {
+    const data = projects.map(p => ({
+        'Projet': p.name,
+        'Client': p.client_name || '',
+        'Status': p.status,
+        'Localisation': p.localisation || '',
+        'Surface (m²)': p.surface_m2 || 0,
+        'Budget': getBudgetTotal(p.id),
+        'Dépensé': getDepensesTotal(p.id),
+        'Reste': getBudgetTotal(p.id) - getDepensesTotal(p.id)
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Projets');
+    
+    // Ajouter feuille dépenses
+    const depensesData = depenses.map(d => {
+        const project = projects.find(p => p.id === d.project_id);
+        return {
+            'Projet': project?.name || '',
+            'Catégorie': getCategoryLabel(d.categorie),
+            'Désignation': d.designation || '',
+            'Montant': d.montant,
+            'Date': d.date_depense || '',
+            'Source': d.entry_method || '',
+            'Par': d.sender_name || ''
+        };
+    });
+    const ws2 = XLSX.utils.json_to_sheet(depensesData);
+    XLSX.utils.book_append_sheet(wb, ws2, 'Dépenses');
+    
+    XLSX.writeFile(wb, `Atlas_Pose_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showToast('Export téléchargé !');
+}
+    </script>
+</body>
+</html>
