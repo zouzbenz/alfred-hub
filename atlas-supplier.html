@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fournisseur - Atlas Pose</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root { 
+            --bg:#0a0f1a; 
+            --card:#111827; 
+            --accent:#3b82f6; 
+            --accent2:#10b981; 
+            --text:#f3f4f6; 
+            --dim:#9ca3af; 
+            --border:#1f2937; 
+            --danger:#ef4444; 
+            --warn:#f59e0b; 
+            --purple:#8b5cf6;
+            --info:#0ea5e9;
+        }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+        .container { max-width:1200px; margin:0 auto; padding:15px; }
+        
+        .login-screen { display:flex; justify-content:center; align-items:center; min-height:100vh; padding:20px; }
+        .login-box { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:30px; width:100%; max-width:400px; text-align:center; }
+        .login-box h2 { margin-bottom:8px; }
+        .login-box p { color:var(--dim); margin-bottom:20px; font-size:.85rem; }
+        .login-box input { width:100%; padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; margin-bottom:12px; text-align:center; }
+        .login-box button { width:100%; padding:14px; background:var(--accent); border:none; border-radius:10px; color:#fff; font-weight:600; cursor:pointer; }
+        .login-error { color:var(--danger); margin-top:12px; font-size:.85rem; }
+        
+        .content { display:none; }
+        .content.visible { display:block; }
+        
+        .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px; padding:12px; background:var(--card); border-radius:12px; border:1px solid var(--border); }
+        .back-link { display:inline-flex; align-items:center; gap:6px; color:var(--accent); text-decoration:none; font-size:.85rem; padding:8px 12px; background:rgba(59,130,246,.1); border-radius:8px; }
+        
+        .supplier-header { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:15px; }
+        .supplier-title { font-size:1.5rem; font-weight:800; margin-bottom:8px; display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+        .supplier-type { padding:5px 12px; border-radius:20px; font-size:.75rem; font-weight:600; }
+        .type-vendeur { background:rgba(16,185,129,.2); color:var(--accent2); }
+        .type-prestataire { background:rgba(59,130,246,.2); color:var(--accent); }
+        .supplier-meta { display:flex; gap:15px; flex-wrap:wrap; color:var(--dim); font-size:.85rem; }
+        
+        .stats-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:15px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; text-align:center; }
+        .stat-value { font-size:1.3rem; font-weight:800; }
+        .stat-value.blue { color:var(--accent); }
+        .stat-value.green { color:var(--accent2); }
+        .stat-value.orange { color:var(--warn); }
+        .stat-value.red { color:var(--danger); }
+        .stat-label { font-size:.7rem; color:var(--dim); margin-top:4px; }
+        
+        .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:15px; margin-bottom:15px; }
+        .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px; }
+        .section-title { font-size:1rem; font-weight:700; }
+        
+        .btn { padding:8px 14px; border:none; border-radius:8px; font-weight:600; cursor:pointer; font-size:.8rem; display:inline-flex; align-items:center; gap:5px; }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+        .btn-small { padding:6px 10px; font-size:.75rem; }
+        .btn-primary { background:var(--accent); color:#fff; }
+        .btn-success { background:var(--accent2); color:#fff; }
+        .btn-danger { background:var(--danger); color:#fff; }
+        
+        .categories-list { display:flex; flex-wrap:wrap; gap:8px; margin:15px 0; }
+        .category-tag { padding:6px 12px; background:rgba(139,92,246,.15); color:var(--purple); border-radius:20px; font-size:.8rem; }
+        
+        .operations-grid { display:grid; grid-template-columns:1fr; gap:12px; }
+        .operation-card { background:var(--bg); border-radius:10px; padding:15px; border:1px solid var(--border); }
+        .operation-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px; }
+        .operation-title { font-weight:600; font-size:1rem; }
+        .operation-amount { font-size:1.2rem; font-weight:700; color:var(--accent2); }
+        .operation-details { display:flex; flex-wrap:wrap; gap:15px; font-size:.8rem; color:var(--dim); }
+        .operation-detail { display:flex; align-items:center; gap:4px; }
+        .operation-meta { display:flex; flex-wrap:wrap; gap:8px; font-size:.75rem; color:var(--dim); margin-top:10px; }
+        .operation-tag { padding:2px 8px; background:rgba(255,255,255,.05); border-radius:10px; }
+        
+        .gallery-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:8px; margin-top:15px; }
+        .gallery-item { aspect-ratio:1; border-radius:8px; overflow:hidden; cursor:pointer; border:2px solid var(--border); }
+        .gallery-item:hover { border-color:var(--accent); }
+        .gallery-item img { width:100%; height:100%; object-fit:cover; }
+        
+        .photo-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.95); z-index:2000; justify-content:center; align-items:center; padding:20px; }
+        .photo-modal.visible { display:flex; }
+        .photo-modal img { max-width:100%; max-height:90vh; object-fit:contain; border-radius:8px; }
+        .photo-modal-close { position:absolute; top:15px; right:15px; background:var(--card); border:none; color:#fff; font-size:1.3rem; padding:10px 15px; border-radius:10px; cursor:pointer; }
+        
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85); z-index:1000; justify-content:center; align-items:flex-start; padding:10px; overflow-y:auto; }
+        .modal.visible { display:flex; }
+        .modal-content { background:var(--card); border:1px solid var(--border); border-radius:16px; width:100%; max-width:600px; margin:20px auto; }
+        .modal-header { padding:15px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--card); z-index:10; border-radius:16px 16px 0 0; }
+        .modal-title { font-size:1.1rem; font-weight:700; }
+        .modal-close { background:none; border:none; color:var(--dim); font-size:1.5rem; cursor:pointer; padding:5px; }
+        .modal-body { padding:20px; }
+        .modal-footer { padding:15px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
+        .form-group { display:flex; flex-direction:column; gap:5px; margin-bottom:15px; }
+        .form-group label { font-size:.8rem; color:var(--dim); }
+        .form-group input, .form-group textarea, .form-group select { padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:#fff; font-size:.9rem; width:100%; }
+        .form-group textarea { resize:vertical; min-height:80px; }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
+        .checkbox-group { display:flex; flex-wrap:wrap; gap:10px; margin:10px 0; }
+        .checkbox-item { display:flex; align-items:center; gap:5px; }
+        
+        .empty-state { text-align:center; padding:30px; color:var(--dim); }
+        .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
+        .footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
+        
+        @media(min-width:768px) { .stats-grid { grid-template-columns:repeat(4, 1fr); } }
+        @media(max-width:480px) { .form-row { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body>
+    <div class="login-screen" id="login-screen">
+        <div class="login-box">
+            <h2>🔐 Accès Administration</h2>
+            <p>Connectez-vous pour continuer</p>
+            <input type="password" id="password-input" placeholder="Mot de passe admin" onkeypress="if(event.key==='Enter')checkAdminPassword()">
+            <button onclick="checkAdminPassword()">Accéder</button>
+            <div class="login-error" id="login-error"></div>
+        </div>
+    </div>
+    
+    <div class="content" id="content">
+        <div class="container">
+            <div class="top-bar">
+                <a href="./atlas-suppliers.html" class="back-link">← Tous les fournisseurs</a>
+                <a href="./atlas-backoffice.html" class="back-link">⚙️ Administration</a>
+                <a href="./" class="back-link">🏠 Alfred Hub</a>
+            </div>
+            
+            <div class="supplier-header" id="supplier-header">
+                <div class="supplier-title">Chargement...</div>
+            </div>
+            
+            <div class="stats-grid" id="stats-grid"></div>
+            
+            <div class="section">
+                <div class="section-header">
+                    <h3 class="section-title">🏷️ Catégories</h3>
+                </div>
+                <div class="categories-list" id="categories-list"></div>
+            </div>
+            
+            <div class="section">
+                <div class="section-header">
+                    <h3 class="section-title">➕ Nouvelle Opération</h3>
+                    <button class="btn btn-primary btn-small" onclick="openOperationModal()">+ Ajouter</button>
+                </div>
+                <div id="new-operation-form" style="display:none; padding:20px; background:var(--bg); border-radius:10px; margin-top:15px;">
+                    <form onsubmit="saveOperation(event)">
+                        <input type="hidden" id="operation-id">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Type d'opération</label>
+                                <select id="operation-type" onchange="updateOperationForm()">
+                                    <option value="achat">Achat</option>
+                                    <option value="service">Service</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Projet (optionnel)</label>
+                                <select id="operation-projet">
+                                    <option value="">-- Sélectionner un projet --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Désignation *</label>
+                            <input type="text" id="operation-designation" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Catégorie</label>
+                                <select id="operation-categorie"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Catégorie libre</label>
+                                <input type="text" id="operation-categorie-libre" placeholder="Pour cas spéciaux">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Quantité</label>
+                                <input type="number" id="operation-quantite" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Prix unitaire (MAD)</label>
+                                <input type="number" id="operation-prix-unitaire" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Montant total (MAD) *</label>
+                            <input type="number" id="operation-montant" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Date commande</label>
+                                <input type="date" id="operation-date-commande">
+                            </div>
+                            <div class="form-group">
+                                <label>Date réalisation</label>
+                                <input type="date" id="operation-date-realisation">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Numéro facture</label>
+                            <input type="text" id="operation-facture">
+                        </div>
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <textarea id="operation-notes"></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline" onclick="closeOperationForm()">Annuler</button>
+                            <button type="submit" class="btn btn-primary" id="save-operation-btn">Enregistrer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-header">
+                    <h3 class="section-title">📋 Historique des opérations</h3>
+                    <button class="btn btn-outline btn-small" onclick="toggleGallery()">🖼️ Photos</button>
+                </div>
+                <div id="gallery-section" style="display:none;">
+                    <div class="gallery-grid" id="gallery-grid"></div>
+                </div>
+                <div class="operations-grid" id="operations-grid">
+                    <div class="empty-state">Chargement des opérations...</div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <a href="./atlas-suppliers.html">Fournisseurs</a>
+                <a href="./atlas-backoffice.html">Administration</a>
+                <a href="./">Alfred Hub</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="photo-modal" id="photo-modal" onclick="closePhotoModal()">
+        <button class="photo-modal-close" onclick="closePhotoModal()">×</button>
+        <img id="photo-modal-img" src="" alt="Photo">
+    </div>
+    
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const STORAGE_BUCKET = 'atlas-factures';
+const ADMIN_PASSWORD = 'atlas2026'; // À remplacer par votre mot de passe admin
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const CATEGORIES_PRODUITS = [
+    'Carrelage', 'Colle', 'Joints', 'Chape', 'Outillage',
+    'Matériaux de construction', 'Produits chimiques',
+    'Équipements de protection', 'Emballages', 'Autres'
+];
+
+const CATEGORIES_SERVICES = [
+    'Transport', 'Nettoyage', 'Mise en place chantier',
+    'Installation technique', 'Maintenance', 'Autres'
+];
+
+const supplierId = new URLSearchParams(location.search).get('id');
+let supplier = null, operations = [], projects = [];
+const currentUser = sessionStorage.getItem('atlas-user') || 'Administrateur';
+
+// Vérification admin
+if (sessionStorage.getItem('atlas-auth') === 'true') {
+    showContent();
+} else {
+    document.getElementById('login-screen').style.display = 'flex';
+}
+
+function checkAdminPassword() {
+    const pwd = document.getElementById('password-input').value;
+    if (pwd === ADMIN_PASSWORD) {
+        sessionStorage.setItem('atlas-auth', 'true');
+        showContent();
+    } else {
+        document.getElementById('login-error').textContent = 'Mot de passe incorrect';
+    }
+}
+
+async function showContent() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('content').classList.add('visible');
+    await loadSupplier();
+}
+
+async function loadSupplier() {
+    if (!supplierId) {
+        document.getElementById('supplier-header').innerHTML = '<h2>❌ Fournisseur non trouvé</h2>';
+        return;
+    }
+    
+    const [supplierRes, operationsRes, projectsRes] = await Promise.all([
+        db.from('atlas_fournisseurs').select('*').eq('id', supplierId).single(),
+        db.from('atlas_operations').select('*').eq('fournisseur_id', supplierId).order('created_at', { ascending: false }),
+        db.from('atlas_projects').select('id, name')
+    ]);
+    
+    if (!supplierRes.data) {
+        document.getElementById('supplier-header').innerHTML = '<h2>❌ Fournisseur non trouvé</h2>';
+        return;
+    }
+    
+    supplier = supplierRes.data;
+    operations = operationsRes.data || [];
+    projects = projectsRes.data || [];
+    
+    populateProjectsSelect();
+    render();
+}
+
+function populateProjectsSelect() {
+    const select = document.getElementById('operation-projet');
+    select.innerHTML = '<option value="">-- Sélectionner un projet --</option>';
+    projects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project.id;
+        option.textContent = project.name;
+        select.appendChild(option);
+    });
+}
+
+function updateOperationForm() {
+    const type = document.getElementById('operation-type').value;
+    const categorieSelect = document.getElementById('operation-categorie');
+    const categories = type === 'achat' ? CATEGORIES_PRODUITS : CATEGORIES_SERVICES;
+    
+    categorieSelect.innerHTML = '<option value="">-- Sélectionner --</option>';
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        categorieSelect.appendChild(option);
+    });
+}
+
+function formatMoney(n) { return new Intl.NumberFormat('fr-MA', { maximumFractionDigits: 2 }).format(n || 0); }
+function formatDateTime(d) {
+    if (!d) return '-';
+    const date = new Date(d);
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
+function render() {
+    document.title = `${supplier.nom} - Atlas Pose`;
+    
+    // Header fournisseur
+    document.getElementById('supplier-header').innerHTML = `
+        <div class="supplier-title">
+            ${supplier.nom}
+            <span class="supplier-type type-${supplier.type}">
+                ${supplier.type === 'vendeur' ? '🛒 Vendeur' : '🛠️ Prestataire'}
+            </span>
+        </div>
+        <div class="supplier-meta">
+            <span>📍 ${supplier.localisation || '-'}</span>
+            <span>📞 ${supplier.telephone || '-'}</span>
+            <span>✉️ ${supplier.email || '-'}</span>
+            ${supplier.actif ? '🟢 Actif' : '🔴 Inactif'}
+        </div>
+        ${supplier.notes ? `<div style="margin-top:15px;color:var(--dim);">${supplier.notes}</div>` : ''}
+    `;
+    
+    // Catégories
+    const categoriesToShow = supplier.type === 'vendeur' ? 
+        (supplier.categories_produits || []) : 
+        (supplier.categories_services || []);
+    
+    const categoriesList = document.getElementById('categories-list');
+    if (categoriesToShow.length > 0 || supplier.specialites_libres) {
+        let html = categoriesToShow.map(cat => `<span class="category-tag">${cat}</span>`).join('');
+        if (supplier.specialites_libres) {
+            html += `<span class="category-tag" style="background:rgba(245,158,11,.15);color:var(--warn)">${supplier.specialites_libres}</span>`;
+        }
+        categoriesList.innerHTML = html;
+    } else {
+        categoriesList.innerHTML = '<div style="color:var(--dim)">Aucune catégorie spécifiée</div>';
+    }
+    
+    // Statistiques
+    const totalOperations = operations.length;
+    const totalDepense = operations.reduce((sum, op) => sum + (parseFloat(op.montant) || 0), 0);
+    const operationsEnCours = operations.filter(op => !op.date_realisation).length;
+    const moyenneParOperation = totalOperations > 0 ? totalDepense / totalOperations : 0;
+    
+    document.getElementById('stats-grid').innerHTML = `
+        <div class="stat-card"><div class="stat-value blue">${totalOperations}</div><div class="stat-label">Opérations</div></div>
+        <div class="stat-value green">${formatMoney(totalDepense)} MAD</div><div class="stat-label">Total dépensé</div></div>
+        <div class="stat-card"><div class="stat-value orange">${operationsEnCours}</div><div class="stat-label">En cours</div></div>
+        <div class="stat-card"><div class="stat-value purple">${formatMoney(moyenneParOperation)} MAD</div><div class="stat-label">Moyenne/op</div></div>
+    `;
+    
+    renderOperations();
+    renderGallery();
+}
+
+function renderOperations() {
+    const container = document.getElementById('operations-grid');
+    
+    if (!operations.length) {
+        container.innerHTML = '<div class="empty-state">Aucune opération enregistrée</div>';
+        return;
+    }
+    
+    container.innerHTML = operations.map(operation => {
+        const projet = projects.find(p => p.id === operation.projet_id);
+        return `
+        <div class="operation-card">
+            <div class="operation-header">
+                <div class="operation-title">${operation.designation}</div>
+                <div class="operation-amount">${formatMoney(operation.montant)} MAD</div>
+            </div>
+            <div class="operation-details">
+                <div class="operation-detail">🏷️ ${operation.categorie || operation.categorie_libre || 'Non catégorisé'}</div>
+                ${operation.quantite ? `<div class="operation-detail">🔢 ${operation.quantite} ${operation.quantite > 1 ? 'unités' : 'unité'}</div>` : ''}
+                ${operation.prix_unitaire ? `<div class="operation-detail">💰 ${formatMoney(operation.prix_unitaire)} MAD/u</div>` : ''}
+            </div>
+            <div class="operation-meta">
+                ${projet ? `<span class="operation-tag">🏗️ ${projet.name}</span>` : ''}
+                ${operation.type_operation === 'achat' ? '🛒 Achat' : '🛠️ Service'}
+                ${operation.date_commande ? `<span>📅 Commande: ${formatDateTime(operation.date_commande)}</span>` : ''}
+                ${operation.date_realisation ? `<span>✅ Réalisé: ${formatDateTime(operation.date_realisation)}</span>` : '<span style="color:var(--warn)">⏳ En attente</span>'}
+                ${operation.numero_facture ? `<span>🧾 ${operation.numero_facture}</span>` : ''}
+            </div>
+            ${operation.notes ? `<div style="margin-top:10px;color:var(--dim);font-size:.8rem;">📝 ${operation.notes}</div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function renderGallery() {
+    const photos = operations.filter(op => op.photo_path);
+    const grid = document.getElementById('gallery-grid');
+    
+    if (photos.length > 0) {
+        grid.innerHTML = photos.map(op => `
+            <div class="gallery-item" onclick="viewPhoto('${op.photo_path}')">
+                <img src="${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${op.photo_path}" loading="lazy">
+            </div>
+        `).join('');
+    } else {
+        grid.innerHTML = '<div style="color:var(--dim);text-align:center;padding:20px;width:100%;">Aucune photo</div>';
+    }
+}
+
+function toggleGallery() {
+    const section = document.getElementById('gallery-section');
+    section.style.display = section.style.display === 'none' ? 'block' : 'none';
+}
+
+function viewPhoto(path) {
+    document.getElementById('photo-modal-img').src = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+    document.getElementById('photo-modal').classList.add('visible');
+}
+
+function closePhotoModal() {
+    document.getElementById('photo-modal').classList.remove('visible');
+}
+
+// === GESTION DES OPÉRATIONS ===
+function openOperationModal() {
+    document.getElementById('new-operation-form').style.display = 'block';
+    updateOperationForm(); // Initialiser les catégories
+    
+    // Remplir la date courante par défaut
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('operation-date-command
