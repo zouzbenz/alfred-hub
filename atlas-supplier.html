@@ -28,8 +28,8 @@
         .login-box { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:30px; width:100%; max-width:400px; text-align:center; }
         .login-box h2 { margin-bottom:8px; }
         .login-box p { color:var(--dim); margin-bottom:20px; font-size:.85rem; }
-        .login-box input { width:100%; padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; margin-bottom:12px; text-align:center; }
-        .login-box button { width:100%; padding:14px; background:var(--accent); border:none; border-radius:10px; color:#fff; font-weight:600; cursor:pointer; }
+        .login-box select, .login-box input { width:100%; padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; margin-bottom:12px; text-align:center; font-size:1rem; }
+        .login-box button { width:100%; padding:14px; background:var(--accent); border:none; border-radius:10px; color:#fff; font-weight:600; cursor:pointer; font-size:1rem; }
         .login-error { color:var(--danger); margin-top:12px; font-size:.85rem; }
         
         .content { display:none; }
@@ -115,10 +115,15 @@
 <body>
     <div class="login-screen" id="login-screen">
         <div class="login-box">
-            <h2>🔐 Accès Administration</h2>
-            <p>Connectez-vous pour continuer</p>
-            <input type="password" id="password-input" placeholder="Mot de passe admin" onkeypress="if(event.key==='Enter')checkAdminPassword()">
-            <button onclick="checkAdminPassword()">Accéder</button>
+            <h2>🔐 Accès Fournisseur</h2>
+            <p>Sélectionnez votre nom</p>
+            <select id="user-select">
+                <option value="">-- Sélectionnez votre nom --</option>
+                <option value="Badr">Badr</option>
+                <option value="Oussama">Oussama</option>
+            </select>
+            <input type="password" id="password-input" placeholder="Mot de passe" onkeypress="if(event.key==='Enter')checkPassword()">
+            <button onclick="checkPassword()">Accéder</button>
             <div class="login-error" id="login-error"></div>
         </div>
     </div>
@@ -251,7 +256,7 @@
 const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
 const STORAGE_BUCKET = 'atlas-factures';
-const ADMIN_PASSWORD = 'atlas2026'; // À remplacer par votre mot de passe admin
+const PASSWORD = 'atlas2026';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const CATEGORIES_PRODUITS = [
@@ -267,28 +272,31 @@ const CATEGORIES_SERVICES = [
 
 const supplierId = new URLSearchParams(location.search).get('id');
 let supplier = null, operations = [], projects = [];
-const currentUser = sessionStorage.getItem('atlas-user') || 'Administrateur';
+let currentUser = '';
 
-// Vérification admin
+// Vérification d'authentification identique au backoffice
 if (sessionStorage.getItem('atlas-auth') === 'true') {
+    currentUser = sessionStorage.getItem('atlas-user') || '';
     showContent();
-} else {
-    document.getElementById('login-screen').style.display = 'flex';
 }
 
-function checkAdminPassword() {
+function checkPassword() {
+    const user = document.getElementById('user-select').value;
     const pwd = document.getElementById('password-input').value;
     
-    // Testez d'abord avec 'atlas2026'
-    if (pwd === 'atlas2026') {
-        sessionStorage.setItem('atlas-auth', 'true');
-        showContent();
+    if (!user) {
+        document.getElementById('login-error').textContent = 'Sélectionnez votre nom';
         return;
     }
     
-
-    document.getElementById('login-error').textContent = 'Mot de passe incorrect';
-    console.log('Mot de passe essayé:', pwd);
+    if (pwd === PASSWORD) {
+        currentUser = user;
+        sessionStorage.setItem('atlas-auth', 'true');
+        sessionStorage.setItem('atlas-user', user);
+        showContent();
+    } else {
+        document.getElementById('login-error').textContent = 'Mot de passe incorrect';
+    }
 }
 
 async function showContent() {
@@ -303,23 +311,28 @@ async function loadSupplier() {
         return;
     }
     
-    const [supplierRes, operationsRes, projectsRes] = await Promise.all([
-        db.from('atlas_fournisseurs').select('*').eq('id', supplierId).single(),
-        db.from('atlas_operations').select('*').eq('fournisseur_id', supplierId).order('created_at', { ascending: false }),
-        db.from('atlas_projects').select('id, name')
-    ]);
-    
-    if (!supplierRes.data) {
-        document.getElementById('supplier-header').innerHTML = '<h2>❌ Fournisseur non trouvé</h2>';
-        return;
+    try {
+        const [supplierRes, operationsRes, projectsRes] = await Promise.all([
+            db.from('atlas_fournisseurs').select('*').eq('id', supplierId).single(),
+            db.from('atlas_operations').select('*').eq('fournisseur_id', supplierId).order('created_at', { ascending: false }),
+            db.from('atlas_projects').select('id, name')
+        ]);
+        
+        if (!supplierRes.data) {
+            document.getElementById('supplier-header').innerHTML = '<h2>❌ Fournisseur non trouvé</h2>';
+            return;
+        }
+        
+        supplier = supplierRes.data;
+        operations = operationsRes.data || [];
+        projects = projectsRes.data || [];
+        
+        populateProjectsSelect();
+        render();
+    } catch (error) {
+        console.error('Erreur chargement:', error);
+        document.getElementById('supplier-header').innerHTML = '<h2>❌ Erreur de chargement</h2>';
     }
-    
-    supplier = supplierRes.data;
-    operations = operationsRes.data || [];
-    projects = projectsRes.data || [];
-    
-    populateProjectsSelect();
-    render();
 }
 
 function populateProjectsSelect() {
@@ -398,7 +411,7 @@ function render() {
     
     document.getElementById('stats-grid').innerHTML = `
         <div class="stat-card"><div class="stat-value blue">${totalOperations}</div><div class="stat-label">Opérations</div></div>
-        <div class="stat-value green">${formatMoney(totalDepense)} MAD</div><div class="stat-label">Total dépensé</div></div>
+        <div class="stat-card"><div class="stat-value green">${formatMoney(totalDepense)} MAD</div><div class="stat-label">Total dépensé</div></div>
         <div class="stat-card"><div class="stat-value orange">${operationsEnCours}</div><div class="stat-label">En cours</div></div>
         <div class="stat-card"><div class="stat-value purple">${formatMoney(moyenneParOperation)} MAD</div><div class="stat-label">Moyenne/op</div></div>
     `;
@@ -434,6 +447,7 @@ function renderOperations() {
                 ${operation.date_commande ? `<span>📅 Commande: ${formatDateTime(operation.date_commande)}</span>` : ''}
                 ${operation.date_realisation ? `<span>✅ Réalisé: ${formatDateTime(operation.date_realisation)}</span>` : '<span style="color:var(--warn)">⏳ En attente</span>'}
                 ${operation.numero_facture ? `<span>🧾 ${operation.numero_facture}</span>` : ''}
+                ${operation.created_by ? `<span>👤 ${operation.created_by}</span>` : ''}
             </div>
             ${operation.notes ? `<div style="margin-top:10px;color:var(--dim);font-size:.8rem;">📝 ${operation.notes}</div>` : ''}
         </div>`;
@@ -472,8 +486,90 @@ function closePhotoModal() {
 // === GESTION DES OPÉRATIONS ===
 function openOperationModal() {
     document.getElementById('new-operation-form').style.display = 'block';
-    updateOperationForm(); // Initialiser les catégories
+    updateOperationForm();
     
-    // Remplir la date courante par défaut
+    // Reset form
+    document.getElementById('operation-id').value = '';
+    document.getElementById('operation-designation').value = '';
+    document.getElementById('operation-quantite').value = '';
+    document.getElementById('operation-prix-unitaire').value = '';
+    document.getElementById('operation-montant').value = '';
+    document.getElementById('operation-date-commande').value = '';
+    document.getElementById('operation-date-realisation').value = '';
+    document.getElementById('operation-facture').value = '';
+    document.getElementById('operation-notes').value = '';
+    document.getElementById('operation-categorie-libre').value = '';
+    
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('operation-date-command
+    document.getElementById('operation-date-commande').value = today;
+}
+
+function closeOperationForm() {
+    document.getElementById('new-operation-form').style.display = 'none';
+}
+
+async function saveOperation(e) {
+    e.preventDefault();
+    const btn = document.getElementById('save-operation-btn');
+    btn.disabled = true;
+    btn.textContent = '...';
+    
+    const operationData = {
+        fournisseur_id: parseInt(supplierId),
+        type_operation: document.getElementById('operation-type').value,
+        designation: document.getElementById('operation-designation').value,
+        categorie: document.getElementById('operation-categorie').value || null,
+        categorie_libre: document.getElementById('operation-categorie-libre').value || null,
+        quantite: parseFloat(document.getElementById('operation-quantite').value) || null,
+        prix_unitaire: parseFloat(document.getElementById('operation-prix-unitaire').value) || null,
+        montant: parseFloat(document.getElementById('operation-montant').value),
+        date_commande: document.getElementById('operation-date-commande').value || null,
+        date_realisation: document.getElementById('operation-date-realisation').value || null,
+        numero_facture: document.getElementById('operation-facture').value || null,
+        notes: document.getElementById('operation-notes').value || null,
+        projet_id: document.getElementById('operation-projet').value ? 
+                   parseInt(document.getElementById('operation-projet').value) : null,
+        created_by: currentUser
+    };
+    
+    try {
+        const { data } = await db.from('atlas_operations').insert([operationData]).select();
+        if (data && data[0]) {
+            operations.unshift(data[0]); // Ajouter au début du tableau
+        }
+        
+        closeOperationForm();
+        render(); // Mettre à jour l'affichage
+        showToast('Opération enregistrée !');
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur lors de l\'enregistrement: ' + error.message);
+    }
+    
+    btn.disabled = false;
+    btn.textContent = 'Enregistrer';
+}
+
+function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.style.position = 'fixed';
+    toast.style.bottom = '20px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.background = 'var(--accent2)';
+    toast.style.color = '#fff';
+    toast.style.padding = '12px 24px';
+    toast.style.borderRadius = '8px';
+    toast.style.fontWeight = '600';
+    toast.style.zIndex = '2000';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 2500);
+}
+    </script>
+</body>
+</html>
