@@ -1074,66 +1074,119 @@ function closeMandatModal(){document.getElementById('modals-container').innerHTM
 // ==================== PDF GENERATION ====================
 const { jsPDF } = window.jspdf;
 
+const PDF_MARGIN_BOTTOM = 75; // Espace réservé pour footer + signatures
+const PDF_PAGE_HEIGHT = 297; // A4 height
+
+function checkNewPage(doc, y, neededSpace = 60) {
+    if (y + neededSpace > PDF_PAGE_HEIGHT - PDF_MARGIN_BOTTOM) {
+        doc.addPage();
+        return 30; // Reset Y position
+    }
+    return y;
+}
+
 function pdfHeader(doc, title) {
     // En-tête jaune
     doc.setFillColor(255, 193, 7);
-    doc.rect(0, 0, 210, 35, 'F');
+    doc.rect(0, 0, 210, 30, 'F');
     
     // Logo texte
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(24);
+    doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text('INSTA IMMO', 20, 18);
+    doc.text('INSTA IMMO', 15, 15);
     
     // Sous-titre
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text('Votre partenaire immobilier à Casablanca', 20, 26);
+    doc.text('Votre partenaire immobilier à Casablanca', 15, 22);
     
     // Titre document
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text(title, 210 - 20, 22, { align: 'right' });
+    doc.text(title, 195, 18, { align: 'right' });
     
     // Reset couleur
     doc.setTextColor(0, 0, 0);
-    return 45; // Y position après header
+    return 40; // Y position après header
 }
 
 function pdfFooter(doc) {
-    const pageHeight = doc.internal.pageSize.height;
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.text('INSTA IMMO - Zouhair Benazzou', 105, pageHeight - 20, { align: 'center' });
-    doc.text('Tél: +212 687 842 466 | Email: contact@instaimmo.ma', 105, pageHeight - 15, { align: 'center' });
-    doc.text('Casablanca, Maroc', 105, pageHeight - 10, { align: 'center' });
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        const pageHeight = doc.internal.pageSize.height;
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text('INSTA IMMO - Zouhair Benazzouz | Tél: +212 687 842 466 | Casablanca, Maroc', 105, pageHeight - 8, { align: 'center' });
+    }
 }
 
 function pdfSection(doc, y, title) {
-    doc.setFillColor(245, 245, 245);
-    doc.rect(15, y - 5, 180, 8, 'F');
-    doc.setFontSize(11);
+    y = checkNewPage(doc, y, 20);
+    doc.setFillColor(255, 193, 7);
+    doc.rect(15, y - 4, 180, 7, 'F');
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
-    doc.text(title, 20, y);
+    doc.text(title, 18, y);
     return y + 10;
 }
 
 function pdfField(doc, y, label, value) {
-    doc.setFontSize(10);
+    y = checkNewPage(doc, y, 10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text(label + ':', 20, y);
+    doc.setTextColor(80, 80, 80);
+    doc.text(label + ':', 18, y);
     doc.setFont('helvetica', 'normal');
-    doc.text(String(value || '-'), 70, y);
-    return y + 7;
+    doc.setTextColor(0, 0, 0);
+    doc.text(String(value || '-'), 65, y);
+    return y + 6;
 }
 
-function pdfParagraph(doc, y, text, maxWidth = 170) {
-    doc.setFontSize(9);
+function pdfParagraph(doc, y, text, maxWidth = 175) {
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(50, 50, 50);
     const lines = doc.splitTextToSize(text, maxWidth);
-    doc.text(lines, 20, y);
-    return y + (lines.length * 5) + 3;
+    
+    // Check if we need new page for all lines
+    const neededHeight = lines.length * 4 + 5;
+    y = checkNewPage(doc, y, neededHeight);
+    
+    doc.text(lines, 18, y);
+    return y + (lines.length * 4) + 3;
+}
+
+function pdfSignatures(doc, y, leftLabel = 'Le Mandant:', rightLabel = 'Le Mandataire:') {
+    // Toujours sur une nouvelle page si pas assez d'espace
+    if (y > 200) {
+        doc.addPage();
+        y = 30;
+    }
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    
+    // Labels
+    doc.text(leftLabel, 25, y);
+    doc.text(rightLabel, 125, y);
+    
+    // Boxes
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(18, y + 3, 75, 35);
+    doc.rect(118, y + 3, 75, 35);
+    
+    // Mention
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Lu et approuvé', 40, y + 43);
+    doc.text('INSTA IMMO', 140, y + 43);
+    
+    return y + 50;
 }
 
 function genererMandatRecherche() {
@@ -1150,24 +1203,25 @@ function genererMandatRecherche() {
     let y = pdfHeader(doc, 'MANDAT DE RECHERCHE');
     
     // Numéro et date
-    doc.setFontSize(10);
-    doc.text(`N° MR-${Date.now().toString().slice(-6)}`, 20, y);
-    doc.text(`Date: ${today}`, 160, y);
-    y += 15;
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`N° MR-${Date.now().toString().slice(-6)}`, 18, y);
+    doc.text(`Date: ${today}`, 170, y);
+    y += 10;
     
     // Section Mandant
     y = pdfSection(doc, y, 'LE MANDANT');
-    y = pdfField(doc, y, 'Nom', `${c.nom} ${c.prenom || ''}`);
+    y = pdfField(doc, y, 'Nom complet', `${c.nom} ${c.prenom || ''}`);
     y = pdfField(doc, y, 'Téléphone', c.telephone);
     y = pdfField(doc, y, 'Email', c.email || '-');
-    y += 5;
+    y += 3;
     
     // Section Mandataire
     y = pdfSection(doc, y, 'LE MANDATAIRE');
     y = pdfField(doc, y, 'Société', 'INSTA IMMO');
-    y = pdfField(doc, y, 'Représentant', 'Zouhair Benazzou');
+    y = pdfField(doc, y, 'Représentant', 'Zouhair Benazzouz');
     y = pdfField(doc, y, 'Téléphone', '+212 687 842 466');
-    y += 5;
+    y += 3;
     
     // Section Recherche
     y = pdfSection(doc, y, 'OBJET DE LA RECHERCHE');
@@ -1178,8 +1232,7 @@ function genererMandatRecherche() {
     y = pdfField(doc, y, 'Types de biens', types);
     y = pdfField(doc, y, 'Zones', zones);
     y = pdfField(doc, y, 'Budget', budget);
-    y = pdfField(doc, y, 'Chambres min', c.chambres_min || '-');
-    y += 5;
+    if (c.chambres_min) y = pdfField(doc, y, 'Chambres min', c.chambres_min);
     
     // Critères
     let criteres = [];
@@ -1187,32 +1240,24 @@ function genererMandatRecherche() {
     if (c.crit_parking) criteres.push('Parking');
     if (c.crit_terrasse) criteres.push('Terrasse');
     if (c.crit_vue_mer) criteres.push('Vue mer');
-    if (criteres.length) {
-        y = pdfField(doc, y, 'Critères', criteres.join(', '));
-    }
-    y += 5;
+    if (criteres.length) y = pdfField(doc, y, 'Critères', criteres.join(', '));
+    y += 3;
     
     // Section Conditions
     y = pdfSection(doc, y, 'CONDITIONS');
     y = pdfField(doc, y, 'Durée du mandat', `${duree} mois`);
     y = pdfField(doc, y, 'Commission', `${commission}% HT du prix de vente`);
-    y += 5;
+    y += 3;
     
     // Clauses
-    y = pdfSection(doc, y, 'CLAUSES');
+    y = pdfSection(doc, y, 'CLAUSES ET CONDITIONS');
     const clauses = `Le mandant confie au mandataire la mission exclusive de rechercher un bien immobilier correspondant aux critères définis ci-dessus. Le mandataire s'engage à présenter au mandant les biens correspondant à ses critères. En cas d'acquisition d'un bien présenté par le mandataire, le mandant s'engage à verser la commission convenue. Ce mandat est valable pour une durée de ${duree} mois à compter de sa signature.`;
     y = pdfParagraph(doc, y, clauses);
-    y += 10;
+    y += 5;
     
     // Signatures
     y = pdfSection(doc, y, 'SIGNATURES');
-    doc.setFontSize(10);
-    doc.text('Le Mandant:', 30, y + 10);
-    doc.text('Le Mandataire:', 130, y + 10);
-    doc.rect(20, y + 15, 70, 30);
-    doc.rect(120, y + 15, 70, 30);
-    doc.text('Lu et approuvé', 35, y + 50);
-    doc.text('INSTA IMMO', 140, y + 50);
+    y = pdfSignatures(doc, y, 'Le Mandant:', 'Le Mandataire:');
     
     pdfFooter(doc);
     
@@ -1258,7 +1303,7 @@ function genererMandatVente() {
     // Section Mandataire
     y = pdfSection(doc, y, 'LE MANDATAIRE');
     y = pdfField(doc, y, 'Société', 'INSTA IMMO');
-    y = pdfField(doc, y, 'Représentant', 'Zouhair Benazzou');
+    y = pdfField(doc, y, 'Représentant', 'Zouhair Benazzouz');
     y = pdfField(doc, y, 'Téléphone', '+212 687 842 466');
     y += 5;
     
@@ -1277,33 +1322,27 @@ function genererMandatVente() {
     y = pdfField(doc, y, 'Prix de vente', `${formatMoney(b.prix)} MAD`);
     y = pdfField(doc, y, 'Commission', `${commission}% HT`);
     y = pdfField(doc, y, 'Montant commission', `${formatMoney(b.prix * commission / 100)} MAD HT`);
-    y += 5;
+    y += 3;
     
     // Section Conditions
     y = pdfSection(doc, y, 'DURÉE ET CONDITIONS');
     y = pdfField(doc, y, 'Type de mandat', exclusif ? 'EXCLUSIF' : 'Simple');
     y = pdfField(doc, y, 'Durée', `${duree} mois`);
-    y += 5;
+    y += 3;
     
     // Clauses
+    y = pdfSection(doc, y, 'CLAUSES');
     const clauseExclusif = exclusif ? 
         `Ce mandat est EXCLUSIF. Pendant toute la durée du mandat, le mandant s'interdit de confier la vente du bien à un autre intermédiaire et de traiter directement avec un acquéreur.` :
         `Ce mandat est simple. Le mandant conserve la possibilité de vendre directement ou par l'intermédiaire d'un autre mandataire.`;
     
     y = pdfParagraph(doc, y, clauseExclusif);
     y = pdfParagraph(doc, y, `Le mandataire s'engage à mettre en œuvre tous les moyens nécessaires pour réaliser la vente: publicité, visites, négociation. La commission sera due dès la signature de l'acte authentique de vente.`);
-    y += 10;
+    y += 5;
     
     // Signatures
-    if (y > 230) { doc.addPage(); y = 30; }
     y = pdfSection(doc, y, 'SIGNATURES');
-    doc.setFontSize(10);
-    doc.text('Le Mandant (Propriétaire):', 25, y + 10);
-    doc.text('Le Mandataire:', 130, y + 10);
-    doc.rect(20, y + 15, 70, 30);
-    doc.rect(120, y + 15, 70, 30);
-    doc.text('Lu et approuvé', 35, y + 50);
-    doc.text('INSTA IMMO', 140, y + 50);
+    y = pdfSignatures(doc, y, 'Le Propriétaire:', 'Le Mandataire:');
     
     pdfFooter(doc);
     
@@ -1327,10 +1366,11 @@ async function genererBonVisitePDF(visiteId) {
     let y = pdfHeader(doc, 'BON DE VISITE');
     
     // Numéro et date
-    doc.setFontSize(10);
-    doc.text(`N° BV-${visiteId}`, 20, y);
-    doc.text(`Date: ${today}`, 160, y);
-    y += 15;
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`N° BV-${visiteId}`, 18, y);
+    doc.text(`Date: ${today}`, 170, y);
+    y += 10;
     
     // Section Bien
     y = pdfSection(doc, y, 'BIEN VISITÉ');
@@ -1339,45 +1379,60 @@ async function genererBonVisitePDF(visiteId) {
     y = pdfField(doc, y, 'Type', TYPE_LABELS[bien.type_bien] || '-');
     y = pdfField(doc, y, 'Localisation', `${getZoneLabel(bien.zone || '')}${bien.quartier ? ' - ' + bien.quartier : ''}`);
     y = pdfField(doc, y, 'Prix', bien.prix ? `${formatMoney(bien.prix)} MAD` : '-');
-    y += 5;
+    y += 3;
     
     // Section Visiteur
     y = pdfSection(doc, y, 'LE VISITEUR');
-    y = pdfField(doc, y, 'Nom', client.nom ? `${client.nom} ${client.prenom || ''}` : '______________________________');
+    y = pdfField(doc, y, 'Nom complet', client.nom ? `${client.nom} ${client.prenom || ''}` : '______________________________');
     y = pdfField(doc, y, 'Téléphone', client.telephone || '______________________________');
     y = pdfField(doc, y, 'Email', client.email || '______________________________');
-    y += 5;
+    y += 3;
     
     // Section Visite
     y = pdfSection(doc, y, 'LA VISITE');
     y = pdfField(doc, y, 'Date de visite', dateVisite);
     y = pdfField(doc, y, 'Heure', heureVisite || '______');
     y = pdfField(doc, y, 'Agent', v.agent || currentUser.prenom);
-    y += 5;
+    y += 3;
     
     // Clause légale
     y = pdfSection(doc, y, 'ENGAGEMENT');
     const clause = `Le(a) soussigné(e) reconnaît avoir visité le bien désigné ci-dessus par l'intermédiaire exclusif d'INSTA IMMO. Toute transaction conclue directement avec le propriétaire ou par un autre intermédiaire, dans un délai de 24 mois suivant cette visite, engagera la responsabilité du visiteur au paiement de la commission convenue, sans préjudice de dommages et intérêts. Le présent bon de visite constitue une preuve de la mise en relation.`;
     y = pdfParagraph(doc, y, clause);
-    y += 10;
+    y += 5;
     
-    // Signatures
+    // Signatures avec signature existante si présente
     y = pdfSection(doc, y, 'SIGNATURES');
-    doc.setFontSize(10);
-    doc.text('Le Visiteur:', 30, y + 10);
-    doc.text("L'Agent:", 130, y + 10);
-    doc.rect(20, y + 15, 70, 35);
-    doc.rect(120, y + 15, 70, 35);
+    
+    // Toujours sur une nouvelle page si pas assez d'espace
+    if (y > 200) {
+        doc.addPage();
+        y = 30;
+    }
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    
+    doc.text('Le Visiteur:', 25, y);
+    doc.text("L'Agent:", 125, y);
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(18, y + 3, 75, 35);
+    doc.rect(118, y + 3, 75, 35);
     
     // Ajouter signature si existante
     if (v.signature_data) {
         try {
-            doc.addImage(v.signature_data, 'PNG', 22, y + 17, 66, 31);
+            doc.addImage(v.signature_data, 'PNG', 20, y + 5, 71, 31);
         } catch(e) { console.log('Erreur signature:', e); }
     }
     
-    doc.text('Lu et approuvé', 35, y + 55);
-    doc.text('INSTA IMMO', 140, y + 55);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Lu et approuvé', 40, y + 43);
+    doc.text('INSTA IMMO', 140, y + 43);
     
     pdfFooter(doc);
     
