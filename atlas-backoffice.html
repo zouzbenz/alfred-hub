@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -490,6 +489,7 @@ const CATEGORIES_SERVICES = [
 
 let projects = [], budgets = [], depenses = [], suppliers = [], operations = [], currentProjectId = null;
 
+// Utiliser le même système d'authentification que les autres pages
 if (sessionStorage.getItem('atlas-auth') === 'true') {
     currentUser = sessionStorage.getItem('atlas-user') || '';
     showBackoffice();
@@ -931,79 +931,3 @@ async function saveProject(e) {
 async function deleteProject(id, name) {
     if (!confirm(`Supprimer "${name}" ?`)) return;
     await db.from('atlas_depenses').delete().eq('project_id', id);
-    await db.from('atlas_budget').delete().eq('project_id', id);
-    await db.from('atlas_projects').delete().eq('id', id);
-    showToast('Projet supprimé');
-    await loadData();
-}
-
-// === DEPENSES ===
-function updateFournisseurSelects() {
-    // Mettre à jour le select dans le modal dépenses
-    const select = document.getElementById('d-fournisseur');
-    if (select) {
-        select.innerHTML = '<option value="">-- Sélectionner un fournisseur --</option>';
-        suppliers.forEach(supplier => {
-            const option = document.createElement('option');
-            option.value = supplier.id;
-            option.textContent = `${supplier.nom} (${supplier.type === 'vendeur' ? '🛒' : '🛠️'})`;
-            select.appendChild(option);
-        });
-    }
-}
-
-async function openDepensesModal(projectId, projectName) {
-    currentProjectId = projectId;
-    document.getElementById('depenses-project-name').textContent = projectName;
-    document.getElementById('view-project-link').href = `./atlas-project.html?id=${projectId}`;
-    document.getElementById('add-depense-form').style.display = 'none';
-    document.getElementById('d-date').value = new Date().toISOString().split('T')[0];
-    
-    // Mettre à jour le select des fournisseurs
-    updateFournisseurSelects();
-    
-    await renderDepenses();
-    document.getElementById('depenses-modal').classList.add('visible');
-}
-
-function closeDepensesModal() { document.getElementById('depenses-modal').classList.remove('visible'); currentProjectId = null; }
-
-function openAddDepenseForm() {
-    document.getElementById('add-depense-form').style.display = 'block';
-    ['d-designation','d-pu','d-montant','d-notes'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('d-quantite').value = '1';
-    document.getElementById('d-fournisseur').value = '';
-}
-
-function closeAddDepenseForm() { document.getElementById('add-depense-form').style.display = 'none'; }
-
-async function saveDepense() {
-    const data = {
-        project_id: currentProjectId,
-        categorie: document.getElementById('d-categorie').value,
-        designation: document.getElementById('d-designation').value,
-        date_depense: document.getElementById('d-date').value,
-        quantite: parseFloat(document.getElementById('d-quantite').value) || 1,
-        prix_unitaire: parseFloat(document.getElementById('d-pu').value) || 0,
-        montant: parseFloat(document.getElementById('d-montant').value) || 0,
-        fournisseur: document.getElementById('d-fournisseur').value || null,
-        notes: document.getElementById('d-notes').value || null,
-        source: 'manuel',
-        sender_name: currentUser,
-        entry_method: 'backoffice',
-        message_format: 'manuel'
-    };
-    
-    if (!data.designation || !data.montant) { alert('Désignation et montant requis'); return; }
-    
-    try {
-        await db.from('atlas_depenses').insert([data]);
-        showToast('Dépense ajoutée !');
-        closeAddDepenseForm();
-        await loadData();
-        await renderDepenses();
-    } catch (err) { alert('Erreur: ' + err.message); }
-}
-
-async function renderDepenses() {
-    const
