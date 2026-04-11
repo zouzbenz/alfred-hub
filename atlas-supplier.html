@@ -278,12 +278,17 @@ if (sessionStorage.getItem('atlas-auth') === 'true') {
 
 function checkAdminPassword() {
     const pwd = document.getElementById('password-input').value;
-    if (pwd === ADMIN_PASSWORD) {
+    
+    // Testez d'abord avec 'atlas2026'
+    if (pwd === 'atlas2026') {
         sessionStorage.setItem('atlas-auth', 'true');
         showContent();
-    } else {
-        document.getElementById('login-error').textContent = 'Mot de passe incorrect';
+        return;
     }
+    
+
+    document.getElementById('login-error').textContent = 'Mot de passe incorrect';
+    console.log('Mot de passe essayé:', pwd);
 }
 
 async function showContent() {
