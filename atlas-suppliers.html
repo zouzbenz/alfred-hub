@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fournisseurs - Atlas Pose</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root { 
+            --bg:#0a0f1a; 
+            --card:#111827; 
+            --accent:#3b82f6; 
+            --accent2:#10b981; 
+            --text:#f3f4f6; 
+            --dim:#9ca3af; 
+            --border:#1f2937; 
+            --danger:#ef4444; 
+            --warn:#f59e0b; 
+            --purple:#8b5cf6;
+            --info:#0ea5e9;
+        }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+        .container { max-width:1200px; margin:0 auto; padding:15px; }
+        
+        .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px; padding:12px; background:var(--card); border-radius:12px; border:1px solid var(--border); }
+        .back-link { display:inline-flex; align-items:center; gap:6px; color:var(--accent); text-decoration:none; font-size:.85rem; padding:8px 12px; background:rgba(59,130,246,.1); border-radius:8px; }
+        
+        .header { text-align:center; padding:20px 15px 30px; }
+        .header h1 { font-size:2rem; margin-bottom:8px; display:flex; align-items:center; justify-content:center; gap:10px; }
+        .header p { color:var(--dim); font-size:1rem; }
+        
+        .stats-row { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:25px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; text-align:center; }
+        .stat-value { font-size:1.5rem; font-weight:800; }
+        .stat-value.blue { color:var(--accent); }
+        .stat-value.green { color:var(--accent2); }
+        .stat-value.orange { color:var(--warn); }
+        .stat-value.purple { color:var(--purple); }
+        .stat-label { font-size:.75rem; color:var(--dim); margin-top:4px; }
+        
+        .filters { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; justify-content:center; }
+        .filter-btn { padding:10px 18px; background:var(--card); border:1px solid var(--border); border-radius:25px; color:var(--text); cursor:pointer; font-size:.85rem; transition:.2s; }
+        .filter-btn:hover, .filter-btn.active { background:var(--accent); border-color:var(--accent); }
+        
+        .search-box { width:100%; max-width:400px; margin:0 auto 20px; position:relative; }
+        .search-box input { width:100%; padding:12px 15px; background:var(--card); border:1px solid var(--border); border-radius:25px; color:#fff; font-size:.9rem; }
+        .search-box input:focus { outline:none; border-color:var(--accent); }
+        
+        .suppliers-grid { display:grid; grid-template-columns:1fr; gap:15px; }
+        
+        .supplier-card { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; transition:.3s; cursor:pointer; }
+        .supplier-card:hover { transform:translateY(-3px); box-shadow:0 10px 30px rgba(0,0,0,.3); border-color:var(--accent); }
+        
+        .supplier-header { padding:18px; border-bottom:1px solid var(--border); }
+        .supplier-name { font-size:1.2rem; font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+        .supplier-type { padding:3px 10px; border-radius:15px; font-size:.7rem; font-weight:600; }
+        .type-vendeur { background:rgba(16,185,129,.2); color:var(--accent2); }
+        .type-prestataire { background:rgba(59,130,246,.2); color:var(--accent); }
+        .supplier-categories { display:flex; flex-wrap:wrap; gap:5px; margin:10px 0; }
+        .category-tag { padding:3px 8px; background:rgba(139,92,246,.15); color:var(--purple); border-radius:10px; font-size:.7rem; }
+        
+        .supplier-body { padding:18px; }
+        .supplier-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:15px; }
+        .supplier-stat { text-align:center; }
+        .supplier-stat-value { font-size:1.1rem; font-weight:700; }
+        .supplier-stat-value.blue { color:var(--accent); }
+        .supplier-stat-value.green { color:var(--accent2); }
+        .supplier-stat-label { font-size:.7rem; color:var(--dim); margin-top:4px; }
+        
+        .supplier-footer { padding:12px 18px; background:rgba(0,0,0,.2); display:flex; justify-content:space-between; align-items:center; }
+        .supplier-location { font-size:.8rem; color:var(--dim); }
+        .supplier-arrow { color:var(--accent); font-size:1.2rem; }
+        
+        .empty-state { text-align:center; padding:50px; color:var(--dim); }
+        .loading { text-align:center; padding:50px; color:var(--dim); }
+        
+        .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
+        .footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
+        
+        @media(min-width:600px) { 
+            .suppliers-grid { grid-template-columns:repeat(2, 1fr); } 
+            .stats-row { grid-template-columns:repeat(4, 1fr); } 
+        }
+        @media(min-width:900px) { 
+            .suppliers-grid { grid-template-columns:repeat(3, 1fr); } 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <a href="./atlas-projects.html" class="back-link">← Projets</a>
+            <a href="./" class="back-link">🏠 Alfred Hub</a>
+            <a href="./atlas-backoffice.html" class="back-link">⚙️ Administration</a>
+        </div>
+        
+        <div class="header">
+            <h1>🏢 Fournisseurs & Prestataires</h1>
+            <p>Gestion des partenaires commerciaux</p>
+        </div>
+        
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-value blue" id="stat-total">0</div><div class="stat-label">Total</div></div>
+            <div class="stat-card"><div class="stat-value green" id="stat-vendeurs">0</div><div class="stat-label">Vendeurs</div></div>
+            <div class="stat-card"><div class="stat-value orange" id="stat-prestataires">0</div><div class="stat-label">Prestataires</div></div>
+            <div class="stat-card"><div class="stat-value purple" id="stat-actifs">0</div><div class="stat-label">Actifs</div></div>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="🔍 Rechercher un fournisseur...">
+        </div>
+        
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">Tous</button>
+            <button class="filter-btn" data-filter="vendeur">Vendeurs</button>
+            <button class="filter-btn" data-filter="prestataire">Prestataires</button>
+            <button class="filter-btn" data-filter="actif">Actifs</button>
+        </div>
+        
+        <div class="suppliers-grid" id="suppliers-grid">
+            <div class="loading">Chargement des fournisseurs...</div>
+        </div>
+        
+        <div class="footer">
+            <a href="./atlas-projects.html">Projets</a>
+            <a href="./atlas-tasks.html">Tâches</a>
+            <a href="./">Alfred Hub</a>
+        </div>
+    </div>
+    
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let allSuppliers = [], allOperations = [], currentFilter = 'all', searchQuery = '';
+
+async function loadData() {
+    const [suppliersRes, operationsRes] = await Promise.all([
+        db.from('atlas_fournisseurs').select('*').order('nom', { ascending: true }),
+        db.from('atlas_operations').select('*')
+    ]);
+    
+    allSuppliers = suppliersRes.data || [];
+    allOperations = operationsRes.data || [];
+    
+    renderStats();
+    renderSuppliers();
+}
+
+function formatMoney(n) {
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
+    return n.toString();
+}
+
+function getTotalDepense(fournisseurId) {
+    return allOperations
+        .filter(op => op.fournisseur_id === fournisseurId)
+        .reduce((sum, op) => sum + (parseFloat(op.montant) || 0), 0);
+}
+
+function getNbOperations(fournisseurId) {
+    return allOperations.filter(op => op.fournisseur_id === fournisseurId).length;
+}
+
+function renderStats() {
+    const totalSuppliers = allSuppliers.length;
+    const vendeurs = allSuppliers.filter(s => s.type === 'vendeur').length;
+    const prestataires = allSuppliers.filter(s => s.type === 'prestataire').length;
+    const actifs = allSuppliers.filter(s => s.actif).length;
+    
+    document.getElementById('stat-total').textContent = totalSuppliers;
+    document.getElementById('stat-vendeurs').textContent = vendeurs;
+    document.getElementById('stat-prestataires').textContent = prestataires;
+    document.getElementById('stat-actifs').textContent = actifs;
+}
+
+function filterSuppliers(suppliers) {
+    let filtered = [...suppliers];
+    
+    // Filtre de recherche
+    if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        filtered = filtered.filter(supplier => 
+            supplier.nom.toLowerCase().includes(query) || 
+            (supplier.specialites_libres && supplier.specialites_libres.toLowerCase().includes(query))
+        );
+    }
+    
+    // Filtre par type/statut
+    switch(currentFilter) {
+        case 'vendeur':
+            filtered = filtered.filter(s => s.type === 'vendeur');
+            break;
+        case 'prestataire':
+            filtered = filtered.filter(s => s.type === 'prestataire');
+            break;
+        case 'actif':
+            filtered = filtered.filter(s => s.actif);
+            break;
+    }
+    
+    return filtered;
+}
+
+function renderSuppliers() {
+    const filteredSuppliers = filterSuppliers(allSuppliers);
+    const grid = document.getElementById('suppliers-grid');
+    
+    if (!filteredSuppliers.length) {
+        grid.innerHTML = '<div class="empty-state">Aucun fournisseur trouvé</div>';
+        return;
+    }
+    
+    grid.innerHTML = filteredSuppliers.map(supplier => {
+        const totalDepense = getTotalDepense(supplier.id);
+        const nbOperations = getNbOperations(supplier.id);
+        const categoriesToShow = supplier.type === 'vendeur' ? 
+            (supplier.categories_produits || []) : 
+            (supplier.categories_services || []);
+        
+        return `
+        <div class="supplier-card" onclick="window.location.href='./atlas-supplier.html?id=${supplier.id}'">
+            <div class="supplier-header">
+                <div class="supplier-name">
+                    ${supplier.nom}
+                    <span class="supplier-type type-${supplier.type}">
+                        ${supplier.type === 'vendeur' ? '🛒 Vendeur' : '🛠️ Prestataire'}
+                    </span>
+                </div>
+                ${supplier.specialites_libres ? `<div class="supplier-categories">${supplier.specialites_libres}</div>` : ''}
+                <div class="supplier-categories">
+                    ${categoriesToShow.map(cat => `<span class="category-tag">${cat}</span>`).join('')}
+                </div>
+            </div>
+            <div class="supplier-body">
+                <div class="supplier-stats">
+                    <div class="supplier-stat">
+                        <div class="supplier-stat-value blue">${nbOperations}</div>
+                        <div class="supplier-stat-label">Opérations</div>
+                    </div>
+                    <div class="supplier-stat">
+                        <div class="supplier-stat-value green">${formatMoney(totalDepense)}</div>
+                        <div class="supplier-stat-label">Dépensé</div>
+                    </div>
+                </div>
+            </div>
+            <div class="supplier-footer">
+                <span class="supplier-location">📍 ${supplier.localisation || '-'}</span>
+                <span class="supplier-arrow">→</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Event Listeners
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderSuppliers();
+    });
+});
+
+document.getElementById('search-input').addEventListener('input', (e) => {
+    searchQuery = e.target.value.trim();
+    renderSuppliers();
+});
+
+// Chargement initial
+loadData();
+
+// Auto-refresh toutes les 30 secondes
+setInterval(loadData, 30000);
+    </script>
+</body>
+</html>
