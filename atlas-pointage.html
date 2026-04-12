@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pointage - Atlas Pose</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; --purple:#8b5cf6; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+        .container { max-width:1000px; margin:0 auto; padding:15px; }
+        .login-screen { display:flex; justify-content:center; align-items:center; min-height:100vh; padding:20px; }
+        .login-box { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:30px; width:100%; max-width:400px; text-align:center; }
+        .login-box h2 { margin-bottom:8px; }
+        .login-box p { color:var(--dim); margin-bottom:20px; font-size:.85rem; }
+        .login-box select, .login-box input { width:100%; padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; margin-bottom:12px; text-align:center; }
+        .login-box button { width:100%; padding:14px; background:var(--accent); border:none; border-radius:10px; color:#fff; font-weight:600; cursor:pointer; }
+        .login-error { color:var(--danger); margin-top:12px; font-size:.85rem; }
+        .content { display:none; }
+        .content.visible { display:block; }
+        .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px; padding:12px; background:var(--card); border-radius:12px; border:1px solid var(--border); }
+        .back-link { display:inline-flex; align-items:center; gap:6px; color:var(--accent); text-decoration:none; font-size:.85rem; padding:8px 12px; background:rgba(59,130,246,.1); border-radius:8px; }
+        .header { text-align:center; padding:20px 15px; }
+        .header h1 { font-size:1.8rem; margin-bottom:8px; }
+        .header p { color:var(--dim); font-size:.9rem; }
+        .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:20px; }
+        .section-title { font-size:1rem; font-weight:700; margin-bottom:15px; display:flex; align-items:center; gap:8px; }
+        
+        .date-nav { display:flex; align-items:center; justify-content:center; gap:15px; margin-bottom:25px; }
+        .date-nav button { background:var(--card); border:1px solid var(--border); color:#fff; padding:10px 15px; border-radius:10px; cursor:pointer; font-size:1.2rem; }
+        .date-nav button:hover { background:var(--accent); border-color:var(--accent); }
+        .date-display { font-size:1.2rem; font-weight:700; min-width:200px; text-align:center; }
+        
+        .project-select { margin-bottom:20px; }
+        .project-select select { width:100%; padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; font-size:1rem; }
+        
+        .stats-row { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:25px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; text-align:center; }
+        .stat-value { font-size:1.4rem; font-weight:800; }
+        .stat-value.green { color:var(--accent2); }
+        .stat-value.orange { color:var(--warn); }
+        .stat-value.red { color:var(--danger); }
+        .stat-label { font-size:.75rem; color:var(--dim); margin-top:4px; }
+        
+        .pointage-table { width:100%; border-collapse:collapse; }
+        .pointage-table th { text-align:left; padding:12px 10px; border-bottom:2px solid var(--border); color:var(--dim); font-size:.8rem; font-weight:600; }
+        .pointage-table td { padding:12px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+        .pointage-table tr:hover { background:rgba(59,130,246,.05); }
+        
+        .ouvrier-cell { display:flex; align-items:center; gap:10px; }
+        .ouvrier-avatar { width:36px; height:36px; border-radius:50%; background:var(--border); display:flex; align-items:center; justify-content:center; font-size:.9rem; }
+        .ouvrier-name { font-weight:600; }
+        .ouvrier-position { font-size:.75rem; color:var(--dim); }
+        
+        .statut-select { padding:8px 12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:#fff; font-size:.85rem; cursor:pointer; }
+        .statut-select.present { background:rgba(16,185,129,.2); border-color:var(--accent2); }
+        .statut-select.absent { background:rgba(239,68,68,.2); border-color:var(--danger); }
+        .statut-select.demi_journee { background:rgba(245,158,11,.2); border-color:var(--warn); }
+        
+        .heures-input { width:60px; padding:8px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:#fff; text-align:center; }
+        
+        .montant-cell { font-weight:700; color:var(--accent2); }
+        
+        .paye-checkbox { width:20px; height:20px; accent-color:var(--accent2); cursor:pointer; }
+        
+        .btn { padding:12px 24px; border:none; border-radius:10px; font-weight:600; cursor:pointer; font-size:.95rem; transition:.2s; display:inline-flex; align-items:center; gap:8px; }
+        .btn-success { background:var(--accent2); color:#fff; }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+        .btn:disabled { opacity:.5; cursor:not-allowed; }
+        
+        .actions { display:flex; gap:12px; justify-content:center; margin-top:25px; flex-wrap:wrap; }
+        
+        .empty-state { text-align:center; padding:40px; color:var(--dim); }
+        
+        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--accent2); color:#fff; padding:12px 24px; border-radius:10px; font-weight:600; z-index:2000; opacity:0; transition:.3s; }
+        .toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
+        
+        @media(max-width:700px) {
+            .pointage-table { font-size:.85rem; }
+            .pointage-table th, .pointage-table td { padding:8px 5px; }
+            .ouvrier-avatar { display:none; }
+            .stats-row { grid-template-columns:repeat(3, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-screen" id="login-screen">
+        <div class="login-box">
+            <h2>🔐 Accès Pointage</h2>
+            <p>Sélectionnez votre nom</p>
+            <select id="user-select">
+                <option value="">-- Sélectionnez --</option>
+                <option value="Badr">Badr</option>
+                <option value="Oussama">Oussama</option>
+            </select>
+            <input type="password" id="password-input" placeholder="Mot de passe" onkeypress="if(event.key==='Enter')checkPassword()">
+            <button onclick="checkPassword()">Accéder</button>
+            <div class="login-error" id="login-error"></div>
+        </div>
+    </div>
+    
+    <div class="content" id="content">
+        <div class="container">
+            <div class="top-bar">
+                <a href="./atlas-ouvriers.html" class="back-link">← Main d'œuvre</a>
+                <a href="./atlas-projects.html" class="back-link">🏗️ Projets</a>
+                <a href="./atlas-backoffice.html" class="back-link">⚙️ Admin</a>
+            </div>
+            
+            <div class="header">
+                <h1>📋 Pointage</h1>
+                <p>Suivi des présences et paiements</p>
+            </div>
+            
+            <div class="date-nav">
+                <button onclick="changeDate(-1)">◀</button>
+                <div class="date-display" id="date-display"></div>
+                <button onclick="changeDate(1)">▶</button>
+            </div>
+            
+            <div class="project-select">
+                <select id="project-select" onchange="loadPointage()">
+                    <option value="">-- Tous les chantiers --</option>
+                </select>
+            </div>
+            
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-value green" id="stat-presents">0</div><div class="stat-label">Présents</div></div>
+                <div class="stat-card"><div class="stat-value orange" id="stat-demi">0</div><div class="stat-label">Demi-journée</div></div>
+                <div class="stat-card"><div class="stat-value red" id="stat-absents">0</div><div class="stat-label">Absents</div></div>
+            </div>
+            
+            <div class="section">
+                <h3 class="section-title">👷 Ouvriers affectés</h3>
+                <div id="pointage-content">
+                    <div class="empty-state">Sélectionnez un chantier pour voir les ouvriers</div>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <button class="btn btn-success" id="save-btn" onclick="saveAllPointages()" disabled>💾 Enregistrer tout</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const PASSWORD = 'atlas2026';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = '', currentDate = new Date();
+let projects = [], ouvriers = [], affectations = [], pointages = [];
+let pointageData = {}; // { ouvrier_id: { statut, heures, paye, montant_du, ... } }
+
+if (sessionStorage.getItem('atlas-auth') === 'true') {
+    currentUser = sessionStorage.getItem('atlas-user') || '';
+    showContent();
+}
+
+function checkPassword() {
+    const user = document.getElementById('user-select').value;
+    const pwd = document.getElementById('password-input').value;
+    if (!user) { document.getElementById('login-error').textContent = 'Sélectionnez votre nom'; return; }
+    if (pwd === PASSWORD) {
+        currentUser = user;
+        sessionStorage.setItem('atlas-auth', 'true');
+        sessionStorage.setItem('atlas-user', user);
+        showContent();
+    } else { document.getElementById('login-error').textContent = 'Mot de passe incorrect'; }
+}
+
+async function showContent() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('content').classList.add('visible');
+    updateDateDisplay();
+    await loadProjects();
+}
+
+function updateDateDisplay() {
+    document.getElementById('date-display').textContent = currentDate.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+
+function changeDate(delta) {
+    currentDate.setDate(currentDate.getDate() + delta);
+    updateDateDisplay();
+    loadPointage();
+}
+
+async function loadProjects() {
+    const { data } = await db.from('atlas_projects').select('id, name, status').eq('status', 'en_cours').order('name');
+    projects = data || [];
+    document.getElementById('project-select').innerHTML = '<option value="">-- Tous les chantiers --</option>' + 
+        projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+async function loadPointage() {
+    const projectId = document.getElementById('project-select').value;
+    if (!projectId) {
+        document.getElementById('pointage-content').innerHTML = '<div class="empty-state">Sélectionnez un chantier pour voir les ouvriers</div>';
+        document.getElementById('save-btn').disabled = true;
+        return;
+    }
+    
+    const dateStr = currentDate.toISOString().split('T')[0];
+    
+    // Load ouvriers affectés au projet avec affectation active
+    const { data: affData } = await db.from('atlas_affectations')
+        .select('*, ouvrier:atlas_main_oeuvre(*)')
+        .eq('project_id', projectId)
+        .is('date_fin', null);
+    
+    affectations = affData || [];
+    
+    // Load existing pointages for this date
+    const { data: pointData } = await db.from('atlas_pointage')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('date_pointage', dateStr);
+    
+    pointages = pointData || [];
+    
+    // Build pointageData
+    pointageData = {};
+    affectations.forEach(a => {
+        const existing = pointages.find(p => p.ouvrier_id === a.ouvrier_id);
+        pointageData[a.ouvrier_id] = existing || {
+            ouvrier_id: a.ouvrier_id,
+            project_id: parseInt(projectId),
+            date_pointage: dateStr,
+            statut: 'present',
+            heures: 8,
+            taux_applique: a.taux_journalier || 0,
+            montant_du: a.taux_journalier || 0,
+            paye: false
+        };
+    });
+    
+    renderPointage();
+    document.getElementById('save-btn').disabled = false;
+}
+
+function renderPointage() {
+    if (!affectations.length) {
+        document.getElementById('pointage-content').innerHTML = '<div class="empty-state">Aucun ouvrier affecté à ce chantier</div>';
+        return;
+    }
+    
+    let presents = 0, demis = 0, absents = 0;
+    
+    let html = `
+    <table class="pointage-table">
+        <thead>
+            <tr>
+                <th>Ouvrier</th>
+                <th>Statut</th>
+                <th>Heures</th>
+                <th>Montant</th>
+                <th>Payé</th>
+            </tr>
+        </thead>
+        <tbody>`;
+    
+    affectations.forEach(a => {
+        const o = a.ouvrier;
+        const p = pointageData[o.id];
+        
+        if (p.statut === 'present') presents++;
+        else if (p.statut === 'demi_journee') demis++;
+        else absents++;
+        
+        const montant = calculateMontant(p);
+        
+        html += `
+        <tr>
+            <td>
+                <div class="ouvrier-cell">
+                    <div class="ouvrier-avatar">👷</div>
+                    <div>
+                        <div class="ouvrier-name">${o.prenom} ${o.nom}</div>
+                        <div class="ouvrier-position">${o.position} | ${p.taux_applique || 0} MAD/j</div>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <select class="statut-select ${p.statut}" onchange="updateStatut(${o.id}, this.value)" data-ouvrier="${o.id}">
+                    <option value="present" ${p.statut === 'present' ? 'selected' : ''}>✅ Présent</option>
+                    <option value="demi_journee" ${p.statut === 'demi_journee' ? 'selected' : ''}>⏰ Demi-journée</option>
+                    <option value="absent" ${p.statut === 'absent' ? 'selected' : ''}>❌ Absent</option>
+                    <option value="conge" ${p.statut === 'conge' ? 'selected' : ''}>🏖️ Congé</option>
+                </select>
+            </td>
+            <td>
+                <input type="number" class="heures-input" value="${p.heures}" min="0" max="12" step="0.5" 
+                    onchange="updateHeures(${o.id}, this.value)" ${p.statut === 'absent' || p.statut === 'conge' ? 'disabled' : ''}>
+            </td>
+            <td class="montant-cell" id="montant-${o.id}">${montant} MAD</td>
+            <td>
+                <input type="checkbox" class="paye-checkbox" ${p.paye ? 'checked' : ''} onchange="updatePaye(${o.id}, this.checked)">
+            </td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    document.getElementById('pointage-content').innerHTML = html;
+    
+    document.getElementById('stat-presents').textContent = presents;
+    document.getElementById('stat-demi').textContent = demis;
+    document.getElementById('stat-absents').textContent = absents;
+}
+
+function calculateMontant(p) {
+    if (p.statut === 'absent' || p.statut === 'conge') return 0;
+    const taux = p.taux_applique || 0;
+    const heures = p.heures || 0;
+    return Math.round((taux / 8) * heures);
+}
+
+function updateStatut(ouvrierId, statut) {
+    pointageData[ouvrierId].statut = statut;
+    if (statut === 'absent' || statut === 'conge') {
+        pointageData[ouvrierId].heures = 0;
+    } else if (statut === 'demi_journee') {
+        pointageData[ouvrierId].heures = 4;
+    } else {
+        pointageData[ouvrierId].heures = 8;
+    }
+    pointageData[ouvrierId].montant_du = calculateMontant(pointageData[ouvrierId]);
+    renderPointage();
+}
+
+function updateHeures(ouvrierId, heures) {
+    pointageData[ouvrierId].heures = parseFloat(heures) || 0;
+    pointageData[ouvrierId].montant_du = calculateMontant(pointageData[ouvrierId]);
+    document.getElementById(`montant-${ouvrierId}`).textContent = pointageData[ouvrierId].montant_du + ' MAD';
+}
+
+function updatePaye(ouvrierId, paye) {
+    pointageData[ouvrierId].paye = paye;
+    if (paye) pointageData[ouvrierId].date_paiement = new Date().toISOString().split('T')[0];
+}
+
+async function saveAllPointages() {
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Enregistrement...';
+    
+    try {
+        const records = Object.values(pointageData).map(p => ({
+            ouvrier_id: p.ouvrier_id,
+            project_id: p.project_id,
+            date_pointage: p.date_pointage,
+            statut: p.statut,
+            heures: p.heures,
+            taux_applique: p.taux_applique,
+            montant_du: p.montant_du,
+            paye: p.paye,
+            date_paiement: p.paye ? (p.date_paiement || new Date().toISOString().split('T')[0]) : null,
+            created_by: currentUser
+        }));
+        
+        // Upsert - insert or update on conflict
+        const { error } = await db.from('atlas_pointage').upsert(records, { 
+            onConflict: 'ouvrier_id,project_id,date_pointage' 
+        });
+        
+        if (error) throw error;
+        
+        showToast('Pointage enregistré !');
+        await loadPointage(); // Reload to get IDs
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur: ' + err.message, true);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 Enregistrer tout';
+    }
+}
+
+function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.background = isError ? 'var(--danger)' : 'var(--accent2)';
+    toast.classList.add('visible');
+    setTimeout(() => toast.classList.remove('visible'), 3000);
+}
+    </script>
+</body>
+</html>

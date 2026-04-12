@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Main d'œuvre - Atlas Pose</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root { 
+            --bg:#0a0f1a; 
+            --card:#111827; 
+            --accent:#3b82f6; 
+            --accent2:#10b981; 
+            --text:#f3f4f6; 
+            --dim:#9ca3af; 
+            --border:#1f2937; 
+            --danger:#ef4444; 
+            --warn:#f59e0b; 
+            --purple:#8b5cf6;
+            --orange:#f97316;
+        }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+        .container { max-width:1200px; margin:0 auto; padding:15px; }
+        
+        .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px; padding:12px; background:var(--card); border-radius:12px; border:1px solid var(--border); }
+        .back-link { display:inline-flex; align-items:center; gap:6px; color:var(--accent); text-decoration:none; font-size:.85rem; padding:8px 12px; background:rgba(59,130,246,.1); border-radius:8px; }
+        
+        .header { text-align:center; padding:20px 15px 30px; }
+        .header h1 { font-size:2rem; margin-bottom:8px; display:flex; align-items:center; justify-content:center; gap:10px; }
+        .header p { color:var(--dim); font-size:1rem; }
+        
+        .stats-row { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:25px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; text-align:center; }
+        .stat-value { font-size:1.5rem; font-weight:800; }
+        .stat-value.blue { color:var(--accent); }
+        .stat-value.green { color:var(--accent2); }
+        .stat-value.orange { color:var(--warn); }
+        .stat-value.purple { color:var(--purple); }
+        .stat-label { font-size:.75rem; color:var(--dim); margin-top:4px; }
+        
+        .actions-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+        .btn { padding:10px 18px; background:var(--accent); border:none; border-radius:10px; color:#fff; font-weight:600; cursor:pointer; font-size:.9rem; display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
+        .btn:hover { transform:translateY(-1px); }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+        
+        .filters { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:20px; }
+        .filter-btn { padding:8px 16px; background:var(--card); border:1px solid var(--border); border-radius:20px; color:var(--text); cursor:pointer; font-size:.8rem; transition:.2s; }
+        .filter-btn:hover, .filter-btn.active { background:var(--accent); border-color:var(--accent); }
+        
+        .search-box { width:100%; max-width:400px; margin:0 auto 20px; }
+        .search-box input { width:100%; padding:12px 15px; background:var(--card); border:1px solid var(--border); border-radius:25px; color:#fff; font-size:.9rem; }
+        .search-box input:focus { outline:none; border-color:var(--accent); }
+        
+        .ouvriers-grid { display:grid; grid-template-columns:1fr; gap:15px; }
+        
+        .ouvrier-card { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; transition:.3s; cursor:pointer; }
+        .ouvrier-card:hover { transform:translateY(-3px); box-shadow:0 10px 30px rgba(0,0,0,.3); border-color:var(--accent); }
+        .ouvrier-card.inactive { opacity:0.6; }
+        
+        .ouvrier-header { padding:18px; display:flex; gap:15px; align-items:center; }
+        .ouvrier-photo { width:60px; height:60px; border-radius:50%; background:var(--border); display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0; overflow:hidden; }
+        .ouvrier-photo img { width:100%; height:100%; object-fit:cover; }
+        .ouvrier-info { flex:1; }
+        .ouvrier-name { font-size:1.1rem; font-weight:700; margin-bottom:4px; }
+        .ouvrier-position { display:inline-block; padding:3px 10px; border-radius:15px; font-size:.7rem; font-weight:600; margin-right:6px; }
+        .position-poseur { background:rgba(59,130,246,.2); color:var(--accent); }
+        .position-aide { background:rgba(156,163,175,.2); color:var(--dim); }
+        .position-chef_chantier { background:rgba(245,158,11,.2); color:var(--warn); }
+        
+        .ouvrier-niveau { display:inline-block; padding:3px 10px; border-radius:15px; font-size:.7rem; font-weight:600; }
+        .niveau-tout_terrain { background:rgba(16,185,129,.2); color:var(--accent2); }
+        .niveau-premium { background:rgba(139,92,246,.2); color:var(--purple); }
+        .niveau-basic { background:rgba(156,163,175,.2); color:var(--dim); }
+        
+        .ouvrier-specialites { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+        .specialite-tag { padding:2px 8px; background:rgba(249,115,22,.15); color:var(--orange); border-radius:10px; font-size:.7rem; }
+        
+        .ouvrier-body { padding:0 18px 18px; }
+        .ouvrier-meta { display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; color:var(--dim); }
+        .ouvrier-meta-item { display:flex; align-items:center; gap:4px; }
+        
+        .ouvrier-chantiers { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+        .chantier-tag { display:inline-block; padding:4px 10px; background:rgba(59,130,246,.1); color:var(--accent); border-radius:8px; font-size:.75rem; margin:2px; }
+        
+        .empty-state { text-align:center; padding:50px; color:var(--dim); }
+        .loading { text-align:center; padding:50px; color:var(--dim); }
+        
+        .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
+        .footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
+        
+        @media(min-width:600px) { 
+            .ouvriers-grid { grid-template-columns:repeat(2, 1fr); } 
+            .stats-row { grid-template-columns:repeat(4, 1fr); } 
+        }
+        @media(min-width:900px) { 
+            .ouvriers-grid { grid-template-columns:repeat(3, 1fr); } 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <a href="./atlas-projects.html" class="back-link">← Projets</a>
+            <a href="./atlas-backoffice.html" class="back-link">⚙️ Administration</a>
+            <a href="./" class="back-link">🏠 Alfred Hub</a>
+        </div>
+        
+        <div class="header">
+            <h1>👷 Main d'œuvre</h1>
+            <p>Gestion des ouvriers et équipes</p>
+        </div>
+        
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-value blue" id="stat-total">0</div><div class="stat-label">Total ouvriers</div></div>
+            <div class="stat-card"><div class="stat-value green" id="stat-actifs">0</div><div class="stat-label">Actifs</div></div>
+            <div class="stat-card"><div class="stat-value orange" id="stat-chefs">0</div><div class="stat-label">Chefs chantier</div></div>
+            <div class="stat-card"><div class="stat-value purple" id="stat-affectes">0</div><div class="stat-label">En chantier</div></div>
+        </div>
+        
+        <div class="actions-bar">
+            <a href="./atlas-ouvrier.html" class="btn">+ Nouvel ouvrier</a>
+            <a href="./atlas-pointage.html" class="btn btn-outline">📋 Pointage</a>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="🔍 Rechercher un ouvrier...">
+        </div>
+        
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">Tous</button>
+            <button class="filter-btn" data-filter="actif">Actifs</button>
+            <button class="filter-btn" data-filter="poseur">Poseurs</button>
+            <button class="filter-btn" data-filter="chef_chantier">Chefs</button>
+            <button class="filter-btn" data-filter="tout_terrain">Tout Terrain</button>
+            <button class="filter-btn" data-filter="premium">Premium</button>
+        </div>
+        
+        <div class="ouvriers-grid" id="ouvriers-grid">
+            <div class="loading">Chargement...</div>
+        </div>
+        
+        <div class="footer">
+            <a href="./atlas-projects.html">Projets</a>
+            <a href="./atlas-suppliers.html">Fournisseurs</a>
+            <a href="./atlas-backoffice.html">Administration</a>
+        </div>
+    </div>
+    
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const STORAGE_BUCKET = 'atlas-cin';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let ouvriers = [], affectations = [], projects = [];
+let currentFilter = 'all', searchQuery = '';
+
+const POSITION_LABELS = {
+    'poseur': '🔧 Poseur',
+    'aide': '🤝 Aide',
+    'chef_chantier': '👷 Chef chantier'
+};
+
+const NIVEAU_LABELS = {
+    'tout_terrain': '⭐ Tout Terrain',
+    'premium': '💎 Premium',
+    'basic': '📦 Basic'
+};
+
+const SPECIALITE_LABELS = {
+    'marbre': 'Marbre',
+    'parquet': 'Parquet',
+    'carrelage': 'Carrelage',
+    'autre': 'Autre'
+};
+
+async function loadData() {
+    try {
+        const [oRes, aRes, pRes] = await Promise.all([
+            db.from('atlas_main_oeuvre').select('*').order('nom', { ascending: true }),
+            db.from('atlas_affectations').select('*').is('date_fin', null), // Affectations en cours
+            db.from('atlas_projects').select('id, name, status')
+        ]);
+        
+        ouvriers = oRes.data || [];
+        affectations = aRes.data || [];
+        projects = pRes.data || [];
+        
+        renderStats();
+        renderOuvriers();
+    } catch (err) {
+        console.error('Erreur:', err);
+        document.getElementById('ouvriers-grid').innerHTML = '<div class="empty-state">Erreur de chargement</div>';
+    }
+}
+
+function renderStats() {
+    const total = ouvriers.length;
+    const actifs = ouvriers.filter(o => o.actif).length;
+    const chefs = ouvriers.filter(o => o.position === 'chef_chantier').length;
+    const ouvriersAffectes = new Set(affectations.map(a => a.ouvrier_id)).size;
+    
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-actifs').textContent = actifs;
+    document.getElementById('stat-chefs').textContent = chefs;
+    document.getElementById('stat-affectes').textContent = ouvriersAffectes;
+}
+
+function getOuvrierChantiers(ouvrierId) {
+    const ouvrierAffectations = affectations.filter(a => a.ouvrier_id === ouvrierId);
+    return ouvrierAffectations.map(a => {
+        const project = projects.find(p => p.id === a.project_id);
+        return project ? project.name : 'Projet inconnu';
+    });
+}
+
+function filterOuvriers() {
+    let filtered = [...ouvriers];
+    
+    // Recherche
+    if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        filtered = filtered.filter(o => 
+            o.nom.toLowerCase().includes(q) || 
+            o.prenom.toLowerCase().includes(q) ||
+            o.cin.toLowerCase().includes(q) ||
+            (o.telephone && o.telephone.includes(q))
+        );
+    }
+    
+    // Filtres
+    switch(currentFilter) {
+        case 'actif':
+            filtered = filtered.filter(o => o.actif);
+            break;
+        case 'poseur':
+            filtered = filtered.filter(o => o.position === 'poseur');
+            break;
+        case 'chef_chantier':
+            filtered = filtered.filter(o => o.position === 'chef_chantier');
+            break;
+        case 'tout_terrain':
+            filtered = filtered.filter(o => o.niveau_competence === 'tout_terrain');
+            break;
+        case 'premium':
+            filtered = filtered.filter(o => o.niveau_competence === 'premium');
+            break;
+    }
+    
+    return filtered;
+}
+
+function renderOuvriers() {
+    const filtered = filterOuvriers();
+    const grid = document.getElementById('ouvriers-grid');
+    
+    if (!filtered.length) {
+        grid.innerHTML = '<div class="empty-state">Aucun ouvrier trouvé</div>';
+        return;
+    }
+    
+    grid.innerHTML = filtered.map(o => {
+        const chantiers = getOuvrierChantiers(o.id);
+        const specialites = o.specialites || [];
+        const photoUrl = o.cin_photo_path ? 
+            `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${o.cin_photo_path}` : null;
+        
+        return `
+        <div class="ouvrier-card ${o.actif ? '' : 'inactive'}" onclick="location.href='./atlas-ouvrier.html?id=${o.id}'">
+            <div class="ouvrier-header">
+                <div class="ouvrier-photo">
+                    ${photoUrl ? `<img src="${photoUrl}" alt="CIN">` : '👤'}
+                </div>
+                <div class="ouvrier-info">
+                    <div class="ouvrier-name">${o.prenom} ${o.nom}</div>
+                    <span class="ouvrier-position position-${o.position}">${POSITION_LABELS[o.position] || o.position}</span>
+                    <span class="ouvrier-niveau niveau-${o.niveau_competence}">${NIVEAU_LABELS[o.niveau_competence] || o.niveau_competence}</span>
+                    ${specialites.length ? `
+                        <div class="ouvrier-specialites">
+                            ${specialites.map(s => `<span class="specialite-tag">${SPECIALITE_LABELS[s] || s}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+            <div class="ouvrier-body">
+                <div class="ouvrier-meta">
+                    <span class="ouvrier-meta-item">🪪 ${o.cin}</span>
+                    ${o.telephone ? `<span class="ouvrier-meta-item">📞 ${o.telephone}</span>` : ''}
+                    ${o.type_contrat === 'equipe' ? `<span class="ouvrier-meta-item">👥 Équipe</span>` : `<span class="ouvrier-meta-item">🧍 Indépendant</span>`}
+                </div>
+                ${chantiers.length ? `
+                    <div class="ouvrier-chantiers">
+                        ${chantiers.map(c => `<span class="chantier-tag">🏗️ ${c}</span>`).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Event listeners
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderOuvriers();
+    });
+});
+
+document.getElementById('search-input').addEventListener('input', (e) => {
+    searchQuery = e.target.value.trim();
+    renderOuvriers();
+});
+
+// Init
+loadData();
+
+// Auto-refresh
+setInterval(loadData, 30000);
+    </script>
+</body>
+</html>
