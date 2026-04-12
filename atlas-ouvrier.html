@@ -234,6 +234,139 @@
     
     <div class="toast" id="toast"></div>
     
-    <script src="./atlas-ouvrier.js"></script>
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const STORAGE_BUCKET = 'atlas-cin';
+const PASSWORD = 'atlas2026';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = '', ouvrierId = null;
+let ouvrier = null, affectations = [], projects = [], chefs = [], pointages = [];
+let selectedPhotoFile = null;
+
+if (sessionStorage.getItem('atlas-auth') === 'true') { currentUser = sessionStorage.getItem('atlas-user') || ''; showContent(); }
+
+function checkPassword() {
+    const user = document.getElementById('user-select').value;
+    const pwd = document.getElementById('password-input').value;
+    if (!user) { document.getElementById('login-error').textContent = 'Sélectionnez votre nom'; return; }
+    if (pwd === PASSWORD) { currentUser = user; sessionStorage.setItem('atlas-auth', 'true'); sessionStorage.setItem('atlas-user', user); showContent(); }
+    else { document.getElementById('login-error').textContent = 'Mot de passe incorrect'; }
+}
+
+async function showContent() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('content').classList.add('visible');
+    ouvrierId = new URLSearchParams(window.location.search).get('id');
+    await loadData();
+    if (ouvrierId) await loadOuvrier();
+}
+
+async function loadData() {
+    try {
+        const [pRes, cRes] = await Promise.all([
+            db.from('atlas_projects').select('id, name, status').order('name'),
+            db.from('atlas_main_oeuvre').select('id, nom, prenom').eq('position', 'chef_chantier').eq('actif', true)
+        ]);
+        projects = pRes.data || []; chefs = cRes.data || [];
+        document.getElementById('chef-equipe').innerHTML = '<option value="">-- Sélectionner --</option>' + chefs.map(c => `<option value="${c.id}">${c.prenom} ${c.nom}</option>`).join('');
+        document.getElementById('new-affectation-project').innerHTML = '<option value="">-- Sélectionner --</option>' + projects.filter(p => p.status !== 'termine').map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    } catch (err) { console.error('Erreur:', err); }
+}
+
+async function loadOuvrier() {
+    try {
+        const { data, error } = await db.from('atlas_main_oeuvre').select('*').eq('id', ouvrierId).single();
+        if (error) throw error;
+        ouvrier = data;
+        document.getElementById('page-title').textContent = `👷 ${ouvrier.prenom} ${ouvrier.nom}`;
+        document.getElementById('page-subtitle').textContent = 'Modifier les informations';
+        document.getElementById('ouvrier-id').value = ouvrier.id;
+        document.getElementById('prenom').value = ouvrier.prenom;
+        document.getElementById('nom').value = ouvrier.nom;
+        document.getElementById('date-naissance').value = ouvrier.date_naissance || '';
+        document.getElementById('cin').value = ouvrier.cin;
+        document.getElementById('telephone').value = ouvrier.telephone || '';
+        document.getElementById('position').value = ouvrier.position;
+        document.getElementById('type-contrat').value = ouvrier.type_contrat || 'independant';
+        document.getElementById('chef-equipe').value = ouvrier.chef_equipe_id || '';
+        document.getElementById('entreprise-nom').value = ouvrier.entreprise_nom || '';
+        document.getElementById('notes').value = ouvrier.notes || '';
+        document.getElementById('actif').checked = ouvrier.actif;
+        document.getElementById('specialite-autre').value = ouvrier.specialite_autre || '';
+        const specialites = ouvrier.specialites || [];
+        document.querySelectorAll('input[name="specialite"]').forEach(cb => { cb.checked = specialites.includes(cb.value); });
+        if (specialites.includes('autre')) document.getElementById('specialite-autre-field').style.display = 'block';
+        const niveau = ouvrier.niveau_competence || 'basic';
+        document.querySelectorAll('.niveau-option').forEach(opt => { if (opt.querySelector('input').value === niveau) { opt.classList.add('selected'); opt.querySelector('input').checked = true; } });
+        if (ouvrier.cin_photo_path) { const preview = document.getElementById('photo-preview'); preview.src = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${ouvrier.cin_photo_path}`; preview.classList.add('visible'); document.getElementById('photo-placeholder').style.display = 'none'; }
+        toggleEquipeFields();
+        document.getElementById('delete-btn').style.display = 'inline-flex';
+        document.getElementById('affectations-section').style.display = 'block';
+        document.getElementById('pointage-section').style.display = 'block';
+        await loadAffectations(); await loadPointages();
+    } catch (err) { console.error('Erreur:', err); showToast('Ouvrier introuvable', true); }
+}
+
+async function loadAffectations() { const { data } = await db.from('atlas_affectations').select('*').eq('ouvrier_id', ouvrierId).order('date_debut', { ascending: false }); affectations = data || []; renderAffectations(); }
+
+function renderAffectations() {
+    const list = document.getElementById('affectations-list');
+    if (!affectations.length) { list.innerHTML = '<div style="color:var(--dim);text-align:center;padding:20px;">Aucune affectation</div>'; return; }
+    list.innerHTML = affectations.map(a => {
+        const project = projects.find(p => p.id === a.project_id); const isActive = !a.date_fin;
+        return `<div class="affectation-item"><div class="affectation-info"><div class="affectation-project">${project?.name || 'Projet inconnu'} ${isActive ? '🟢' : '⚪'}</div><div class="affectation-dates">📅 ${formatDate(a.date_debut)} ${a.date_fin ? '→ ' + formatDate(a.date_fin) : '(en cours)'}${a.taux_journalier ? ' | 💰 ' + a.taux_journalier + ' MAD/j' : ''}${a.role_chantier ? ' | ' + a.role_chantier : ''}</div></div><div class="affectation-actions">${isActive ? `<button class="btn btn-outline btn-small" onclick="endAffectation(${a.id})">Terminer</button>` : ''}<button class="btn btn-danger btn-small" onclick="deleteAffectation(${a.id})">×</button></div></div>`;
+    }).join('');
+}
+
+async function loadPointages() { const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30); const { data } = await db.from('atlas_pointage').select('*').eq('ouvrier_id', ouvrierId).gte('date_pointage', thirtyDaysAgo.toISOString().split('T')[0]).order('date_pointage', { ascending: false }); pointages = data || []; renderPointages(); }
+
+function renderPointages() {
+    const list = document.getElementById('pointage-list');
+    if (!pointages.length) { list.innerHTML = '<div style="color:var(--dim);text-align:center;padding:20px;">Aucun pointage récent</div>'; return; }
+    list.innerHTML = pointages.map(p => { const project = projects.find(pr => pr.id === p.project_id); return `<div class="pointage-item"><div><div class="pointage-date">${formatDate(p.date_pointage)}</div><div class="pointage-details">${project?.name || '-'} | ${p.heures}h</div></div><div style="display:flex;align-items:center;gap:10px;"><span class="pointage-statut statut-${p.statut}">${p.statut}</span>${p.montant_du ? `<span class="pointage-montant">${p.montant_du} MAD</span>` : ''}${p.paye ? ' ✅' : ''}</div></div>`; }).join('');
+}
+
+function toggleEquipeFields() { document.getElementById('equipe-fields').style.display = document.getElementById('type-contrat').value === 'equipe' ? 'block' : 'none'; }
+function selectNiveau(el, val) { document.querySelectorAll('.niveau-option').forEach(o => o.classList.remove('selected')); el.classList.add('selected'); el.querySelector('input').checked = true; }
+function previewPhoto(input) { if (input.files && input.files[0]) { selectedPhotoFile = input.files[0]; const reader = new FileReader(); reader.onload = e => { const preview = document.getElementById('photo-preview'); preview.src = e.target.result; preview.classList.add('visible'); document.getElementById('photo-placeholder').style.display = 'none'; }; reader.readAsDataURL(input.files[0]); } }
+
+document.querySelectorAll('input[name="specialite"]').forEach(cb => { cb.addEventListener('change', () => { document.getElementById('specialite-autre-field').style.display = document.querySelector('input[name="specialite"][value="autre"]').checked ? 'block' : 'none'; }); });
+
+async function saveOuvrier(e) {
+    e.preventDefault(); const btn = document.getElementById('save-btn'); btn.disabled = true; btn.textContent = 'Enregistrement...';
+    const specialites = Array.from(document.querySelectorAll('input[name="specialite"]:checked')).map(cb => cb.value);
+    const niveauInput = document.querySelector('input[name="niveau"]:checked');
+    const data = { nom: document.getElementById('nom').value, prenom: document.getElementById('prenom').value, date_naissance: document.getElementById('date-naissance').value || null, cin: document.getElementById('cin').value, telephone: document.getElementById('telephone').value || null, position: document.getElementById('position').value, specialites: specialites, specialite_autre: document.getElementById('specialite-autre').value || null, type_contrat: document.getElementById('type-contrat').value, chef_equipe_id: document.getElementById('chef-equipe').value || null, entreprise_nom: document.getElementById('entreprise-nom').value || null, niveau_competence: niveauInput ? niveauInput.value : 'basic', notes: document.getElementById('notes').value || null, actif: document.getElementById('actif').checked, updated_at: new Date().toISOString() };
+    try {
+        if (selectedPhotoFile) { const ext = selectedPhotoFile.name.split('.').pop(); const fileName = `cin_${data.cin}_${Date.now()}.${ext}`; const { error: uploadError } = await db.storage.from(STORAGE_BUCKET).upload(fileName, selectedPhotoFile); if (uploadError) throw uploadError; data.cin_photo_path = fileName; }
+        let result; if (ouvrierId) { result = await db.from('atlas_main_oeuvre').update(data).eq('id', ouvrierId); } else { result = await db.from('atlas_main_oeuvre').insert([data]).select(); }
+        if (result.error) throw result.error;
+        showToast('Ouvrier enregistré !');
+        if (!ouvrierId && result.data?.[0]?.id) { setTimeout(() => window.location.href = `./atlas-ouvrier.html?id=${result.data[0].id}`, 1000); }
+    } catch (err) { console.error('Erreur:', err); showToast('Erreur: ' + err.message, true); } finally { btn.disabled = false; btn.textContent = 'Enregistrer'; }
+}
+
+async function deleteOuvrier() {
+    if (!confirm('Supprimer cet ouvrier ? Ses affectations et pointages seront aussi supprimés.')) return;
+    try { await db.from('atlas_pointage').delete().eq('ouvrier_id', ouvrierId); await db.from('atlas_affectations').delete().eq('ouvrier_id', ouvrierId); await db.from('atlas_main_oeuvre').delete().eq('id', ouvrierId); showToast('Ouvrier supprimé'); setTimeout(() => window.location.href = './atlas-ouvriers.html', 1000); } catch (err) { console.error('Erreur:', err); showToast('Erreur suppression', true); }
+}
+
+function toggleAddAffectation() { const form = document.getElementById('add-affectation-form'); form.classList.toggle('visible'); if (form.classList.contains('visible')) { document.getElementById('new-affectation-date').value = new Date().toISOString().split('T')[0]; } }
+
+async function saveAffectation() {
+    const projectId = document.getElementById('new-affectation-project').value;
+    if (!projectId) { showToast('Sélectionnez un projet', true); return; }
+    const data = { ouvrier_id: parseInt(ouvrierId), project_id: parseInt(projectId), date_debut: document.getElementById('new-affectation-date').value || new Date().toISOString().split('T')[0], role_chantier: document.getElementById('new-affectation-role').value || null, taux_journalier: parseFloat(document.getElementById('new-affectation-taux').value) || null };
+    try { const { error } = await db.from('atlas_affectations').insert([data]); if (error) throw error; showToast('Affectation ajoutée'); toggleAddAffectation(); await loadAffectations(); } catch (err) { console.error('Erreur:', err); showToast('Erreur: ' + err.message, true); }
+}
+
+async function endAffectation(id) { if (!confirm('Terminer cette affectation ?')) return; try { await db.from('atlas_affectations').update({ date_fin: new Date().toISOString().split('T')[0] }).eq('id', id); showToast('Affectation terminée'); await loadAffectations(); } catch (err) { showToast('Erreur', true); } }
+async function deleteAffectation(id) { if (!confirm('Supprimer cette affectation ?')) return; try { await db.from('atlas_affectations').delete().eq('id', id); showToast('Affectation supprimée'); await loadAffectations(); } catch (err) { showToast('Erreur', true); } }
+
+function formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }); }
+function showToast(msg, isError = false) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.style.background = isError ? 'var(--danger)' : 'var(--accent2)'; toast.classList.add('visible'); setTimeout(() => toast.classList.remove('visible'), 3000); }
+    </script>
 </body>
 </html>
