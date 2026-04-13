@@ -322,7 +322,7 @@ async function loadData() {
             db.from('atlas_commandes').select('*').eq('id', commandeId).single(),
             db.from('atlas_commande_lignes').select('*').eq('commande_id', commandeId).order('created_at'),
             db.from('atlas_projects').select('id, name').order('name'),
-            db.from('atlas_suppliers').select('id, name').eq('actif', true).order('name')
+            db.from('atlas_fournisseurs').select('id, name').eq('actif', true).order('name')
         ]);
         
         commande = cmdRes.data;
