@@ -322,7 +322,7 @@ async function loadData() {
             db.from('atlas_commandes').select('*').eq('id', commandeId).single(),
             db.from('atlas_commande_lignes').select('*').eq('commande_id', commandeId).order('created_at'),
             db.from('atlas_projects').select('id, name').order('name'),
-            db.from('atlas_fournisseurs').select('id, name').eq('actif', true).order('name')
+            db.from('atlas_fournisseurs').select('id, nom').order('nom')
         ]);
         
         commande = cmdRes.data;
@@ -375,7 +375,7 @@ function renderHeader() {
 }
 
 function populateSuppliers() {
-    const options = '<option value="">-- Sélectionner --</option>' + suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    const options = '<option value="">-- Sélectionner --</option>' + suppliers.map(s => `<option value="${s.id}">${s.nom}</option>`).join('');
     document.getElementById('ligne-fournisseur').innerHTML = options;
     document.getElementById('edit-fournisseur').innerHTML = options;
 }
@@ -400,7 +400,7 @@ function renderLignes() {
         <tr class="${isIncomplete ? 'ligne-incomplete' : ''}" data-id="${l.id}">
             <td>
                 <strong>${l.designation}</strong>
-                ${supplier ? `<br><small style="color:var(--dim);">${supplier.name}</small>` : ''}
+                ${supplier ? `<br><small style="color:var(--dim);">${supplier.nom}</small>` : ''}
                 ${l.reference ? `<br><small style="color:var(--dim);">Réf: ${l.reference}</small>` : ''}
             </td>
             <td>${l.categorie || '-'}</td>
@@ -660,7 +660,7 @@ function generatePDF() {
             ${lignes.map(l => {
                 const s = suppliers.find(sup => sup.id === l.fournisseur_id);
                 return `<tr>
-                    <td>${l.designation}${s ? '<br><small>' + s.name + '</small>' : ''}</td>
+                    <td>${l.designation}${s ? '<br><small>' + s.nom + '</small>' : ''}</td>
                     <td>${l.categorie || '-'}</td>
                     <td>${l.quantite} ${l.unite || ''}</td>
                     <td class="amount">${formatMoney(l.prix_unitaire)}</td>
