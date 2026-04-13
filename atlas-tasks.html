@@ -7,18 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <style>
-        :root { 
-            --bg:#0a0f1a; 
-            --card:#111827; 
-            --accent:#3b82f6; 
-            --accent2:#10b981; 
-            --text:#f3f4f6; 
-            --dim:#9ca3af; 
-            --border:#1f2937; 
-            --danger:#ef4444; 
-            --warn:#f59e0b; 
-            --purple:#8b5cf6;
-        }
+        :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; --purple:#8b5cf6; }
         * { box-sizing:border-box; margin:0; padding:0; }
         body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
         .container { max-width:1400px; margin:0 auto; padding:15px; }
@@ -38,6 +27,15 @@
         .stat-value.orange { color:var(--warn); }
         .stat-value.purple { color:var(--purple); }
         .stat-label { font-size:.75rem; color:var(--dim); margin-top:4px; }
+        
+        .actions-bar { display:flex; justify-content:center; margin-bottom:20px; }
+        .btn { padding:12px 24px; border:none; border-radius:10px; font-weight:600; cursor:pointer; font-size:.9rem; transition:.2s; display:inline-flex; align-items:center; gap:8px; text-decoration:none; }
+        .btn:hover { transform:translateY(-1px); }
+        .btn-primary { background:var(--accent); color:#fff; }
+        .btn-success { background:var(--accent2); color:#fff; }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+        .btn-danger { background:var(--danger); color:#fff; }
+        .btn-small { padding:8px 14px; font-size:.8rem; }
         
         .filters { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; justify-content:center; }
         .filter-btn { padding:10px 18px; background:var(--card); border:1px solid var(--border); border-radius:25px; color:var(--text); cursor:pointer; font-size:.85rem; transition:.2s; }
@@ -66,15 +64,35 @@
         .task-completed-info { display:flex; align-items:center; gap:4px; }
         .task-completed-info span { color:var(--accent2); }
         
-        .priority-high { border-left:3px solid var(--danger); }
-        .priority-medium { border-left:3px solid var(--warn); }
-        .priority-low { border-left:3px solid var(--accent2); }
+        .priority-badge { padding:3px 8px; border-radius:10px; font-size:.7rem; font-weight:600; margin-left:8px; }
+        .priority-high { background:rgba(239,68,68,.2); color:var(--danger); }
+        .priority-medium { background:rgba(245,158,11,.2); color:var(--warn); }
+        .priority-low { background:rgba(16,185,129,.2); color:var(--accent2); }
         
         .empty-state { text-align:center; padding:50px; color:var(--dim); }
         .loading { text-align:center; padding:50px; color:var(--dim); }
         
         .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
         .footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
+        
+        /* Modal */
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85); z-index:1000; justify-content:center; align-items:flex-start; padding:20px; overflow-y:auto; }
+        .modal.visible { display:flex; }
+        .modal-content { background:var(--card); border:1px solid var(--border); border-radius:16px; width:100%; max-width:500px; margin:40px auto; }
+        .modal-header { padding:15px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+        .modal-title { font-size:1.1rem; font-weight:700; }
+        .modal-close { background:none; border:none; color:var(--dim); font-size:1.5rem; cursor:pointer; }
+        .modal-body { padding:20px; }
+        .modal-footer { padding:15px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; }
+        
+        .form-group { margin-bottom:15px; }
+        .form-group label { display:block; font-size:.85rem; color:var(--dim); margin-bottom:6px; }
+        .form-group input, .form-group select, .form-group textarea { width:100%; padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; font-size:.9rem; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:var(--accent); }
+        .form-group textarea { min-height:80px; resize:vertical; }
+        
+        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--accent2); color:#fff; padding:12px 24px; border-radius:10px; font-weight:600; z-index:2000; opacity:0; transition:.3s; }
+        .toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
         
         @media(min-width:768px) { 
             .tasks-grid { grid-template-columns:repeat(2, 1fr); } 
@@ -89,7 +107,7 @@
     <div class="container">
         <div class="top-bar">
             <a href="./atlas-projects.html" class="back-link">← Tous les projets</a>
-            <a href="./" class="back-link">🏠 Alfred Hub</a>
+            <a href="./atlas-backoffice.html" class="back-link">⚙️ Administration</a>
         </div>
         
         <div class="header">
@@ -104,6 +122,10 @@
             <div class="stat-card"><div class="stat-value orange" id="stat-projects">0</div><div class="stat-label">Projets actifs</div></div>
         </div>
         
+        <div class="actions-bar">
+            <button class="btn btn-primary" onclick="openTaskModal()">+ Nouvelle tâche</button>
+        </div>
+        
         <div class="search-box">
             <input type="text" id="search-input" placeholder="🔍 Rechercher des tâches...">
         </div>
@@ -112,7 +134,7 @@
             <button class="filter-btn active" data-filter="all">Toutes</button>
             <button class="filter-btn" data-filter="pending">En cours</button>
             <button class="filter-btn" data-filter="completed">Terminées</button>
-            <button class="filter-btn" data-filter="high-priority">Haute priorité</button>
+            <button class="filter-btn" data-filter="high">Haute priorité</button>
         </div>
         
         <div class="tasks-grid" id="tasks-grid">
@@ -122,9 +144,54 @@
         <div class="footer">
             <a href="./atlas-projects.html">Projets</a>
             <a href="./atlas-backoffice.html">Administration</a>
-            <a href="./">Alfred Hub</a>
         </div>
     </div>
+    
+    <!-- Modal Nouvelle Tâche -->
+    <div class="modal" id="task-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">📋 Nouvelle tâche</h3>
+                <button class="modal-close" onclick="closeTaskModal()">×</button>
+            </div>
+            <form id="task-form" onsubmit="saveTask(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Projet *</label>
+                        <select id="task-project" required>
+                            <option value="">-- Sélectionner un projet --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Titre de la tâche *</label>
+                        <input type="text" id="task-titre" required placeholder="Ex: Commander la colle pour chantier">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="task-description" placeholder="Détails supplémentaires..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Priorité</label>
+                        <select id="task-priority">
+                            <option value="medium">🟡 Moyenne</option>
+                            <option value="high">🔴 Haute</option>
+                            <option value="low">🟢 Basse</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Rappel (optionnel)</label>
+                        <input type="datetime-local" id="task-reminder">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeTaskModal()">Annuler</button>
+                    <button type="submit" class="btn btn-success" id="save-task-btn">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
     
     <script>
 const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
@@ -136,11 +203,15 @@ let allTasks = [], allProjects = [], currentFilter = 'all', searchQuery = '';
 async function loadData() {
     const [tasksRes, projectsRes] = await Promise.all([
         db.from('atlas_taches').select('*').order('created_at', { ascending: false }),
-        db.from('atlas_projects').select('*')
+        db.from('atlas_projects').select('*').order('name')
     ]);
     
     allTasks = tasksRes.data || [];
     allProjects = projectsRes.data || [];
+    
+    const projectSelect = document.getElementById('task-project');
+    projectSelect.innerHTML = '<option value="">-- Sélectionner un projet --</option>' +
+        allProjects.filter(p => p.status !== 'termine').map(p => `<option value="${p.id}">${p.name}</option>`).join('');
     
     renderStats();
     renderTasks();
@@ -172,7 +243,6 @@ function renderStats() {
 function filterTasks(tasks) {
     let filtered = [...tasks];
     
-    // Filtre de recherche
     if (searchQuery) {
         const query = searchQuery.toLowerCase();
         filtered = filtered.filter(task => 
@@ -181,7 +251,6 @@ function filterTasks(tasks) {
         );
     }
     
-    // Filtre par statut
     switch(currentFilter) {
         case 'pending':
             filtered = filtered.filter(t => !t.completed);
@@ -189,9 +258,8 @@ function filterTasks(tasks) {
         case 'completed':
             filtered = filtered.filter(t => t.completed);
             break;
-        case 'high-priority':
-            // Pour l'instant, on considère toutes les tâches comme haute priorité
-            // Vous pouvez ajouter un champ priority dans la base de données
+        case 'high':
+            filtered = filtered.filter(t => t.priority === 'high');
             break;
     }
     
@@ -209,14 +277,15 @@ function renderTasks() {
     
     grid.innerHTML = filteredTasks.map(task => {
         const projectName = getProjectName(task.project_id);
-        const project = allProjects.find(p => p.id === task.project_id);
+        const priorityClass = task.priority ? `priority-${task.priority}` : 'priority-medium';
+        const priorityLabel = task.priority === 'high' ? '🔴 Haute' : task.priority === 'low' ? '🟢 Basse' : '🟡 Moyenne';
         
         return `
         <div class="task-card ${task.completed ? 'completed' : ''}" data-task-id="${task.id}">
             <div class="task-header">
                 <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${task.id}, this.checked)">
                 <div class="task-info">
-                    <div class="task-title">${task.titre}</div>
+                    <div class="task-title">${task.titre}<span class="priority-badge ${priorityClass}">${priorityLabel}</span></div>
                     <a href="./atlas-project.html?id=${task.project_id}" class="task-project">${projectName}</a>
                 </div>
             </div>
@@ -243,7 +312,6 @@ async function toggleTask(taskId, completed) {
     
     try {
         await db.from('atlas_taches').update(updateData).eq('id', taskId);
-        // Mettre à jour localement
         const taskIndex = allTasks.findIndex(t => t.id === taskId);
         if (taskIndex !== -1) {
             allTasks[taskIndex] = { ...allTasks[taskIndex], ...updateData };
@@ -252,13 +320,72 @@ async function toggleTask(taskId, completed) {
         renderTasks();
     } catch (error) {
         console.error('Erreur:', error);
-        // Rétablir l'état précédent
         const checkbox = document.querySelector(`[data-task-id="${taskId}"] .task-checkbox`);
         if (checkbox) checkbox.checked = !completed;
     }
 }
 
-// Event Listeners
+function openTaskModal() {
+    document.getElementById('task-form').reset();
+    document.getElementById('task-modal').classList.add('visible');
+}
+
+function closeTaskModal() {
+    document.getElementById('task-modal').classList.remove('visible');
+}
+
+async function saveTask(e) {
+    e.preventDefault();
+    const btn = document.getElementById('save-task-btn');
+    btn.disabled = true;
+    btn.textContent = 'Enregistrement...';
+    
+    const projectId = document.getElementById('task-project').value;
+    if (!projectId) {
+        showToast('Sélectionnez un projet', true);
+        btn.disabled = false;
+        btn.textContent = 'Enregistrer';
+        return;
+    }
+    
+    const data = {
+        project_id: parseInt(projectId),
+        titre: document.getElementById('task-titre').value,
+        description: document.getElementById('task-description').value || null,
+        priority: document.getElementById('task-priority').value,
+        reminder_datetime: document.getElementById('task-reminder').value || null,
+        completed: false
+    };
+    
+    try {
+        const { data: newTask, error } = await db.from('atlas_taches').insert([data]).select();
+        if (error) throw error;
+        
+        if (newTask && newTask[0]) {
+            allTasks.unshift(newTask[0]);
+        }
+        
+        showToast('Tâche créée !');
+        closeTaskModal();
+        renderStats();
+        renderTasks();
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur: ' + err.message, true);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Enregistrer';
+    }
+}
+
+function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.background = isError ? 'var(--danger)' : 'var(--accent2)';
+    toast.classList.add('visible');
+    setTimeout(() => toast.classList.remove('visible'), 3000);
+}
+
 document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -273,10 +400,7 @@ document.getElementById('search-input').addEventListener('input', (e) => {
     renderTasks();
 });
 
-// Chargement initial
 loadData();
-
-// Auto-refresh toutes les 30 secondes
 setInterval(loadData, 30000);
     </script>
 </body>

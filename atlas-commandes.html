@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Commandes - Atlas Pose</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; --purple:#8b5cf6; --orange:#f97316; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+        .container { max-width:1400px; margin:0 auto; padding:15px; }
+        
+        .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px; padding:12px; background:var(--card); border-radius:12px; border:1px solid var(--border); }
+        .back-link { display:inline-flex; align-items:center; gap:6px; color:var(--accent); text-decoration:none; font-size:.85rem; padding:8px 12px; background:rgba(59,130,246,.1); border-radius:8px; }
+        
+        .header { text-align:center; padding:20px 15px 30px; }
+        .header h1 { font-size:2rem; margin-bottom:8px; display:flex; align-items:center; justify-content:center; gap:10px; }
+        .header p { color:var(--dim); font-size:1rem; }
+        
+        .stats-row { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:25px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; text-align:center; }
+        .stat-value { font-size:1.5rem; font-weight:800; }
+        .stat-value.blue { color:var(--accent); }
+        .stat-value.green { color:var(--accent2); }
+        .stat-value.orange { color:var(--warn); }
+        .stat-value.purple { color:var(--purple); }
+        .stat-label { font-size:.75rem; color:var(--dim); margin-top:4px; }
+        
+        .actions-bar { display:flex; justify-content:center; margin-bottom:20px; gap:10px; flex-wrap:wrap; }
+        .btn { padding:12px 24px; border:none; border-radius:10px; font-weight:600; cursor:pointer; font-size:.9rem; transition:.2s; display:inline-flex; align-items:center; gap:8px; text-decoration:none; }
+        .btn:hover { transform:translateY(-1px); }
+        .btn-primary { background:var(--accent); color:#fff; }
+        .btn-success { background:var(--accent2); color:#fff; }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+        .btn-danger { background:var(--danger); color:#fff; }
+        .btn-small { padding:8px 14px; font-size:.8rem; }
+        
+        .filters { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; justify-content:center; }
+        .filter-btn { padding:10px 18px; background:var(--card); border:1px solid var(--border); border-radius:25px; color:var(--text); cursor:pointer; font-size:.85rem; transition:.2s; }
+        .filter-btn:hover, .filter-btn.active { background:var(--accent); border-color:var(--accent); }
+        
+        .search-box { width:100%; max-width:400px; margin:0 auto 20px; position:relative; }
+        .search-box input { width:100%; padding:12px 15px; background:var(--card); border:1px solid var(--border); border-radius:25px; color:#fff; font-size:.9rem; }
+        .search-box input:focus { outline:none; border-color:var(--accent); }
+        
+        .commandes-grid { display:grid; grid-template-columns:1fr; gap:15px; }
+        
+        .commande-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:18px; transition:.3s; cursor:pointer; }
+        .commande-card:hover { transform:translateY(-2px); box-shadow:0 5px 20px rgba(0,0,0,.3); border-color:var(--accent); }
+        
+        .commande-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap; gap:10px; }
+        .commande-numero { font-size:.8rem; color:var(--dim); font-family:monospace; }
+        .commande-titre { font-size:1.1rem; font-weight:700; margin-top:4px; }
+        .commande-statut { padding:5px 12px; border-radius:20px; font-size:.75rem; font-weight:600; }
+        .statut-brouillon { background:rgba(156,163,175,.2); color:var(--dim); }
+        .statut-validee { background:rgba(59,130,246,.2); color:var(--accent); }
+        .statut-recue { background:rgba(16,185,129,.2); color:var(--accent2); }
+        .statut-annulee { background:rgba(239,68,68,.2); color:var(--danger); }
+        
+        .commande-info { display:flex; flex-wrap:wrap; gap:15px; font-size:.85rem; color:var(--dim); margin-bottom:12px; }
+        .commande-info span { display:flex; align-items:center; gap:4px; }
+        
+        .commande-footer { display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid var(--border); }
+        .commande-montant { font-size:1.1rem; font-weight:700; color:var(--accent2); }
+        .commande-lignes { font-size:.8rem; color:var(--dim); }
+        
+        .empty-state { text-align:center; padding:50px; color:var(--dim); }
+        .loading { text-align:center; padding:50px; color:var(--dim); }
+        
+        .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
+        .footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
+        
+        /* Modal */
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85); z-index:1000; justify-content:center; align-items:flex-start; padding:20px; overflow-y:auto; }
+        .modal.visible { display:flex; }
+        .modal-content { background:var(--card); border:1px solid var(--border); border-radius:16px; width:100%; max-width:500px; margin:40px auto; }
+        .modal-header { padding:15px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+        .modal-title { font-size:1.1rem; font-weight:700; }
+        .modal-close { background:none; border:none; color:var(--dim); font-size:1.5rem; cursor:pointer; }
+        .modal-body { padding:20px; }
+        .modal-footer { padding:15px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; }
+        
+        .form-group { margin-bottom:15px; }
+        .form-group label { display:block; font-size:.85rem; color:var(--dim); margin-bottom:6px; }
+        .form-group input, .form-group select, .form-group textarea { width:100%; padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; font-size:.9rem; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:var(--accent); }
+        .form-group textarea { min-height:80px; resize:vertical; }
+        
+        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--accent2); color:#fff; padding:12px 24px; border-radius:10px; font-weight:600; z-index:2000; opacity:0; transition:.3s; }
+        .toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
+        
+        @media(min-width:768px) { 
+            .commandes-grid { grid-template-columns:repeat(2, 1fr); } 
+            .stats-row { grid-template-columns:repeat(4, 1fr); } 
+        }
+        @media(min-width:1024px) { 
+            .commandes-grid { grid-template-columns:repeat(3, 1fr); } 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <a href="./atlas-projects.html" class="back-link">← Projets</a>
+            <a href="./atlas-backoffice.html" class="back-link">⚙️ Administration</a>
+        </div>
+        
+        <div class="header">
+            <h1>📦 Commandes</h1>
+            <p>Gestion des achats et approvisionnements</p>
+        </div>
+        
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-value blue" id="stat-total">0</div><div class="stat-label">Commandes</div></div>
+            <div class="stat-card"><div class="stat-value orange" id="stat-brouillon">0</div><div class="stat-label">Brouillons</div></div>
+            <div class="stat-card"><div class="stat-value purple" id="stat-validee">0</div><div class="stat-label">Validées</div></div>
+            <div class="stat-card"><div class="stat-value green" id="stat-recue">0</div><div class="stat-label">Reçues</div></div>
+        </div>
+        
+        <div class="actions-bar">
+            <button class="btn btn-primary" onclick="openNewCommandeModal()">+ Nouvelle commande</button>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="🔍 Rechercher une commande...">
+        </div>
+        
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">Toutes</button>
+            <button class="filter-btn" data-filter="brouillon">Brouillons</button>
+            <button class="filter-btn" data-filter="validee">Validées</button>
+            <button class="filter-btn" data-filter="recue">Reçues</button>
+        </div>
+        
+        <div class="commandes-grid" id="commandes-grid">
+            <div class="loading">Chargement des commandes...</div>
+        </div>
+        
+        <div class="footer">
+            <a href="./atlas-projects.html">Projets</a>
+            <a href="./atlas-backoffice.html">Administration</a>
+        </div>
+    </div>
+    
+    <!-- Modal Nouvelle Commande -->
+    <div class="modal" id="commande-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">📦 Nouvelle commande</h3>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <form id="commande-form" onsubmit="createCommande(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Projet (optionnel)</label>
+                        <select id="cmd-project">
+                            <option value="">-- Aucun projet --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Titre / Besoin *</label>
+                        <input type="text" id="cmd-titre" required placeholder="Ex: Colle, gilets, teflon pour chantier X">
+                    </div>
+                    <div class="form-group">
+                        <label>Demandeur</label>
+                        <input type="text" id="cmd-demandeur" placeholder="Ex: Chef chantier Ahmed">
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="cmd-notes" placeholder="Détails supplémentaires..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-success" id="save-btn">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let commandes = [], projects = [], currentFilter = 'all', searchQuery = '';
+
+async function loadData() {
+    try {
+        const [cmdRes, projRes] = await Promise.all([
+            db.from('atlas_commandes').select('*').order('created_at', { ascending: false }),
+            db.from('atlas_projects').select('id, name, status').order('name')
+        ]);
+        
+        commandes = cmdRes.data || [];
+        projects = projRes.data || [];
+        
+        // Charger les totaux pour chaque commande
+        for (let cmd of commandes) {
+            const { data: lignes } = await db.from('atlas_commande_lignes').select('montant').eq('commande_id', cmd.id);
+            cmd.montant_total = (lignes || []).reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
+            cmd.nb_lignes = (lignes || []).length;
+        }
+        
+        document.getElementById('cmd-project').innerHTML = '<option value="">-- Aucun projet --</option>' +
+            projects.filter(p => p.status !== 'termine').map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        
+        renderStats();
+        renderCommandes();
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur de chargement', true);
+    }
+}
+
+function formatDate(d) {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+function formatMoney(n) {
+    return new Intl.NumberFormat('fr-MA', { minimumFractionDigits:0 }).format(n || 0) + ' DH';
+}
+
+function getProjectName(projectId) {
+    const project = projects.find(p => p.id === projectId);
+    return project ? project.name : null;
+}
+
+function renderStats() {
+    document.getElementById('stat-total').textContent = commandes.length;
+    document.getElementById('stat-brouillon').textContent = commandes.filter(c => c.statut === 'brouillon').length;
+    document.getElementById('stat-validee').textContent = commandes.filter(c => c.statut === 'validee').length;
+    document.getElementById('stat-recue').textContent = commandes.filter(c => c.statut === 'recue').length;
+}
+
+function filterCommandes() {
+    let filtered = [...commandes];
+    
+    if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        filtered = filtered.filter(c => 
+            c.titre.toLowerCase().includes(q) || 
+            (c.numero && c.numero.toLowerCase().includes(q)) ||
+            (c.demandeur && c.demandeur.toLowerCase().includes(q))
+        );
+    }
+    
+    if (currentFilter !== 'all') {
+        filtered = filtered.filter(c => c.statut === currentFilter);
+    }
+    
+    return filtered;
+}
+
+function renderCommandes() {
+    const filtered = filterCommandes();
+    const grid = document.getElementById('commandes-grid');
+    
+    if (!filtered.length) {
+        grid.innerHTML = '<div class="empty-state">Aucune commande trouvée</div>';
+        return;
+    }
+    
+    grid.innerHTML = filtered.map(c => {
+        const projectName = getProjectName(c.project_id);
+        const statutLabel = { brouillon: '📝 Brouillon', validee: '✅ Validée', recue: '📦 Reçue', annulee: '❌ Annulée' }[c.statut] || c.statut;
+        
+        return `
+        <div class="commande-card" onclick="location.href='./atlas-commande.html?id=${c.id}'">
+            <div class="commande-header">
+                <div>
+                    <div class="commande-numero">${c.numero || 'CMD-???'}</div>
+                    <div class="commande-titre">${c.titre}</div>
+                </div>
+                <span class="commande-statut statut-${c.statut}">${statutLabel}</span>
+            </div>
+            <div class="commande-info">
+                <span>📅 ${formatDate(c.date_demande)}</span>
+                ${projectName ? `<span>🏗️ ${projectName}</span>` : ''}
+                ${c.demandeur ? `<span>👤 ${c.demandeur}</span>` : ''}
+            </div>
+            <div class="commande-footer">
+                <span class="commande-montant">${formatMoney(c.montant_total)}</span>
+                <span class="commande-lignes">${c.nb_lignes || 0} article${(c.nb_lignes || 0) > 1 ? 's' : ''}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function openNewCommandeModal() {
+    document.getElementById('commande-form').reset();
+    document.getElementById('commande-modal').classList.add('visible');
+}
+
+function closeModal() {
+    document.getElementById('commande-modal').classList.remove('visible');
+}
+
+async function createCommande(e) {
+    e.preventDefault();
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Création...';
+    
+    const data = {
+        titre: document.getElementById('cmd-titre').value,
+        project_id: document.getElementById('cmd-project').value || null,
+        demandeur: document.getElementById('cmd-demandeur').value || null,
+        notes: document.getElementById('cmd-notes').value || null,
+        statut: 'brouillon',
+        date_demande: new Date().toISOString().split('T')[0]
+    };
+    
+    try {
+        const { data: newCmd, error } = await db.from('atlas_commandes').insert([data]).select();
+        if (error) throw error;
+        
+        // Créer une tâche automatique
+        if (newCmd && newCmd[0]) {
+            const tacheData = {
+                project_id: data.project_id ? parseInt(data.project_id) : null,
+                titre: `Compléter commande: ${data.titre}`,
+                description: `Ajouter les détails (fournisseur, quantités, prix) pour la commande ${newCmd[0].numero || '#' + newCmd[0].id}`,
+                priority: 'high',
+                source: 'commande',
+                source_id: newCmd[0].id,
+                completed: false
+            };
+            await db.from('atlas_taches').insert([tacheData]);
+        }
+        
+        showToast('Commande créée !');
+        closeModal();
+        
+        if (newCmd && newCmd[0]) {
+            setTimeout(() => location.href = `./atlas-commande.html?id=${newCmd[0].id}`, 500);
+        }
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur: ' + err.message, true);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Créer';
+    }
+}
+
+function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.background = isError ? 'var(--danger)' : 'var(--accent2)';
+    toast.classList.add('visible');
+    setTimeout(() => toast.classList.remove('visible'), 3000);
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderCommandes();
+    });
+});
+
+document.getElementById('search-input').addEventListener('input', (e) => {
+    searchQuery = e.target.value.trim();
+    renderCommandes();
+});
+
+loadData();
+setInterval(loadData, 60000);
+    </script>
+</body>
+</html>

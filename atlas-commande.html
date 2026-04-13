@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Commande - Atlas Pose</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; --purple:#8b5cf6; --orange:#f97316; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+        .container { max-width:1000px; margin:0 auto; padding:15px; }
+        
+        .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px; padding:12px; background:var(--card); border-radius:12px; border:1px solid var(--border); }
+        .back-link { display:inline-flex; align-items:center; gap:6px; color:var(--accent); text-decoration:none; font-size:.85rem; padding:8px 12px; background:rgba(59,130,246,.1); border-radius:8px; }
+        
+        .header { padding:20px 15px 30px; }
+        .header-top { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:15px; margin-bottom:15px; }
+        .header h1 { font-size:1.8rem; margin-bottom:5px; }
+        .header-numero { font-family:monospace; color:var(--dim); font-size:.9rem; }
+        .header-statut { padding:8px 16px; border-radius:20px; font-size:.85rem; font-weight:600; }
+        .statut-brouillon { background:rgba(156,163,175,.2); color:var(--dim); }
+        .statut-validee { background:rgba(59,130,246,.2); color:var(--accent); }
+        .statut-recue { background:rgba(16,185,129,.2); color:var(--accent2); }
+        .statut-annulee { background:rgba(239,68,68,.2); color:var(--danger); }
+        
+        .header-info { display:flex; flex-wrap:wrap; gap:20px; color:var(--dim); font-size:.9rem; }
+        .header-info span { display:flex; align-items:center; gap:6px; }
+        
+        .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:20px; }
+        .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px; }
+        .section-title { font-size:1rem; font-weight:700; display:flex; align-items:center; gap:8px; }
+        
+        .btn { padding:10px 18px; border:none; border-radius:10px; font-weight:600; cursor:pointer; font-size:.85rem; transition:.2s; display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
+        .btn:hover { transform:translateY(-1px); }
+        .btn-primary { background:var(--accent); color:#fff; }
+        .btn-success { background:var(--accent2); color:#fff; }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+        .btn-danger { background:var(--danger); color:#fff; }
+        .btn-warn { background:var(--warn); color:#fff; }
+        .btn-small { padding:6px 12px; font-size:.8rem; }
+        .btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+        
+        .form-group { margin-bottom:15px; }
+        .form-group label { display:block; font-size:.85rem; color:var(--dim); margin-bottom:6px; }
+        .form-group input, .form-group select, .form-group textarea { width:100%; padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:#fff; font-size:.9rem; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:var(--accent); }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
+        
+        /* Table lignes */
+        .lignes-table { width:100%; border-collapse:collapse; margin-top:15px; }
+        .lignes-table th, .lignes-table td { padding:12px 10px; text-align:left; border-bottom:1px solid var(--border); }
+        .lignes-table th { font-size:.75rem; color:var(--dim); font-weight:600; text-transform:uppercase; }
+        .lignes-table td { font-size:.9rem; }
+        .lignes-table tr:hover { background:rgba(59,130,246,.05); }
+        .lignes-table .amount { text-align:right; font-weight:600; }
+        .lignes-table .actions { text-align:right; }
+        .ligne-incomplete { background:rgba(245,158,11,.1); }
+        
+        .total-row { background:var(--bg); font-weight:700; }
+        .total-row td { border-bottom:none; padding-top:15px; }
+        
+        /* Add ligne form */
+        .add-ligne-form { background:var(--bg); padding:15px; border-radius:12px; margin-top:15px; display:none; }
+        .add-ligne-form.visible { display:block; }
+        .add-ligne-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .add-ligne-grid .full { grid-column:1/-1; }
+        
+        /* Actions footer */
+        .actions-footer { display:flex; gap:12px; justify-content:flex-end; flex-wrap:wrap; margin-top:20px; padding-top:20px; border-top:1px solid var(--border); }
+        
+        /* Modal */
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85); z-index:1000; justify-content:center; align-items:flex-start; padding:20px; overflow-y:auto; }
+        .modal.visible { display:flex; }
+        .modal-content { background:var(--card); border:1px solid var(--border); border-radius:16px; width:100%; max-width:500px; margin:40px auto; }
+        .modal-header { padding:15px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+        .modal-title { font-size:1.1rem; font-weight:700; }
+        .modal-close { background:none; border:none; color:var(--dim); font-size:1.5rem; cursor:pointer; }
+        .modal-body { padding:20px; }
+        .modal-footer { padding:15px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; }
+        
+        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--accent2); color:#fff; padding:12px 24px; border-radius:10px; font-weight:600; z-index:2000; opacity:0; transition:.3s; }
+        .toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
+        
+        .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
+        .footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
+        
+        .livraison-toggle { display:flex; align-items:center; gap:10px; padding:15px; background:var(--bg); border-radius:10px; margin-top:15px; }
+        .livraison-toggle input { width:20px; height:20px; accent-color:var(--accent2); }
+        
+        @media(max-width:600px) { 
+            .form-row, .add-ligne-grid { grid-template-columns:1fr; }
+            .lignes-table { font-size:.8rem; }
+            .lignes-table th, .lignes-table td { padding:8px 5px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <a href="./atlas-commandes.html" class="back-link">← Toutes les commandes</a>
+            <a href="./atlas-backoffice.html" class="back-link">⚙️ Admin</a>
+        </div>
+        
+        <div class="header" id="header">
+            <div class="header-top">
+                <div>
+                    <h1 id="cmd-titre">Chargement...</h1>
+                    <div class="header-numero" id="cmd-numero"></div>
+                </div>
+                <span class="header-statut" id="cmd-statut"></span>
+            </div>
+            <div class="header-info">
+                <span id="cmd-date">📅 -</span>
+                <span id="cmd-project">🏗️ -</span>
+                <span id="cmd-demandeur">👤 -</span>
+            </div>
+        </div>
+        
+        <!-- Section Lignes de commande -->
+        <div class="section">
+            <div class="section-header">
+                <h3 class="section-title">📋 Articles commandés</h3>
+                <button class="btn btn-primary btn-small" onclick="toggleAddLigne()" id="add-ligne-btn">+ Ajouter article</button>
+            </div>
+            
+            <table class="lignes-table">
+                <thead>
+                    <tr>
+                        <th>Désignation</th>
+                        <th>Catégorie</th>
+                        <th>Qté</th>
+                        <th class="amount">P.U.</th>
+                        <th class="amount">Montant</th>
+                        <th class="actions"></th>
+                    </tr>
+                </thead>
+                <tbody id="lignes-tbody">
+                    <tr><td colspan="6" style="text-align:center;color:var(--dim);padding:30px;">Chargement...</td></tr>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="4"><strong>TOTAL</strong></td>
+                        <td class="amount" id="total-montant">0 DH</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <!-- Formulaire ajout ligne -->
+            <div class="add-ligne-form" id="add-ligne-form">
+                <div class="add-ligne-grid">
+                    <div class="form-group full">
+                        <label>Désignation *</label>
+                        <input type="text" id="ligne-designation" placeholder="Ex: Colle à carrelage 25kg">
+                    </div>
+                    <div class="form-group">
+                        <label>Catégorie</label>
+                        <select id="ligne-categorie">
+                            <option value="">-- Sélectionner --</option>
+                            <option value="Matériaux">🧱 Matériaux</option>
+                            <option value="Outillage">🔧 Outillage</option>
+                            <option value="Consommables">📦 Consommables</option>
+                            <option value="EPI">🦺 EPI (Sécurité)</option>
+                            <option value="Transport">🚚 Transport</option>
+                            <option value="Location">🏗️ Location</option>
+                            <option value="Sous-traitance">👷 Sous-traitance</option>
+                            <option value="Autre">📝 Autre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fournisseur</label>
+                        <select id="ligne-fournisseur">
+                            <option value="">-- Sélectionner --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantité</label>
+                        <input type="number" id="ligne-quantite" value="1" min="0.01" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Unité</label>
+                        <select id="ligne-unite">
+                            <option value="unité">Unité</option>
+                            <option value="kg">Kg</option>
+                            <option value="m²">m²</option>
+                            <option value="ml">ml</option>
+                            <option value="sac">Sac</option>
+                            <option value="carton">Carton</option>
+                            <option value="palette">Palette</option>
+                            <option value="lot">Lot</option>
+                            <option value="forfait">Forfait</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Prix unitaire (DH)</label>
+                        <input type="number" id="ligne-prix" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Référence</label>
+                        <input type="text" id="ligne-reference" placeholder="Réf. fournisseur">
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:15px;">
+                    <button class="btn btn-success btn-small" onclick="saveLigne()">Enregistrer</button>
+                    <button class="btn btn-outline btn-small" onclick="toggleAddLigne()">Annuler</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section Notes -->
+        <div class="section">
+            <h3 class="section-title">📝 Notes</h3>
+            <textarea id="cmd-notes" style="width:100%;min-height:80px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:#fff;resize:vertical;" placeholder="Notes de la commande..."></textarea>
+            <button class="btn btn-outline btn-small" style="margin-top:10px;" onclick="saveNotes()">Sauvegarder notes</button>
+        </div>
+        
+        <!-- Section Livraison -->
+        <div class="section" id="livraison-section" style="display:none;">
+            <h3 class="section-title">📦 Livraison</h3>
+            <div class="livraison-toggle">
+                <input type="checkbox" id="cmd-livree" onchange="toggleLivraison()">
+                <label for="cmd-livree">Commande livrée / reçue</label>
+            </div>
+            <div class="form-group" id="date-livraison-group" style="display:none;margin-top:15px;">
+                <label>Date de livraison</label>
+                <input type="date" id="cmd-date-livraison">
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="actions-footer" id="actions-footer">
+            <button class="btn btn-outline" onclick="history.back()">Retour</button>
+            <button class="btn btn-danger" id="btn-annuler" onclick="annulerCommande()" style="display:none;">Annuler commande</button>
+            <button class="btn btn-success" id="btn-valider" onclick="validerCommande()">✅ Valider la commande</button>
+            <button class="btn btn-primary" id="btn-pdf" onclick="generatePDF()" style="display:none;">📄 Générer PDF</button>
+        </div>
+        
+        <div class="footer">
+            <a href="./atlas-commandes.html">Commandes</a>
+            <a href="./atlas-projects.html">Projets</a>
+        </div>
+    </div>
+    
+    <!-- Modal édition ligne -->
+    <div class="modal" id="edit-ligne-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">✏️ Modifier article</h3>
+                <button class="modal-close" onclick="closeEditModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-ligne-id">
+                <div class="form-group">
+                    <label>Désignation *</label>
+                    <input type="text" id="edit-designation">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Catégorie</label>
+                        <select id="edit-categorie">
+                            <option value="">-- Sélectionner --</option>
+                            <option value="Matériaux">🧱 Matériaux</option>
+                            <option value="Outillage">🔧 Outillage</option>
+                            <option value="Consommables">📦 Consommables</option>
+                            <option value="EPI">🦺 EPI</option>
+                            <option value="Transport">🚚 Transport</option>
+                            <option value="Location">🏗️ Location</option>
+                            <option value="Sous-traitance">👷 Sous-traitance</option>
+                            <option value="Autre">📝 Autre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fournisseur</label>
+                        <select id="edit-fournisseur"></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Quantité</label>
+                        <input type="number" id="edit-quantite" min="0.01" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Prix unitaire (DH)</label>
+                        <input type="number" id="edit-prix" min="0" step="0.01">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Référence</label>
+                    <input type="text" id="edit-reference">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeEditModal()">Annuler</button>
+                <button class="btn btn-success" onclick="updateLigne()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const CATEGORIES = ['Matériaux', 'Outillage', 'Consommables', 'EPI', 'Transport', 'Location', 'Sous-traitance', 'Autre'];
+
+let commandeId = null, commande = null, lignes = [], projects = [], suppliers = [];
+
+async function init() {
+    commandeId = new URLSearchParams(location.search).get('id');
+    if (!commandeId) { location.href = './atlas-commandes.html'; return; }
+    
+    await loadData();
+}
+
+async function loadData() {
+    try {
+        const [cmdRes, lignesRes, projRes, suppRes] = await Promise.all([
+            db.from('atlas_commandes').select('*').eq('id', commandeId).single(),
+            db.from('atlas_commande_lignes').select('*').eq('commande_id', commandeId).order('created_at'),
+            db.from('atlas_projects').select('id, name').order('name'),
+            db.from('atlas_suppliers').select('id, name').eq('actif', true).order('name')
+        ]);
+        
+        commande = cmdRes.data;
+        lignes = lignesRes.data || [];
+        projects = projRes.data || [];
+        suppliers = suppRes.data || [];
+        
+        if (!commande) { showToast('Commande introuvable', true); return; }
+        
+        renderHeader();
+        renderLignes();
+        populateSuppliers();
+        updateUI();
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur de chargement', true);
+    }
+}
+
+function formatDate(d) {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+function formatMoney(n) {
+    return new Intl.NumberFormat('fr-MA', { minimumFractionDigits:0 }).format(n || 0) + ' DH';
+}
+
+function renderHeader() {
+    document.getElementById('cmd-titre').textContent = commande.titre;
+    document.getElementById('cmd-numero').textContent = commande.numero || 'CMD-' + commande.id;
+    
+    const statutLabels = { brouillon: '📝 Brouillon', validee: '✅ Validée', recue: '📦 Reçue', annulee: '❌ Annulée' };
+    const statutEl = document.getElementById('cmd-statut');
+    statutEl.textContent = statutLabels[commande.statut] || commande.statut;
+    statutEl.className = 'header-statut statut-' + commande.statut;
+    
+    document.getElementById('cmd-date').textContent = '📅 ' + formatDate(commande.date_demande);
+    
+    const project = projects.find(p => p.id === commande.project_id);
+    document.getElementById('cmd-project').textContent = project ? '🏗️ ' + project.name : '';
+    document.getElementById('cmd-project').style.display = project ? 'flex' : 'none';
+    
+    document.getElementById('cmd-demandeur').textContent = commande.demandeur ? '👤 ' + commande.demandeur : '';
+    document.getElementById('cmd-demandeur').style.display = commande.demandeur ? 'flex' : 'none';
+    
+    document.getElementById('cmd-notes').value = commande.notes || '';
+    document.getElementById('cmd-livree').checked = commande.livree || false;
+    document.getElementById('cmd-date-livraison').value = commande.date_livraison || '';
+}
+
+function populateSuppliers() {
+    const options = '<option value="">-- Sélectionner --</option>' + suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    document.getElementById('ligne-fournisseur').innerHTML = options;
+    document.getElementById('edit-fournisseur').innerHTML = options;
+}
+
+function renderLignes() {
+    const tbody = document.getElementById('lignes-tbody');
+    
+    if (!lignes.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:30px;">Aucun article. Cliquez sur "+ Ajouter article" pour commencer.</td></tr>';
+        document.getElementById('total-montant').textContent = '0 DH';
+        return;
+    }
+    
+    let total = 0;
+    tbody.innerHTML = lignes.map(l => {
+        const supplier = suppliers.find(s => s.id === l.fournisseur_id);
+        const montant = parseFloat(l.montant) || 0;
+        total += montant;
+        const isIncomplete = !l.prix_unitaire || !l.fournisseur_id;
+        
+        return `
+        <tr class="${isIncomplete ? 'ligne-incomplete' : ''}" data-id="${l.id}">
+            <td>
+                <strong>${l.designation}</strong>
+                ${supplier ? `<br><small style="color:var(--dim);">${supplier.name}</small>` : ''}
+                ${l.reference ? `<br><small style="color:var(--dim);">Réf: ${l.reference}</small>` : ''}
+            </td>
+            <td>${l.categorie || '-'}</td>
+            <td>${l.quantite || 1} ${l.unite || ''}</td>
+            <td class="amount">${l.prix_unitaire ? formatMoney(l.prix_unitaire) : '<span style="color:var(--warn);">À définir</span>'}</td>
+            <td class="amount">${montant ? formatMoney(montant) : '-'}</td>
+            <td class="actions">
+                <button class="btn btn-outline btn-small" onclick="editLigne(${l.id})" ${commande.statut !== 'brouillon' ? 'disabled' : ''}>✏️</button>
+                <button class="btn btn-danger btn-small" onclick="deleteLigne(${l.id})" ${commande.statut !== 'brouillon' ? 'disabled' : ''}>×</button>
+            </td>
+        </tr>`;
+    }).join('');
+    
+    document.getElementById('total-montant').textContent = formatMoney(total);
+}
+
+function updateUI() {
+    const isBrouillon = commande.statut === 'brouillon';
+    const isValidee = commande.statut === 'validee';
+    const isRecue = commande.statut === 'recue';
+    
+    // Boutons actions
+    document.getElementById('add-ligne-btn').style.display = isBrouillon ? 'inline-flex' : 'none';
+    document.getElementById('btn-valider').style.display = isBrouillon ? 'inline-flex' : 'none';
+    document.getElementById('btn-annuler').style.display = isBrouillon ? 'inline-flex' : 'none';
+    document.getElementById('btn-pdf').style.display = (isValidee || isRecue) ? 'inline-flex' : 'none';
+    
+    // Section livraison
+    document.getElementById('livraison-section').style.display = isValidee ? 'block' : 'none';
+    document.getElementById('date-livraison-group').style.display = commande.livree ? 'block' : 'none';
+}
+
+function toggleAddLigne() {
+    const form = document.getElementById('add-ligne-form');
+    form.classList.toggle('visible');
+    if (form.classList.contains('visible')) {
+        document.getElementById('ligne-designation').value = '';
+        document.getElementById('ligne-quantite').value = '1';
+        document.getElementById('ligne-prix').value = '';
+        document.getElementById('ligne-reference').value = '';
+        document.getElementById('ligne-categorie').value = '';
+        document.getElementById('ligne-fournisseur').value = '';
+        document.getElementById('ligne-designation').focus();
+    }
+}
+
+async function saveLigne() {
+    const designation = document.getElementById('ligne-designation').value.trim();
+    if (!designation) { showToast('Désignation obligatoire', true); return; }
+    
+    const data = {
+        commande_id: parseInt(commandeId),
+        designation: designation,
+        categorie: document.getElementById('ligne-categorie').value || null,
+        fournisseur_id: document.getElementById('ligne-fournisseur').value || null,
+        quantite: parseFloat(document.getElementById('ligne-quantite').value) || 1,
+        unite: document.getElementById('ligne-unite').value || 'unité',
+        prix_unitaire: parseFloat(document.getElementById('ligne-prix').value) || null,
+        reference: document.getElementById('ligne-reference').value || null
+    };
+    
+    // Calcul montant
+    if (data.prix_unitaire && data.quantite) {
+        data.montant = data.quantite * data.prix_unitaire;
+    }
+    
+    try {
+        const { error } = await db.from('atlas_commande_lignes').insert([data]);
+        if (error) throw error;
+        
+        showToast('Article ajouté');
+        toggleAddLigne();
+        await loadData();
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur: ' + err.message, true);
+    }
+}
+
+function editLigne(id) {
+    const ligne = lignes.find(l => l.id === id);
+    if (!ligne) return;
+    
+    document.getElementById('edit-ligne-id').value = id;
+    document.getElementById('edit-designation').value = ligne.designation;
+    document.getElementById('edit-categorie').value = ligne.categorie || '';
+    document.getElementById('edit-fournisseur').value = ligne.fournisseur_id || '';
+    document.getElementById('edit-quantite').value = ligne.quantite || 1;
+    document.getElementById('edit-prix').value = ligne.prix_unitaire || '';
+    document.getElementById('edit-reference').value = ligne.reference || '';
+    
+    document.getElementById('edit-ligne-modal').classList.add('visible');
+}
+
+function closeEditModal() {
+    document.getElementById('edit-ligne-modal').classList.remove('visible');
+}
+
+async function updateLigne() {
+    const id = document.getElementById('edit-ligne-id').value;
+    const quantite = parseFloat(document.getElementById('edit-quantite').value) || 1;
+    const prix = parseFloat(document.getElementById('edit-prix').value) || null;
+    
+    const data = {
+        designation: document.getElementById('edit-designation').value,
+        categorie: document.getElementById('edit-categorie').value || null,
+        fournisseur_id: document.getElementById('edit-fournisseur').value || null,
+        quantite: quantite,
+        prix_unitaire: prix,
+        reference: document.getElementById('edit-reference').value || null,
+        montant: (prix && quantite) ? prix * quantite : null
+    };
+    
+    try {
+        const { error } = await db.from('atlas_commande_lignes').update(data).eq('id', id);
+        if (error) throw error;
+        
+        showToast('Article mis à jour');
+        closeEditModal();
+        await loadData();
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur: ' + err.message, true);
+    }
+}
+
+async function deleteLigne(id) {
+    if (!confirm('Supprimer cet article ?')) return;
+    
+    try {
+        const { error } = await db.from('atlas_commande_lignes').delete().eq('id', id);
+        if (error) throw error;
+        
+        showToast('Article supprimé');
+        await loadData();
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur', true);
+    }
+}
+
+async function saveNotes() {
+    try {
+        await db.from('atlas_commandes').update({ notes: document.getElementById('cmd-notes').value }).eq('id', commandeId);
+        showToast('Notes sauvegardées');
+    } catch (err) {
+        showToast('Erreur', true);
+    }
+}
+
+async function toggleLivraison() {
+    const livree = document.getElementById('cmd-livree').checked;
+    document.getElementById('date-livraison-group').style.display = livree ? 'block' : 'none';
+    
+    const data = { livree: livree };
+    if (livree) {
+        data.date_livraison = document.getElementById('cmd-date-livraison').value || new Date().toISOString().split('T')[0];
+        data.statut = 'recue';
+    }
+    
+    try {
+        await db.from('atlas_commandes').update(data).eq('id', commandeId);
+        showToast(livree ? 'Commande marquée reçue' : 'Livraison annulée');
+        await loadData();
+    } catch (err) {
+        showToast('Erreur', true);
+    }
+}
+
+async function validerCommande() {
+    // Vérifier que toutes les lignes sont complètes
+    const incomplete = lignes.filter(l => !l.prix_unitaire || !l.fournisseur_id);
+    if (incomplete.length > 0) {
+        showToast(`${incomplete.length} article(s) incomplet(s). Remplissez tous les prix et fournisseurs.`, true);
+        return;
+    }
+    
+    if (lignes.length === 0) {
+        showToast('Ajoutez au moins un article', true);
+        return;
+    }
+    
+    if (!confirm('Valider cette commande ? Une dépense sera automatiquement créée.')) return;
+    
+    try {
+        // 1. Mettre à jour le statut
+        await db.from('atlas_commandes').update({ statut: 'validee', updated_at: new Date().toISOString() }).eq('id', commandeId);
+        
+        // 2. Calculer le total
+        const total = lignes.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
+        
+        // 3. Créer la dépense automatiquement
+        const depenseData = {
+            project_id: commande.project_id,
+            category: 'Commande',
+            description: `Commande ${commande.numero || '#' + commande.id}: ${commande.titre}`,
+            amount: total,
+            date: new Date().toISOString().split('T')[0],
+            validated: true
+        };
+        await db.from('atlas_depenses').insert([depenseData]);
+        
+        // 4. Marquer la tâche associée comme complétée
+        await db.from('atlas_taches').update({ completed: true, completed_at: new Date().toISOString() }).eq('source', 'commande').eq('source_id', commandeId);
+        
+        showToast('Commande validée ! Dépense créée.');
+        await loadData();
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur: ' + err.message, true);
+    }
+}
+
+async function annulerCommande() {
+    if (!confirm('Annuler cette commande ?')) return;
+    
+    try {
+        await db.from('atlas_commandes').update({ statut: 'annulee' }).eq('id', commandeId);
+        await db.from('atlas_taches').update({ completed: true, completed_at: new Date().toISOString() }).eq('source', 'commande').eq('source_id', commandeId);
+        showToast('Commande annulée');
+        await loadData();
+    } catch (err) {
+        showToast('Erreur', true);
+    }
+}
+
+function generatePDF() {
+    // Génération d'un bon de commande PDF simple
+    const total = lignes.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
+    const project = projects.find(p => p.id === commande.project_id);
+    
+    let html = `
+    <html><head><meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: auto; }
+        h1 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
+        .header-info { margin: 20px 0; color: #666; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #f3f4f6; }
+        .amount { text-align: right; }
+        .total { font-weight: bold; background: #e5e7eb; }
+        .footer { margin-top: 40px; color: #666; font-size: 12px; }
+    </style>
+    </head><body>
+    <h1>BON DE COMMANDE</h1>
+    <div class="header-info">
+        <p><strong>N°:</strong> ${commande.numero || 'CMD-' + commande.id}</p>
+        <p><strong>Date:</strong> ${formatDate(commande.date_demande)}</p>
+        ${project ? `<p><strong>Chantier:</strong> ${project.name}</p>` : ''}
+        ${commande.demandeur ? `<p><strong>Demandeur:</strong> ${commande.demandeur}</p>` : ''}
+    </div>
+    <h2>${commande.titre}</h2>
+    <table>
+        <thead><tr><th>Désignation</th><th>Catégorie</th><th>Qté</th><th class="amount">P.U.</th><th class="amount">Montant</th></tr></thead>
+        <tbody>
+            ${lignes.map(l => {
+                const s = suppliers.find(sup => sup.id === l.fournisseur_id);
+                return `<tr>
+                    <td>${l.designation}${s ? '<br><small>' + s.name + '</small>' : ''}</td>
+                    <td>${l.categorie || '-'}</td>
+                    <td>${l.quantite} ${l.unite || ''}</td>
+                    <td class="amount">${formatMoney(l.prix_unitaire)}</td>
+                    <td class="amount">${formatMoney(l.montant)}</td>
+                </tr>`;
+            }).join('')}
+            <tr class="total"><td colspan="4">TOTAL</td><td class="amount">${formatMoney(total)}</td></tr>
+        </tbody>
+    </table>
+    ${commande.notes ? `<p><strong>Notes:</strong> ${commande.notes}</p>` : ''}
+    <div class="footer">
+        <p>Document généré le ${new Date().toLocaleDateString('fr-FR')} - Atlas Pose</p>
+    </div>
+    </body></html>`;
+    
+    // Ouvrir dans nouvelle fenêtre pour impression
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    win.print();
+}
+
+function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.background = isError ? 'var(--danger)' : 'var(--accent2)';
+    toast.classList.add('visible');
+    setTimeout(() => toast.classList.remove('visible'), 3000);
+}
+
+// Init
+init();
+    </script>
+</body>
+</html>

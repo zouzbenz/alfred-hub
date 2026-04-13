@@ -37,13 +37,15 @@
         .checkbox-group { display:flex; flex-wrap:wrap; gap:12px; margin:10px 0; }
         .checkbox-item { display:flex; align-items:center; gap:6px; cursor:pointer; }
         .checkbox-item input { width:18px; height:18px; accent-color:var(--accent); }
+        .photo-section { display:flex; flex-direction:column; gap:10px; }
         .photo-upload { display:flex; flex-direction:column; align-items:center; gap:15px; padding:20px; border:2px dashed var(--border); border-radius:12px; cursor:pointer; transition:.2s; }
         .photo-upload:hover { border-color:var(--accent); background:rgba(59,130,246,.05); }
         .photo-upload input { display:none; }
-        .photo-preview { width:150px; height:100px; border-radius:8px; object-fit:cover; display:none; }
+        .photo-preview { width:200px; height:130px; border-radius:8px; object-fit:cover; display:none; }
         .photo-preview.visible { display:block; }
         .photo-placeholder { font-size:3rem; }
         .photo-text { color:var(--dim); font-size:.85rem; text-align:center; }
+        .photo-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
         .niveau-select { display:flex; gap:10px; flex-wrap:wrap; }
         .niveau-option { padding:12px 20px; border:2px solid var(--border); border-radius:12px; cursor:pointer; transition:.2s; text-align:center; flex:1; min-width:100px; }
         .niveau-option:hover { border-color:var(--accent); }
@@ -75,6 +77,13 @@
         .statut-present { background:rgba(16,185,129,.2); color:var(--accent2); }
         .statut-absent { background:rgba(239,68,68,.2); color:var(--danger); }
         .statut-demi_journee { background:rgba(245,158,11,.2); color:var(--warn); }
+        
+        /* Modal Photo CIN */
+        .photo-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.95); z-index:2000; justify-content:center; align-items:center; padding:20px; }
+        .photo-modal.visible { display:flex; }
+        .photo-modal img { max-width:100%; max-height:90vh; object-fit:contain; border-radius:8px; }
+        .photo-modal-close { position:absolute; top:20px; right:20px; background:var(--card); border:none; color:#fff; font-size:1.5rem; padding:10px 15px; border-radius:10px; cursor:pointer; }
+        
         .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--accent2); color:#fff; padding:12px 24px; border-radius:10px; font-weight:600; z-index:2000; opacity:0; transition:.3s; }
         .toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
         @media(max-width:600px) { .form-row.two { grid-template-columns:1fr; } .niveau-select { flex-direction:column; } }
@@ -110,6 +119,7 @@
             
             <form id="ouvrier-form" onsubmit="saveOuvrier(event)">
                 <input type="hidden" id="ouvrier-id">
+                <input type="hidden" id="existing-cin-path">
                 
                 <div class="section">
                     <h3 class="section-title">🪪 Identité</h3>
@@ -122,14 +132,21 @@
                         <div class="form-group"><label>Numéro CIN *</label><input type="text" id="cin" required placeholder="Ex: AB123456"></div>
                     </div>
                     <div class="form-group"><label>Téléphone</label><input type="tel" id="telephone" placeholder="Ex: 0612345678"></div>
+                    
                     <div class="form-group">
                         <label>Photo CIN</label>
-                        <label class="photo-upload">
-                            <input type="file" id="cin-photo" accept="image/*" onchange="previewPhoto(this)">
-                            <img class="photo-preview" id="photo-preview">
-                            <span class="photo-placeholder" id="photo-placeholder">📷</span>
-                            <span class="photo-text">Cliquez pour ajouter la photo CIN</span>
-                        </label>
+                        <div class="photo-section">
+                            <label class="photo-upload" id="photo-upload-label">
+                                <input type="file" id="cin-photo" accept="image/*" onchange="previewPhoto(this)">
+                                <img class="photo-preview" id="photo-preview">
+                                <span class="photo-placeholder" id="photo-placeholder">📷</span>
+                                <span class="photo-text" id="photo-text">Cliquez pour ajouter la photo CIN</span>
+                            </label>
+                            <div class="photo-actions" id="photo-actions" style="display:none;">
+                                <button type="button" class="btn btn-primary btn-small" onclick="viewCINPhoto()">👁️ Voir CIN</button>
+                                <button type="button" class="btn btn-outline btn-small" onclick="changeCINPhoto()">📷 Changer</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -232,6 +249,12 @@
         </div>
     </div>
     
+    <!-- Modal Photo CIN -->
+    <div class="photo-modal" id="cin-modal" onclick="closeCINModal()">
+        <button class="photo-modal-close" onclick="closeCINModal()">×</button>
+        <img id="cin-modal-img" src="" alt="Photo CIN">
+    </div>
+    
     <div class="toast" id="toast"></div>
     
     <script>
@@ -244,6 +267,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = '', ouvrierId = null;
 let ouvrier = null, affectations = [], projects = [], chefs = [], pointages = [];
 let selectedPhotoFile = null;
+let existingCINUrl = null;
 
 if (sessionStorage.getItem('atlas-auth') === 'true') { currentUser = sessionStorage.getItem('atlas-user') || ''; showContent(); }
 
@@ -295,16 +319,31 @@ async function loadOuvrier() {
         document.getElementById('notes').value = ouvrier.notes || '';
         document.getElementById('actif').checked = ouvrier.actif;
         document.getElementById('specialite-autre').value = ouvrier.specialite_autre || '';
+        
         const specialites = ouvrier.specialites || [];
         document.querySelectorAll('input[name="specialite"]').forEach(cb => { cb.checked = specialites.includes(cb.value); });
         if (specialites.includes('autre')) document.getElementById('specialite-autre-field').style.display = 'block';
+        
         const niveau = ouvrier.niveau_competence || 'basic';
         document.querySelectorAll('.niveau-option').forEach(opt => { if (opt.querySelector('input').value === niveau) { opt.classList.add('selected'); opt.querySelector('input').checked = true; } });
-        if (ouvrier.cin_photo_path) { const preview = document.getElementById('photo-preview'); preview.src = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${ouvrier.cin_photo_path}`; preview.classList.add('visible'); document.getElementById('photo-placeholder').style.display = 'none'; }
+        
+        // Photo CIN existante
+        if (ouvrier.cin_photo_path) {
+            existingCINUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${ouvrier.cin_photo_path}`;
+            document.getElementById('existing-cin-path').value = ouvrier.cin_photo_path;
+            const preview = document.getElementById('photo-preview');
+            preview.src = existingCINUrl;
+            preview.classList.add('visible');
+            document.getElementById('photo-placeholder').style.display = 'none';
+            document.getElementById('photo-text').textContent = 'Photo CIN enregistrée';
+            document.getElementById('photo-actions').style.display = 'flex';
+        }
+        
         toggleEquipeFields();
         document.getElementById('delete-btn').style.display = 'inline-flex';
         document.getElementById('affectations-section').style.display = 'block';
         document.getElementById('pointage-section').style.display = 'block';
+        
         await loadAffectations(); await loadPointages();
     } catch (err) { console.error('Erreur:', err); showToast('Ouvrier introuvable', true); }
 }
@@ -330,7 +369,38 @@ function renderPointages() {
 
 function toggleEquipeFields() { document.getElementById('equipe-fields').style.display = document.getElementById('type-contrat').value === 'equipe' ? 'block' : 'none'; }
 function selectNiveau(el, val) { document.querySelectorAll('.niveau-option').forEach(o => o.classList.remove('selected')); el.classList.add('selected'); el.querySelector('input').checked = true; }
-function previewPhoto(input) { if (input.files && input.files[0]) { selectedPhotoFile = input.files[0]; const reader = new FileReader(); reader.onload = e => { const preview = document.getElementById('photo-preview'); preview.src = e.target.result; preview.classList.add('visible'); document.getElementById('photo-placeholder').style.display = 'none'; }; reader.readAsDataURL(input.files[0]); } }
+
+function previewPhoto(input) { 
+    if (input.files && input.files[0]) { 
+        selectedPhotoFile = input.files[0]; 
+        const reader = new FileReader(); 
+        reader.onload = e => { 
+            const preview = document.getElementById('photo-preview'); 
+            preview.src = e.target.result; 
+            preview.classList.add('visible'); 
+            document.getElementById('photo-placeholder').style.display = 'none'; 
+            document.getElementById('photo-text').textContent = 'Nouvelle photo sélectionnée';
+            document.getElementById('photo-actions').style.display = 'flex';
+        }; 
+        reader.readAsDataURL(input.files[0]); 
+    } 
+}
+
+function viewCINPhoto() {
+    const preview = document.getElementById('photo-preview');
+    if (preview.src) {
+        document.getElementById('cin-modal-img').src = preview.src;
+        document.getElementById('cin-modal').classList.add('visible');
+    }
+}
+
+function closeCINModal() {
+    document.getElementById('cin-modal').classList.remove('visible');
+}
+
+function changeCINPhoto() {
+    document.getElementById('cin-photo').click();
+}
 
 document.querySelectorAll('input[name="specialite"]').forEach(cb => { cb.addEventListener('change', () => { document.getElementById('specialite-autre-field').style.display = document.querySelector('input[name="specialite"][value="autre"]').checked ? 'block' : 'none'; }); });
 
@@ -338,19 +408,75 @@ async function saveOuvrier(e) {
     e.preventDefault(); const btn = document.getElementById('save-btn'); btn.disabled = true; btn.textContent = 'Enregistrement...';
     const specialites = Array.from(document.querySelectorAll('input[name="specialite"]:checked')).map(cb => cb.value);
     const niveauInput = document.querySelector('input[name="niveau"]:checked');
-    const data = { nom: document.getElementById('nom').value, prenom: document.getElementById('prenom').value, date_naissance: document.getElementById('date-naissance').value || null, cin: document.getElementById('cin').value, telephone: document.getElementById('telephone').value || null, position: document.getElementById('position').value, specialites: specialites, specialite_autre: document.getElementById('specialite-autre').value || null, type_contrat: document.getElementById('type-contrat').value, chef_equipe_id: document.getElementById('chef-equipe').value || null, entreprise_nom: document.getElementById('entreprise-nom').value || null, niveau_competence: niveauInput ? niveauInput.value : 'basic', notes: document.getElementById('notes').value || null, actif: document.getElementById('actif').checked, updated_at: new Date().toISOString() };
+    
+    const data = { 
+        nom: document.getElementById('nom').value, 
+        prenom: document.getElementById('prenom').value, 
+        date_naissance: document.getElementById('date-naissance').value || null, 
+        cin: document.getElementById('cin').value, 
+        telephone: document.getElementById('telephone').value || null, 
+        position: document.getElementById('position').value, 
+        specialites: specialites, 
+        specialite_autre: document.getElementById('specialite-autre').value || null, 
+        type_contrat: document.getElementById('type-contrat').value, 
+        chef_equipe_id: document.getElementById('chef-equipe').value || null, 
+        entreprise_nom: document.getElementById('entreprise-nom').value || null, 
+        niveau_competence: niveauInput ? niveauInput.value : 'basic', 
+        notes: document.getElementById('notes').value || null, 
+        actif: document.getElementById('actif').checked, 
+        updated_at: new Date().toISOString() 
+    };
+    
+    // Conserver le chemin existant si pas de nouvelle photo
+    const existingPath = document.getElementById('existing-cin-path').value;
+    if (existingPath && !selectedPhotoFile) {
+        data.cin_photo_path = existingPath;
+    }
+    
     try {
-        if (selectedPhotoFile) { const ext = selectedPhotoFile.name.split('.').pop(); const fileName = `cin_${data.cin}_${Date.now()}.${ext}`; const { error: uploadError } = await db.storage.from(STORAGE_BUCKET).upload(fileName, selectedPhotoFile); if (uploadError) throw uploadError; data.cin_photo_path = fileName; }
-        let result; if (ouvrierId) { result = await db.from('atlas_main_oeuvre').update(data).eq('id', ouvrierId); } else { result = await db.from('atlas_main_oeuvre').insert([data]).select(); }
+        // Upload nouvelle photo si sélectionnée
+        if (selectedPhotoFile) { 
+            const ext = selectedPhotoFile.name.split('.').pop(); 
+            const fileName = `cin_${data.cin}_${Date.now()}.${ext}`; 
+            const { error: uploadError } = await db.storage.from(STORAGE_BUCKET).upload(fileName, selectedPhotoFile); 
+            if (uploadError) throw uploadError; 
+            data.cin_photo_path = fileName; 
+        }
+        
+        let result; 
+        if (ouvrierId) { 
+            result = await db.from('atlas_main_oeuvre').update(data).eq('id', ouvrierId); 
+        } else { 
+            result = await db.from('atlas_main_oeuvre').insert([data]).select(); 
+        }
+        
         if (result.error) throw result.error;
         showToast('Ouvrier enregistré !');
-        if (!ouvrierId && result.data?.[0]?.id) { setTimeout(() => window.location.href = `./atlas-ouvrier.html?id=${result.data[0].id}`, 1000); }
-    } catch (err) { console.error('Erreur:', err); showToast('Erreur: ' + err.message, true); } finally { btn.disabled = false; btn.textContent = 'Enregistrer'; }
+        
+        if (!ouvrierId && result.data?.[0]?.id) { 
+            setTimeout(() => window.location.href = `./atlas-ouvrier.html?id=${result.data[0].id}`, 1000); 
+        }
+    } catch (err) { 
+        console.error('Erreur:', err); 
+        showToast('Erreur: ' + err.message, true); 
+    } finally { 
+        btn.disabled = false; 
+        btn.textContent = 'Enregistrer'; 
+    }
 }
 
 async function deleteOuvrier() {
     if (!confirm('Supprimer cet ouvrier ? Ses affectations et pointages seront aussi supprimés.')) return;
-    try { await db.from('atlas_pointage').delete().eq('ouvrier_id', ouvrierId); await db.from('atlas_affectations').delete().eq('ouvrier_id', ouvrierId); await db.from('atlas_main_oeuvre').delete().eq('id', ouvrierId); showToast('Ouvrier supprimé'); setTimeout(() => window.location.href = './atlas-ouvriers.html', 1000); } catch (err) { console.error('Erreur:', err); showToast('Erreur suppression', true); }
+    try { 
+        await db.from('atlas_pointage').delete().eq('ouvrier_id', ouvrierId); 
+        await db.from('atlas_affectations').delete().eq('ouvrier_id', ouvrierId); 
+        await db.from('atlas_main_oeuvre').delete().eq('id', ouvrierId); 
+        showToast('Ouvrier supprimé'); 
+        setTimeout(() => window.location.href = './atlas-ouvriers.html', 1000); 
+    } catch (err) { 
+        console.error('Erreur:', err); 
+        showToast('Erreur suppression', true); 
+    }
 }
 
 function toggleAddAffectation() { const form = document.getElementById('add-affectation-form'); form.classList.toggle('visible'); if (form.classList.contains('visible')) { document.getElementById('new-affectation-date').value = new Date().toISOString().split('T')[0]; } }
