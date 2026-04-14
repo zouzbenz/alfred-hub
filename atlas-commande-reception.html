@@ -214,13 +214,13 @@ async function loadData() {
         const [cmdRes, lignesRes, projRes, suppRes] = await Promise.all([
             db.from('atlas_commandes').select('*').eq('id', commandeId).single(),
             db.from('atlas_commande_lignes').select('*').eq('commande_id', commandeId).order('created_at'),
-            db.from('atlas_projects').select('id, name, status').order('name'),
+            db.from('atlas_projects').select('id, name').eq('statut', 'actif').order('name'),
             db.from('atlas_fournisseurs').select('id, nom').order('nom')
         ]);
         
         commande = cmdRes.data;
         lignes = lignesRes.data || [];
-        projects = (projRes.data || []).filter(p => p.status !== 'termine');
+        projects = projRes.data || [];
         suppliers = suppRes.data || [];
         
         if (!commande) { showToast('Commande introuvable', true); return; }
@@ -555,7 +555,7 @@ async function creerFacture() {
             await db.from('atlas_facture_ventilation').insert(ventilationsToInsert);
         }
         
-        // --- CORRECTION DES DÉPENSES PROJET ---
+        // Créer dépenses par projet (structure réelle atlas_depenses)
         const depensesByProject = {};
         for (const v of ventilationsToInsert) {
             if (!depensesByProject[v.project_id]) {
@@ -568,30 +568,32 @@ async function creerFacture() {
         for (const [projectId, data] of Object.entries(depensesByProject)) {
             await db.from('atlas_depenses').insert([{
                 project_id: parseInt(projectId),
-                categorie: 'materiel', // Changé de 'type' en 'categorie' pour atlas-project.html
-                designation: `Commande ${commande.numero || '#' + commande.id}: ${data.items.slice(0, 3).join(', ')}${data.items.length > 3 ? '...' : ''}`, // Changé de 'description' en 'designation'
+                categorie: 'materiaux',
+                designation: `Commande ${commande.numero || '#' + commande.id}: ${data.items.slice(0, 3).join(', ')}${data.items.length > 3 ? '...' : ''}`,
                 montant: data.total,
-                date_depense: new Date().toISOString().split('T')[0],
-                source: 'facture',
-                source_id: factureId
+                entry_method: 'backoffice',
+                fournisseur: lignes[0]?.fournisseur_autre || (suppliers.find(s => s.id === lignes[0]?.fournisseur_id)?.nom || null)
             }]);
         }
         
-        // --- CORRECTION DES OPÉRATIONS FOURNISSEURS ---
+        // Créer opérations par fournisseur (structure réelle atlas_operations)
         const fournisseurIds = [...new Set(lignes.map(l => l.fournisseur_id).filter(Boolean))];
         for (const fId of fournisseurIds) {
             const lignesFournisseur = lignes.filter(l => l.fournisseur_id === fId);
             const montant = lignesFournisseur.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
+            const designations = lignesFournisseur.map(l => l.designation).slice(0, 3).join(', ');
             
             await db.from('atlas_operations').insert([{
                 fournisseur_id: fId,
-                projet_id: commande.project_id, // Ajouté pour atlas-supplier.html
-                type: 'facture',
-                description: `Facture ${factureData.numero} - Commande ${commande.numero || '#' + commande.id}`,
+                designation: `Facture ${factureData.numero || 'FAC-' + factureId} - ${designations}${lignesFournisseur.length > 3 ? '...' : ''}`,
+                categorie: 'achat',
                 montant: montant,
-                date_operation: new Date().toISOString().split('T')[0],
-                source: 'facture',
-                source_id: factureId
+                date_commande: commande.date_demande || new Date().toISOString().split('T')[0],
+                date_realisation: new Date().toISOString().split('T')[0],
+                numero_facture: factureData.numero || 'FAC-' + factureId,
+                notes: `Commande ${commande.numero || '#' + commande.id}`,
+                projet_id: commande.project_id,
+                created_by: 'backoffice'
             }]);
         }
         
@@ -604,6 +606,9 @@ async function creerFacture() {
             completed: true,
             completed_at: new Date().toISOString()
         }).eq('source', 'commande').eq('source_id', parseInt(commandeId)).ilike('titre', '%Receptionner%');
+        
+        // TODO: MAJ Stock (module a creer)
+        // TODO: MAJ Tresorerie (module a creer)
         
         showToast('Facture creee !');
         
