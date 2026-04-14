@@ -568,9 +568,18 @@ async function creerFacture() {
         console.log('Dépenses à créer:', depensesByProject);
         
         for (const [projectId, data] of Object.entries(depensesByProject)) {
+            // Mapper la catégorie commande vers catégorie dépense
+            const catMap = {
+                'Matériaux': 'fourniture', 'Outillage': 'materiel', 'Consommables': 'fourniture',
+                'EPI': 'materiel', 'Transport': 'transport', 'Location': 'materiel',
+                'Sous-traitance': 'main_oeuvre', 'Autre': 'aleas'
+            };
+            const ligneCategorie = lignes[0]?.categorie || 'Autre';
+            const depCategorie = catMap[ligneCategorie] || 'fourniture';
+            
             const depenseData = {
                 project_id: parseInt(projectId),
-                categorie: 'fourniture',
+                categorie: depCategorie,
                 designation: `Commande ${commande.numero || '#' + commande.id}: ${data.items.slice(0, 3).join(', ')}${data.items.length > 3 ? '...' : ''}`,
                 montant: data.total,
                 entry_method: 'backoffice',
