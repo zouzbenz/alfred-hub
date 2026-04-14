@@ -211,8 +211,6 @@ async function init() {
 
 async function loadData() {
     try {
-        // CORRECTION : On récupère les projets sans filtre strict "actif" pour éviter que la liste soit vide
-        // On harmonise aussi avec le nom de colonne "status" (sans t)
         const [cmdRes, lignesRes, projRes, suppRes] = await Promise.all([
             db.from('atlas_commandes').select('*').eq('id', commandeId).single(),
             db.from('atlas_commande_lignes').select('*').eq('commande_id', commandeId).order('created_at'),
@@ -222,8 +220,6 @@ async function loadData() {
         
         commande = cmdRes.data;
         lignes = lignesRes.data || [];
-        
-        // On filtre en local pour plus de souplesse (on affiche tout ce qui n'est pas terminé)
         projects = (projRes.data || []).filter(p => p.status !== 'termine');
         suppliers = suppRes.data || [];
         
@@ -559,6 +555,7 @@ async function creerFacture() {
             await db.from('atlas_facture_ventilation').insert(ventilationsToInsert);
         }
         
+        // --- CORRECTION DES DÉPENSES PROJET ---
         const depensesByProject = {};
         for (const v of ventilationsToInsert) {
             if (!depensesByProject[v.project_id]) {
@@ -571,8 +568,8 @@ async function creerFacture() {
         for (const [projectId, data] of Object.entries(depensesByProject)) {
             await db.from('atlas_depenses').insert([{
                 project_id: parseInt(projectId),
-                type: 'materiel',
-                description: `Commande ${commande.numero || '#' + commande.id}: ${data.items.slice(0, 3).join(', ')}${data.items.length > 3 ? '...' : ''}`,
+                categorie: 'materiel', // Changé de 'type' en 'categorie' pour atlas-project.html
+                designation: `Commande ${commande.numero || '#' + commande.id}: ${data.items.slice(0, 3).join(', ')}${data.items.length > 3 ? '...' : ''}`, // Changé de 'description' en 'designation'
                 montant: data.total,
                 date_depense: new Date().toISOString().split('T')[0],
                 source: 'facture',
@@ -580,6 +577,7 @@ async function creerFacture() {
             }]);
         }
         
+        // --- CORRECTION DES OPÉRATIONS FOURNISSEURS ---
         const fournisseurIds = [...new Set(lignes.map(l => l.fournisseur_id).filter(Boolean))];
         for (const fId of fournisseurIds) {
             const lignesFournisseur = lignes.filter(l => l.fournisseur_id === fId);
@@ -587,6 +585,7 @@ async function creerFacture() {
             
             await db.from('atlas_operations').insert([{
                 fournisseur_id: fId,
+                projet_id: commande.project_id, // Ajouté pour atlas-supplier.html
                 type: 'facture',
                 description: `Facture ${factureData.numero} - Commande ${commande.numero || '#' + commande.id}`,
                 montant: montant,
