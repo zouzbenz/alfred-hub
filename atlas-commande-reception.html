@@ -565,25 +565,32 @@ async function creerFacture() {
             depensesByProject[v.project_id].total += v.montant;
         }
         
+        console.log('Dépenses à créer:', depensesByProject);
+        
         for (const [projectId, data] of Object.entries(depensesByProject)) {
-            await db.from('atlas_depenses').insert([{
+            const depenseData = {
                 project_id: parseInt(projectId),
                 categorie: 'materiaux',
                 designation: `Commande ${commande.numero || '#' + commande.id}: ${data.items.slice(0, 3).join(', ')}${data.items.length > 3 ? '...' : ''}`,
                 montant: data.total,
                 entry_method: 'backoffice',
                 fournisseur: lignes[0]?.fournisseur_autre || (suppliers.find(s => s.id === lignes[0]?.fournisseur_id)?.nom || null)
-            }]);
+            };
+            console.log('Insert dépense:', depenseData);
+            const { error: depError } = await db.from('atlas_depenses').insert([depenseData]);
+            if (depError) console.error('Erreur dépense:', depError);
         }
         
         // Créer opérations par fournisseur (structure réelle atlas_operations)
         const fournisseurIds = [...new Set(lignes.map(l => l.fournisseur_id).filter(Boolean))];
+        console.log('Fournisseurs à traiter:', fournisseurIds);
+        
         for (const fId of fournisseurIds) {
             const lignesFournisseur = lignes.filter(l => l.fournisseur_id === fId);
             const montant = lignesFournisseur.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
             const designations = lignesFournisseur.map(l => l.designation).slice(0, 3).join(', ');
             
-            await db.from('atlas_operations').insert([{
+            const opData = {
                 fournisseur_id: fId,
                 designation: `Facture ${factureData.numero || 'FAC-' + factureId} - ${designations}${lignesFournisseur.length > 3 ? '...' : ''}`,
                 categorie: 'achat',
@@ -594,7 +601,10 @@ async function creerFacture() {
                 notes: `Commande ${commande.numero || '#' + commande.id}`,
                 projet_id: commande.project_id,
                 created_by: 'backoffice'
-            }]);
+            };
+            console.log('Insert opération:', opData);
+            const { error: opError } = await db.from('atlas_operations').insert([opData]);
+            if (opError) console.error('Erreur opération:', opError);
         }
         
         await db.from('atlas_commandes').update({
