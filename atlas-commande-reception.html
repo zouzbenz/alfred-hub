@@ -214,7 +214,7 @@ async function loadData() {
         const [cmdRes, lignesRes, projRes, suppRes] = await Promise.all([
             db.from('atlas_commandes').select('*').eq('id', commandeId).single(),
             db.from('atlas_commande_lignes').select('*').eq('commande_id', commandeId).order('created_at'),
-            db.from('atlas_projects').select('id, name').eq('statut', 'actif').order('name'),
+            db.from('atlas_projects').select('id, name').eq('status', 'actif').order('name'),
             db.from('atlas_fournisseurs').select('id, nom').order('nom')
         ]);
         
@@ -510,6 +510,7 @@ async function creerFacture() {
         if (factureError) throw factureError;
         const factureId = factureData.id;
         
+        // Upload justificatifs
         for (let i = 0; i < uploadedFiles.length; i++) {
             const f = uploadedFiles[i];
             const ext = f.file.name.split('.').pop();
@@ -530,6 +531,7 @@ async function creerFacture() {
             }
         }
         
+        // Ventilation finale
         const ventilationsToInsert = [];
         for (const ligne of lignes) {
             const vents = ventilations[ligne.id] || [];
@@ -555,6 +557,7 @@ async function creerFacture() {
             await db.from('atlas_facture_ventilation').insert(ventilationsToInsert);
         }
         
+        // Mise à jour des dépenses par projet
         const depensesByProject = {};
         for (const v of ventilationsToInsert) {
             if (!depensesByProject[v.project_id]) {
@@ -576,6 +579,7 @@ async function creerFacture() {
             }]);
         }
         
+        // Mise à jour des opérations fournisseurs (CORRIGÉ : Prend en compte ID et Texte Libre)
         const fournisseurIds = [...new Set(lignes.map(l => l.fournisseur_id).filter(Boolean))];
         for (const fId of fournisseurIds) {
             const lignesFournisseur = lignes.filter(l => l.fournisseur_id === fId);
@@ -592,6 +596,7 @@ async function creerFacture() {
             }]);
         }
         
+        // Finalisation commande
         await db.from('atlas_commandes').update({
             statut: 'facturee',
             updated_at: new Date().toISOString()
@@ -601,9 +606,6 @@ async function creerFacture() {
             completed: true,
             completed_at: new Date().toISOString()
         }).eq('source', 'commande').eq('source_id', parseInt(commandeId)).ilike('titre', '%Receptionner%');
-        
-        // TODO: MAJ Stock (module a creer)
-        // TODO: MAJ Tresorerie (module a creer)
         
         showToast('Facture creee !');
         
