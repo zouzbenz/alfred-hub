@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Facture - Atlas Pose</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; --purple:#8b5cf6; --orange:#f97316; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+        .container { max-width:1000px; margin:0 auto; padding:15px; }
+        
+        .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px; padding:12px; background:var(--card); border-radius:12px; border:1px solid var(--border); }
+        .back-link { display:inline-flex; align-items:center; gap:6px; color:var(--accent); text-decoration:none; font-size:.85rem; padding:8px 12px; background:rgba(59,130,246,.1); border-radius:8px; }
+        
+        .header { padding:20px 15px 30px; }
+        .header-top { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:15px; margin-bottom:15px; }
+        .header h1 { font-size:1.8rem; margin-bottom:5px; color:var(--accent2); }
+        .header-sub { color:var(--dim); font-size:.9rem; margin-top:5px; }
+        .header-montant { font-size:2rem; font-weight:800; color:var(--accent2); }
+        
+        .header-info { display:flex; flex-wrap:wrap; gap:20px; color:var(--dim); font-size:.9rem; }
+        .header-info span { display:flex; align-items:center; gap:6px; }
+        .header-info a { color:var(--accent); text-decoration:none; }
+        
+        .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:20px; }
+        .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px; }
+        .section-title { font-size:1rem; font-weight:700; display:flex; align-items:center; gap:8px; }
+        
+        .btn { padding:10px 18px; border:none; border-radius:10px; font-weight:600; cursor:pointer; font-size:.85rem; transition:.2s; display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
+        .btn:hover { transform:translateY(-1px); }
+        .btn-primary { background:var(--accent); color:#fff; }
+        .btn-success { background:var(--accent2); color:#fff; }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+        .btn-small { padding:6px 12px; font-size:.8rem; }
+        
+        /* Ventilation par projet */
+        .projet-block { background:var(--bg); border-radius:12px; padding:15px; margin-bottom:15px; }
+        .projet-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+        .projet-name { font-weight:700; font-size:1rem; }
+        .projet-total { font-weight:700; color:var(--accent2); }
+        
+        .projet-ligne { display:flex; justify-content:space-between; padding:8px 0; font-size:.9rem; border-bottom:1px solid var(--border); }
+        .projet-ligne:last-child { border-bottom:none; }
+        .projet-ligne-designation { flex:1; }
+        .projet-ligne-qte { width:80px; text-align:center; color:var(--dim); }
+        .projet-ligne-montant { width:100px; text-align:right; font-weight:600; }
+        
+        /* Justificatifs */
+        .justificatifs-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:15px; }
+        .justificatif-card { position:relative; border-radius:12px; overflow:hidden; background:var(--bg); cursor:pointer; }
+        .justificatif-card img { width:100%; aspect-ratio:1; object-fit:cover; }
+        .justificatif-pdf { width:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:3rem; background:var(--bg); }
+        .justificatif-name { padding:10px; font-size:.8rem; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        
+        /* PDF section */
+        .pdf-section { background:var(--bg); padding:20px; border-radius:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:15px; }
+        .pdf-info { display:flex; align-items:center; gap:15px; }
+        .pdf-icon { font-size:3rem; }
+        .pdf-details { }
+        .pdf-filename { font-weight:600; margin-bottom:3px; }
+        .pdf-date { font-size:.85rem; color:var(--dim); }
+        
+        /* Modal image */
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.95); z-index:1000; justify-content:center; align-items:center; padding:20px; }
+        .modal.visible { display:flex; }
+        .modal img { max-width:100%; max-height:90vh; object-fit:contain; border-radius:10px; }
+        .modal-close { position:absolute; top:20px; right:20px; background:var(--card); border:none; color:#fff; width:40px; height:40px; border-radius:50%; font-size:1.5rem; cursor:pointer; }
+        
+        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--accent2); color:#fff; padding:12px 24px; border-radius:10px; font-weight:600; z-index:2000; opacity:0; transition:.3s; }
+        .toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
+        
+        .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
+        .footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
+        
+        .empty-state { text-align:center; padding:30px; color:var(--dim); }
+        
+        @media(max-width:600px) { 
+            .projet-ligne { flex-direction:column; gap:5px; }
+            .projet-ligne-qte, .projet-ligne-montant { width:100%; text-align:left; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <a href="./atlas-factures.html" class="back-link">← Toutes les factures</a>
+            <a href="./atlas-backoffice.html" class="back-link">⚙️ Admin</a>
+        </div>
+        
+        <div class="header">
+            <div class="header-top">
+                <div>
+                    <h1 id="fac-numero">Chargement...</h1>
+                    <div class="header-sub" id="fac-date"></div>
+                </div>
+                <div class="header-montant" id="fac-montant">0 DH</div>
+            </div>
+            <div class="header-info">
+                <span id="fac-commande"></span>
+            </div>
+        </div>
+        
+        <!-- PDF Facture -->
+        <div class="section" id="pdf-section" style="display:none;">
+            <h3 class="section-title">📄 Document facture</h3>
+            <div class="pdf-section">
+                <div class="pdf-info">
+                    <span class="pdf-icon">📄</span>
+                    <div class="pdf-details">
+                        <div class="pdf-filename" id="pdf-filename">facture.pdf</div>
+                        <div class="pdf-date" id="pdf-date">Généré le -</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="viewPDF()">📥 Télécharger PDF</button>
+            </div>
+        </div>
+        
+        <!-- Ventilation par projet -->
+        <div class="section">
+            <h3 class="section-title">🏗️ Ventilation par projet</h3>
+            <div id="ventilation-container">
+                <div class="empty-state">Chargement...</div>
+            </div>
+        </div>
+        
+        <!-- Justificatifs -->
+        <div class="section">
+            <h3 class="section-title">📸 Justificatifs fournisseur</h3>
+            <div class="justificatifs-grid" id="justificatifs-grid">
+                <div class="empty-state">Chargement...</div>
+            </div>
+        </div>
+        
+        <!-- Notes -->
+        <div class="section" id="notes-section" style="display:none;">
+            <h3 class="section-title">📝 Notes</h3>
+            <p id="fac-notes" style="color:var(--dim);"></p>
+        </div>
+        
+        <div class="footer">
+            <a href="./atlas-factures.html">Factures</a>
+            <a href="./atlas-commandes.html">Commandes</a>
+            <a href="./atlas-projects.html">Projets</a>
+        </div>
+    </div>
+    
+    <!-- Modal image -->
+    <div class="modal" id="image-modal" onclick="closeImageModal()">
+        <button class="modal-close" onclick="closeImageModal()">×</button>
+        <img id="modal-image" src="" alt="">
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const STORAGE_BUCKET = 'atlas-factures';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let factureId = null, facture = null, ventilation = [], justificatifs = [], commande = null, projects = [];
+
+async function init() {
+    factureId = new URLSearchParams(location.search).get('id');
+    if (!factureId) { location.href = './atlas-factures.html'; return; }
+    await loadData();
+}
+
+async function loadData() {
+    try {
+        const [facRes, ventRes, justRes, projRes] = await Promise.all([
+            db.from('atlas_factures').select('*').eq('id', factureId).single(),
+            db.from('atlas_facture_ventilation').select('*').eq('facture_id', factureId),
+            db.from('atlas_facture_justificatifs').select('*').eq('facture_id', factureId),
+            db.from('atlas_projects').select('id, name')
+        ]);
+        
+        facture = facRes.data;
+        ventilation = ventRes.data || [];
+        justificatifs = justRes.data || [];
+        projects = projRes.data || [];
+        
+        if (!facture) { showToast('Facture introuvable', true); return; }
+        
+        // Charger commande
+        if (facture.commande_id) {
+            const { data: cmdData } = await db.from('atlas_commandes').select('*').eq('id', facture.commande_id).single();
+            commande = cmdData;
+        }
+        
+        renderPage();
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur de chargement', true);
+    }
+}
+
+function formatDate(d) {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+}
+
+function formatMoney(n) {
+    return new Intl.NumberFormat('fr-MA', { minimumFractionDigits:0 }).format(n || 0) + ' DH';
+}
+
+function getProjectName(projectId) {
+    const p = projects.find(proj => proj.id === projectId);
+    return p ? p.name : 'Projet inconnu';
+}
+
+function renderPage() {
+    // Header
+    document.getElementById('fac-numero').textContent = facture.numero || 'FAC-???';
+    document.getElementById('fac-date').textContent = '📅 ' + formatDate(facture.date_facture);
+    document.getElementById('fac-montant').textContent = formatMoney(facture.montant_total);
+    
+    if (commande) {
+        document.getElementById('fac-commande').innerHTML = `📦 Commande: <a href="./atlas-commande.html?id=${commande.id}">${commande.numero} - ${commande.titre}</a>`;
+    }
+    
+    // PDF
+    if (facture.pdf_path) {
+        document.getElementById('pdf-section').style.display = 'block';
+        document.getElementById('pdf-filename').textContent = facture.numero + '.pdf';
+        document.getElementById('pdf-date').textContent = 'Généré le ' + formatDate(facture.created_at);
+    }
+    
+    // Notes
+    if (facture.notes) {
+        document.getElementById('notes-section').style.display = 'block';
+        document.getElementById('fac-notes').textContent = facture.notes;
+    }
+    
+    // Ventilation
+    renderVentilation();
+    
+    // Justificatifs
+    renderJustificatifs();
+}
+
+function renderVentilation() {
+    const container = document.getElementById('ventilation-container');
+    
+    if (!ventilation.length) {
+        container.innerHTML = '<div class="empty-state">Aucune ventilation</div>';
+        return;
+    }
+    
+    // Grouper par projet
+    const parProjet = {};
+    ventilation.forEach(v => {
+        if (!parProjet[v.project_id]) parProjet[v.project_id] = [];
+        parProjet[v.project_id].push(v);
+    });
+    
+    container.innerHTML = Object.entries(parProjet).map(([pId, items]) => {
+        const total = items.reduce((sum, v) => sum + (parseFloat(v.montant) || 0), 0);
+        
+        return `
+        <div class="projet-block">
+            <div class="projet-header">
+                <span class="projet-name">🏗️ ${getProjectName(parseInt(pId))}</span>
+                <span class="projet-total">${formatMoney(total)}</span>
+            </div>
+            ${items.map(v => `
+                <div class="projet-ligne">
+                    <span class="projet-ligne-designation">${v.designation}</span>
+                    <span class="projet-ligne-qte">${v.quantite} unité(s)</span>
+                    <span class="projet-ligne-montant">${formatMoney(v.montant)}</span>
+                </div>
+            `).join('')}
+        </div>`;
+    }).join('');
+}
+
+async function renderJustificatifs() {
+    const container = document.getElementById('justificatifs-grid');
+    
+    if (!justificatifs.length) {
+        container.innerHTML = '<div class="empty-state">Aucun justificatif attaché</div>';
+        return;
+    }
+    
+    // Obtenir les URLs publiques
+    const cards = await Promise.all(justificatifs.map(async j => {
+        const { data } = await db.storage.from(STORAGE_BUCKET).getPublicUrl(j.file_path);
+        const url = data?.publicUrl || '';
+        const isImage = j.nom_fichier.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+        
+        return `
+        <div class="justificatif-card" onclick="${isImage ? `openImageModal('${url}')` : `window.open('${url}', '_blank')`}">
+            ${isImage ? 
+                `<img src="${url}" alt="${j.nom_fichier}">` :
+                `<div class="justificatif-pdf">📄</div>`
+            }
+            <div class="justificatif-name">${j.nom_fichier}</div>
+        </div>`;
+    }));
+    
+    container.innerHTML = cards.join('');
+}
+
+async function viewPDF() {
+    if (!facture.pdf_path) return;
+    
+    const { data } = await db.storage.from(STORAGE_BUCKET).getPublicUrl(facture.pdf_path);
+    if (data?.publicUrl) {
+        window.open(data.publicUrl, '_blank');
+    }
+}
+
+function openImageModal(url) {
+    document.getElementById('modal-image').src = url;
+    document.getElementById('image-modal').classList.add('visible');
+}
+
+function closeImageModal() {
+    document.getElementById('image-modal').classList.remove('visible');
+}
+
+function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.background = isError ? 'var(--danger)' : 'var(--accent2)';
+    toast.classList.add('visible');
+    setTimeout(() => toast.classList.remove('visible'), 3000);
+}
+
+// Fermer modal avec Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeImageModal();
+});
+
+init();
+    </script>
+</body>
+</html>

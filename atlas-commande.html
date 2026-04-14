@@ -6,6 +6,7 @@
     <title>Commande - Atlas Pose</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; --purple:#8b5cf6; --orange:#f97316; }
         * { box-sizing:border-box; margin:0; padding:0; }
@@ -23,6 +24,7 @@
         .statut-brouillon { background:rgba(156,163,175,.2); color:var(--dim); }
         .statut-validee { background:rgba(59,130,246,.2); color:var(--accent); }
         .statut-recue { background:rgba(16,185,129,.2); color:var(--accent2); }
+        .statut-facturee { background:rgba(139,92,246,.2); color:var(--purple); }
         .statut-annulee { background:rgba(239,68,68,.2); color:var(--danger); }
         
         .header-info { display:flex; flex-wrap:wrap; gap:20px; color:var(--dim); font-size:.9rem; }
@@ -39,6 +41,7 @@
         .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
         .btn-danger { background:var(--danger); color:#fff; }
         .btn-warn { background:var(--warn); color:#fff; }
+        .btn-purple { background:var(--purple); color:#fff; }
         .btn-small { padding:6px 12px; font-size:.8rem; }
         .btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
         
@@ -77,6 +80,10 @@
         .pdf-info { display:flex; align-items:center; gap:10px; }
         .pdf-icon { font-size:2rem; }
         
+        .workflow-banner { background:linear-gradient(135deg, var(--accent), var(--purple)); padding:20px; border-radius:12px; margin-bottom:20px; text-align:center; }
+        .workflow-banner h3 { margin-bottom:8px; }
+        .workflow-banner p { opacity:.9; font-size:.9rem; margin-bottom:15px; }
+        
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85); z-index:1000; justify-content:center; align-items:flex-start; padding:20px; overflow-y:auto; }
         .modal.visible { display:flex; }
         .modal-content { background:var(--card); border:1px solid var(--border); border-radius:16px; width:100%; max-width:500px; margin:40px auto; }
@@ -109,6 +116,13 @@
         <div class="top-bar">
             <a href="./atlas-commandes.html" class="back-link">← Toutes les commandes</a>
             <a href="./atlas-backoffice.html" class="back-link">⚙️ Admin</a>
+        </div>
+        
+        <!-- Banner workflow si validée -->
+        <div class="workflow-banner" id="workflow-banner" style="display:none;">
+            <h3>📦 Commande validée</h3>
+            <p id="workflow-text">La commande est prête. Marquez-la comme reçue pour procéder à la ventilation et facturation.</p>
+            <button class="btn btn-success" id="btn-workflow" onclick="goToReception()">📦 Marquer reçue et ventiler</button>
         </div>
         
         <div class="header" id="header">
@@ -241,8 +255,24 @@
                 </div>
                 <div style="display:flex;gap:10px;">
                     <button class="btn btn-outline btn-small" onclick="viewPDF()">👁️ Voir</button>
+                    <button class="btn btn-outline btn-small" onclick="downloadPDF()">⬇️ Télécharger</button>
                     <button class="btn btn-primary btn-small" onclick="regeneratePDF()">🔄 Régénérer</button>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Section Facture liée -->
+        <div class="section" id="facture-section" style="display:none;">
+            <h3 class="section-title">🧾 Facture</h3>
+            <div class="pdf-section">
+                <div class="pdf-info">
+                    <span class="pdf-icon">🧾</span>
+                    <div>
+                        <div id="facture-numero">FAC-XXXX</div>
+                        <div style="font-size:.8rem;color:var(--dim);" id="facture-date">-</div>
+                    </div>
+                </div>
+                <a href="#" id="facture-link" class="btn btn-purple btn-small">Voir la facture</a>
             </div>
         </div>
         
@@ -254,13 +284,14 @@
         </div>
         
         <!-- Actions -->
-        <div class="actions-footer">
+        <div class="actions-footer" id="actions-footer">
             <button class="btn btn-outline" onclick="history.back()">Retour</button>
             <button class="btn btn-success" id="btn-valider" onclick="validerCommande()">✅ Valider et générer PDF</button>
         </div>
         
         <div class="footer">
             <a href="./atlas-commandes.html">Commandes</a>
+            <a href="./atlas-factures.html">Factures</a>
             <a href="./atlas-projects.html">Projets</a>
         </div>
     </div>
@@ -332,7 +363,9 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const STORAGE_BUCKET = 'atlas-factures';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let commandeId = null, commande = null, lignes = [], projects = [], suppliers = [];
+const { jsPDF } = window.jspdf;
+
+let commandeId = null, commande = null, lignes = [], projects = [], suppliers = [], facture = null;
 
 async function init() {
     commandeId = new URLSearchParams(location.search).get('id');
@@ -355,6 +388,10 @@ async function loadData() {
         suppliers = suppRes.data || [];
         
         if (!commande) { showToast('Commande introuvable', true); return; }
+        
+        // Charger facture liée si existe
+        const { data: factureData } = await db.from('atlas_factures').select('*').eq('commande_id', commandeId).maybeSingle();
+        facture = factureData;
         
         renderHeader();
         renderLignes();
@@ -379,7 +416,7 @@ function renderHeader() {
     document.getElementById('cmd-titre').textContent = commande.titre;
     document.getElementById('cmd-numero').textContent = commande.numero || 'CMD-' + commande.id;
     
-    const statutLabels = { brouillon: '📝 Brouillon', validee: '✅ Validée', recue: '📦 Reçue', annulee: '❌ Annulée' };
+    const statutLabels = { brouillon: '📝 Brouillon', validee: '✅ Validée', recue: '📦 Reçue', facturee: '🧾 Facturée', annulee: '❌ Annulée' };
     const statutEl = document.getElementById('cmd-statut');
     statutEl.textContent = statutLabels[commande.statut] || commande.statut;
     statutEl.className = 'header-statut statut-' + commande.statut;
@@ -476,6 +513,8 @@ function renderLignes() {
     }
     
     let total = 0;
+    const isEditable = ['brouillon', 'validee'].includes(commande.statut);
+    
     tbody.innerHTML = lignes.map(l => {
         const montant = parseFloat(l.montant) || 0;
         total += montant;
@@ -493,8 +532,10 @@ function renderLignes() {
             <td class="amount">${l.prix_unitaire ? formatMoney(l.prix_unitaire) : '<span style="color:var(--warn);">-</span>'}</td>
             <td class="amount">${montant ? formatMoney(montant) : '-'}</td>
             <td class="actions">
-                <button class="btn btn-outline btn-small" onclick="editLigne(${l.id})">✏️</button>
-                <button class="btn btn-danger btn-small" onclick="deleteLigne(${l.id})">×</button>
+                ${isEditable ? `
+                    <button class="btn btn-outline btn-small" onclick="editLigne(${l.id})">✏️</button>
+                    <button class="btn btn-danger btn-small" onclick="deleteLigne(${l.id})">×</button>
+                ` : ''}
             </td>
         </tr>`;
     }).join('');
@@ -503,26 +544,66 @@ function renderLignes() {
 }
 
 function updateUI() {
-    // Afficher section PDF si bon_commande_path existe
+    const isEditable = ['brouillon', 'validee'].includes(commande.statut);
+    
+    // Bouton ajouter article
+    document.getElementById('add-ligne-btn').style.display = isEditable ? 'inline-flex' : 'none';
+    
+    // Workflow banner
+    const banner = document.getElementById('workflow-banner');
+    if (commande.statut === 'validee') {
+        banner.style.display = 'block';
+        document.getElementById('workflow-text').textContent = 'La commande est prête. Marquez-la comme reçue pour procéder à la ventilation et facturation.';
+        document.getElementById('btn-workflow').textContent = '📦 Marquer reçue et ventiler';
+        document.getElementById('btn-workflow').onclick = goToReception;
+    } else if (commande.statut === 'recue' && !facture) {
+        banner.style.display = 'block';
+        document.getElementById('workflow-text').textContent = 'La commande est reçue. Procédez à la ventilation et création de facture.';
+        document.getElementById('btn-workflow').textContent = '🧾 Ventiler et créer facture';
+        document.getElementById('btn-workflow').onclick = goToReception;
+    } else {
+        banner.style.display = 'none';
+    }
+    
+    // Section PDF
     if (commande.bon_commande_path) {
         document.getElementById('pdf-section').style.display = 'block';
-        document.getElementById('pdf-filename').textContent = commande.numero + '-bon-commande.pdf';
+        document.getElementById('pdf-filename').textContent = (commande.numero || 'CMD') + '-bon-commande.pdf';
         document.getElementById('pdf-date').textContent = 'Généré le ' + formatDate(commande.updated_at);
     } else {
         document.getElementById('pdf-section').style.display = 'none';
     }
     
-    // Bouton validation
+    // Section facture
+    if (facture) {
+        document.getElementById('facture-section').style.display = 'block';
+        document.getElementById('facture-numero').textContent = facture.numero;
+        document.getElementById('facture-date').textContent = formatMoney(facture.montant_total) + ' • ' + formatDate(facture.date_facture);
+        document.getElementById('facture-link').href = './atlas-facture.html?id=' + facture.id;
+    } else {
+        document.getElementById('facture-section').style.display = 'none';
+    }
+    
+    // Actions footer
     const btnValider = document.getElementById('btn-valider');
+    
     if (commande.statut === 'brouillon') {
         btnValider.style.display = 'inline-flex';
         btnValider.textContent = '✅ Valider et générer PDF';
-    } else if (commande.bon_commande_path) {
-        btnValider.style.display = 'none';
-    } else {
+        btnValider.className = 'btn btn-success';
+        btnValider.onclick = validerCommande;
+    } else if (commande.statut === 'validee' && !commande.bon_commande_path) {
         btnValider.style.display = 'inline-flex';
         btnValider.textContent = '📄 Générer PDF';
+        btnValider.className = 'btn btn-primary';
+        btnValider.onclick = regeneratePDF;
+    } else {
+        btnValider.style.display = 'none';
     }
+}
+
+function goToReception() {
+    location.href = './atlas-commande-reception.html?id=' + commandeId;
 }
 
 function toggleStatutDropdown() {
@@ -538,6 +619,11 @@ document.addEventListener('click', function(e) {
 async function changeStatut(newStatut) {
     document.getElementById('statut-dropdown').classList.remove('visible');
     if (newStatut === commande.statut) return;
+    
+    if (commande.statut === 'facturee' && newStatut !== 'facturee') {
+        showToast('Impossible de modifier une commande facturée', true);
+        return;
+    }
     
     try {
         await db.from('atlas_commandes').update({ statut: newStatut, updated_at: new Date().toISOString() }).eq('id', commandeId);
@@ -612,7 +698,6 @@ function editLigne(id) {
     document.getElementById('edit-prix').value = ligne.prix_unitaire || '';
     document.getElementById('edit-reference').value = ligne.reference || '';
     
-    // Fournisseur
     if (ligne.fournisseur_id) {
         document.getElementById('edit-fournisseur').value = ligne.fournisseur_id;
         document.getElementById('edit-fournisseur-autre').classList.remove('visible');
@@ -694,73 +779,40 @@ async function validerCommande() {
         return;
     }
     
-    // Vérifier lignes incomplètes (warning mais pas bloquant)
     const incomplete = lignes.filter(l => !l.prix_unitaire || (!l.fournisseur_id && !l.fournisseur_autre));
     if (incomplete.length > 0) {
         if (!confirm(`${incomplete.length} article(s) sans prix ou fournisseur. Continuer quand même ?`)) return;
     }
     
     try {
-        // 1. Générer et stocker le PDF
-        const pdfBlob = await generatePDFBlob();
-        const pdfFilename = `${commande.numero || 'CMD-' + commande.id}-bon-commande-${Date.now()}.html`;
+        showToast('Génération du PDF...');
         
-        const { error: uploadError } = await db.storage.from(STORAGE_BUCKET).upload(pdfFilename, pdfBlob, { contentType: 'text/html' });
-        if (uploadError) console.warn('Erreur upload PDF:', uploadError);
+        // 1. Générer le vrai PDF
+        const pdfBlob = await generateRealPDF();
+        const pdfFilename = `bons-commande/${commande.numero || 'CMD-' + commande.id}-${Date.now()}.pdf`;
         
-        // 2. Mettre à jour la commande
-        const updateData = {
-            statut: 'validee',
+        // 2. Upload vers Supabase Storage
+        const { error: uploadError } = await db.storage.from(STORAGE_BUCKET).upload(pdfFilename, pdfBlob, { 
+            contentType: 'application/pdf',
+            upsert: true 
+        });
+        if (uploadError) {
+            console.error('Erreur upload:', uploadError);
+            throw new Error('Erreur upload PDF: ' + uploadError.message);
+        }
+        
+        // 3. Mettre à jour la commande
+        await db.from('atlas_commandes').update({ 
+            statut: 'validee', 
             bon_commande_path: pdfFilename,
-            updated_at: new Date().toISOString()
-        };
-        await db.from('atlas_commandes').update(updateData).eq('id', commandeId);
+            updated_at: new Date().toISOString() 
+        }).eq('id', commandeId);
         
-        // 3. Calculer le total
-        const total = lignes.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
-        
-        // 4. Créer les dépenses par projet (si projet lié)
-        if (commande.project_id && total > 0) {
-            const depenseData = {
-                project_id: commande.project_id,
-                category: 'Achats',
-                description: `Commande ${commande.numero || '#' + commande.id}: ${commande.titre}`,
-                amount: total,
-                date: new Date().toISOString().split('T')[0],
-                validated: true,
-                source: 'commande',
-                source_id: parseInt(commandeId)
-            };
-            await db.from('atlas_depenses').insert([depenseData]);
-        }
-        
-        // 5. Créer les opérations fournisseurs
-        const fournisseursIds = [...new Set(lignes.filter(l => l.fournisseur_id).map(l => l.fournisseur_id))];
-        for (const fId of fournisseursIds) {
-            const lignesFournisseur = lignes.filter(l => l.fournisseur_id === fId);
-            const montantFournisseur = lignesFournisseur.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
-            
-            if (montantFournisseur > 0) {
-                const operationData = {
-                    fournisseur_id: fId,
-                    project_id: commande.project_id,
-                    type: 'achat',
-                    description: `Commande ${commande.numero}: ${lignesFournisseur.map(l => l.designation).join(', ')}`,
-                    montant: montantFournisseur,
-                    date_operation: new Date().toISOString().split('T')[0],
-                    statut: 'en_attente',
-                    source: 'commande',
-                    source_id: parseInt(commandeId)
-                };
-                await db.from('atlas_operations').insert([operationData]);
-            }
-        }
-        
-        // 6. Créer tâche "Valider facture à réception"
+        // 4. Créer tâche "Réceptionner commande"
         const tacheData = {
             project_id: commande.project_id,
-            titre: `📦 Réception commande: ${commande.titre}`,
-            description: `Valider la réception de la commande ${commande.numero || '#' + commande.id} et créer la facture`,
+            titre: `📦 Réceptionner: ${commande.titre}`,
+            description: `Marquer la commande ${commande.numero || '#' + commande.id} comme reçue et procéder à la ventilation`,
             priority: 'medium',
             source: 'commande',
             source_id: parseInt(commandeId),
@@ -768,11 +820,11 @@ async function validerCommande() {
         };
         await db.from('atlas_taches').insert([tacheData]);
         
-        // 7. Marquer ancienne tâche comme complétée
+        // 5. Marquer ancienne tâche comme complétée
         await db.from('atlas_taches').update({ completed: true, completed_at: new Date().toISOString() })
             .eq('source', 'commande').eq('source_id', commandeId).ilike('titre', '%Compléter%');
         
-        showToast('Commande validée ! PDF généré, dépenses et opérations créées.');
+        showToast('Commande validée ! PDF généré.');
         await loadData();
         
     } catch (err) {
@@ -781,87 +833,169 @@ async function validerCommande() {
     }
 }
 
-async function generatePDFBlob() {
+async function generateRealPDF() {
+    const doc = new jsPDF();
     const total = lignes.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
     const project = projects.find(p => p.id === commande.project_id);
     
-    const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<style>
-    body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: auto; background: #fff; color: #000; }
-    h1 { color: #1f2937; border-bottom: 3px solid #3b82f6; padding-bottom: 10px; }
-    .header-info { margin: 20px 0; }
-    .header-info p { margin: 5px 0; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-    th { background: #3b82f6; color: white; }
-    .amount { text-align: right; }
-    .total { font-weight: bold; background: #f3f4f6; }
-    .footer { margin-top: 40px; color: #666; font-size: 12px; border-top: 1px solid #ddd; padding-top: 20px; }
-    @media print { body { padding: 20px; } }
-</style>
-</head><body>
-<h1>📦 BON DE COMMANDE</h1>
-<div class="header-info">
-    <p><strong>N° :</strong> ${commande.numero || 'CMD-' + commande.id}</p>
-    <p><strong>Date :</strong> ${formatDate(commande.date_demande)}</p>
-    ${project ? `<p><strong>Chantier :</strong> ${project.name}</p>` : ''}
-    ${commande.demandeur ? `<p><strong>Demandeur :</strong> ${commande.demandeur}</p>` : ''}
-</div>
-<h2>${commande.titre}</h2>
-<table>
-    <thead><tr><th>Désignation</th><th>Fournisseur</th><th>Qté</th><th class="amount">P.U.</th><th class="amount">Montant</th></tr></thead>
-    <tbody>
-        ${lignes.map(l => {
-            const fournisseur = l.fournisseur_id ? (suppliers.find(s => s.id === l.fournisseur_id)?.nom || '?') : (l.fournisseur_autre || '-');
-            return `<tr>
-                <td>${l.designation}${l.categorie ? '<br><small>' + l.categorie + '</small>' : ''}</td>
-                <td>${fournisseur}</td>
-                <td>${l.quantite} ${l.unite || ''}</td>
-                <td class="amount">${l.prix_unitaire ? formatMoney(l.prix_unitaire) : '-'}</td>
-                <td class="amount">${l.montant ? formatMoney(l.montant) : '-'}</td>
-            </tr>`;
-        }).join('')}
-        <tr class="total"><td colspan="4"><strong>TOTAL</strong></td><td class="amount"><strong>${formatMoney(total)}</strong></td></tr>
-    </tbody>
-</table>
-${commande.notes ? `<p><strong>Notes :</strong> ${commande.notes}</p>` : ''}
-<div class="footer">
-    <p>Document généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
-    <p>Atlas Pose - Gestion de chantiers</p>
-</div>
-</body></html>`;
+    // En-tête
+    doc.setFontSize(20);
+    doc.setTextColor(31, 41, 55);
+    doc.text('BON DE COMMANDE', 105, 25, { align: 'center' });
     
-    return new Blob([html], { type: 'text/html' });
+    // Ligne sous titre
+    doc.setDrawColor(59, 130, 246);
+    doc.setLineWidth(1);
+    doc.line(20, 30, 190, 30);
+    
+    // Infos commande
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    let y = 45;
+    doc.text('N\u00B0 : ' + (commande.numero || 'CMD-' + commande.id), 20, y);
+    doc.text('Date : ' + formatDate(commande.date_demande), 120, y);
+    y += 8;
+    if (project) {
+        doc.text('Chantier : ' + project.name, 20, y);
+        y += 8;
+    }
+    if (commande.demandeur) {
+        doc.text('Demandeur : ' + commande.demandeur, 20, y);
+        y += 8;
+    }
+    
+    // Titre commande
+    y += 5;
+    doc.setFontSize(14);
+    doc.setTextColor(31, 41, 55);
+    doc.text(commande.titre, 20, y);
+    y += 15;
+    
+    // Tableau header
+    doc.setFontSize(9);
+    doc.setFillColor(59, 130, 246);
+    doc.setTextColor(255, 255, 255);
+    doc.rect(20, y, 170, 8, 'F');
+    doc.text('Designation', 22, y + 5.5);
+    doc.text('Fournisseur', 82, y + 5.5);
+    doc.text('Qte', 122, y + 5.5);
+    doc.text('P.U.', 142, y + 5.5);
+    doc.text('Montant', 167, y + 5.5);
+    y += 8;
+    
+    // Lignes
+    doc.setTextColor(50, 50, 50);
+    lignes.forEach((l, i) => {
+        if (y > 260) {
+            doc.addPage();
+            y = 20;
+        }
+        
+        const fournisseur = l.fournisseur_id 
+            ? (suppliers.find(s => s.id === l.fournisseur_id)?.nom || '?') 
+            : (l.fournisseur_autre || '-');
+        
+        if (i % 2 === 0) {
+            doc.setFillColor(245, 247, 250);
+            doc.rect(20, y, 170, 7, 'F');
+        }
+        
+        doc.text(l.designation.substring(0, 30), 22, y + 5);
+        doc.text(fournisseur.substring(0, 20), 82, y + 5);
+        doc.text((l.quantite || 1) + ' ' + (l.unite || ''), 122, y + 5);
+        doc.text(l.prix_unitaire ? String(l.prix_unitaire) : '-', 142, y + 5);
+        doc.text(l.montant ? String(Math.round(l.montant)) : '-', 167, y + 5);
+        y += 7;
+    });
+    
+    // Total
+    y += 3;
+    doc.setFillColor(229, 231, 235);
+    doc.rect(20, y, 170, 10, 'F');
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.text('TOTAL', 22, y + 7);
+    doc.text(formatMoney(total), 150, y + 7);
+    doc.setFont(undefined, 'normal');
+    
+    // Notes
+    if (commande.notes) {
+        y += 20;
+        doc.setFontSize(10);
+        doc.text('Notes :', 20, y);
+        y += 6;
+        doc.setFontSize(9);
+        const notesLines = doc.splitTextToSize(commande.notes, 160);
+        doc.text(notesLines, 20, y);
+    }
+    
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Document genere le ' + new Date().toLocaleDateString('fr-FR') + ' - Atlas Pose', 105, 285, { align: 'center' });
+    
+    return doc.output('blob');
 }
 
 async function viewPDF() {
     if (!commande.bon_commande_path) return;
     
-    const { data } = await db.storage.from(STORAGE_BUCKET).getPublicUrl(commande.bon_commande_path);
-    if (data?.publicUrl) {
-        window.open(data.publicUrl, '_blank');
+    try {
+        const { data } = await db.storage.from(STORAGE_BUCKET).createSignedUrl(commande.bon_commande_path, 3600);
+        if (data?.signedUrl) {
+            window.open(data.signedUrl, '_blank');
+        } else {
+            showToast('Erreur acces PDF', true);
+        }
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur: ' + err.message, true);
+    }
+}
+
+async function downloadPDF() {
+    if (!commande.bon_commande_path) return;
+    
+    try {
+        const { data } = await db.storage.from(STORAGE_BUCKET).download(commande.bon_commande_path);
+        if (data) {
+            const url = URL.createObjectURL(data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (commande.numero || 'CMD') + '-bon-commande.pdf';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur telechargement', true);
     }
 }
 
 async function regeneratePDF() {
-    if (!confirm('Régénérer le bon de commande avec les données actuelles ?')) return;
+    if (!confirm('Regenerer le bon de commande ?')) return;
     
     try {
-        const pdfBlob = await generatePDFBlob();
-        const pdfFilename = `${commande.numero || 'CMD-' + commande.id}-bon-commande-${Date.now()}.html`;
+        showToast('Regeneration...');
         
-        // Supprimer ancien fichier si existe
         if (commande.bon_commande_path) {
             await db.storage.from(STORAGE_BUCKET).remove([commande.bon_commande_path]);
         }
         
-        const { error } = await db.storage.from(STORAGE_BUCKET).upload(pdfFilename, pdfBlob, { contentType: 'text/html' });
+        const pdfBlob = await generateRealPDF();
+        const pdfFilename = `bons-commande/${commande.numero || 'CMD-' + commande.id}-${Date.now()}.pdf`;
+        
+        const { error } = await db.storage.from(STORAGE_BUCKET).upload(pdfFilename, pdfBlob, { 
+            contentType: 'application/pdf' 
+        });
         if (error) throw error;
         
-        await db.from('atlas_commandes').update({ bon_commande_path: pdfFilename, updated_at: new Date().toISOString() }).eq('id', commandeId);
+        await db.from('atlas_commandes').update({ 
+            bon_commande_path: pdfFilename, 
+            updated_at: new Date().toISOString() 
+        }).eq('id', commandeId);
         
-        showToast('PDF régénéré !');
+        showToast('PDF regenere !');
         await loadData();
     } catch (err) {
         console.error('Erreur:', err);
@@ -877,7 +1011,6 @@ function showToast(msg, isError = false) {
     setTimeout(() => toast.classList.remove('visible'), 3000);
 }
 
-// Init
 init();
     </script>
 </body>

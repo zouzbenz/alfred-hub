@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Factures - Atlas Pose</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; --purple:#8b5cf6; --orange:#f97316; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+        .container { max-width:1400px; margin:0 auto; padding:15px; }
+        
+        .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px; padding:12px; background:var(--card); border-radius:12px; border:1px solid var(--border); }
+        .back-link { display:inline-flex; align-items:center; gap:6px; color:var(--accent); text-decoration:none; font-size:.85rem; padding:8px 12px; background:rgba(59,130,246,.1); border-radius:8px; }
+        
+        .header { text-align:center; padding:20px 15px 30px; }
+        .header h1 { font-size:2rem; margin-bottom:8px; display:flex; align-items:center; justify-content:center; gap:10px; }
+        .header p { color:var(--dim); font-size:1rem; }
+        
+        .stats-row { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:25px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; text-align:center; }
+        .stat-value { font-size:1.5rem; font-weight:800; }
+        .stat-value.blue { color:var(--accent); }
+        .stat-value.green { color:var(--accent2); }
+        .stat-value.orange { color:var(--warn); }
+        .stat-label { font-size:.75rem; color:var(--dim); margin-top:4px; }
+        
+        .search-box { width:100%; max-width:400px; margin:0 auto 20px; position:relative; }
+        .search-box input { width:100%; padding:12px 15px; background:var(--card); border:1px solid var(--border); border-radius:25px; color:#fff; font-size:.9rem; }
+        .search-box input:focus { outline:none; border-color:var(--accent); }
+        
+        .factures-grid { display:grid; grid-template-columns:1fr; gap:15px; }
+        
+        .facture-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:18px; transition:.3s; cursor:pointer; }
+        .facture-card:hover { transform:translateY(-2px); box-shadow:0 5px 20px rgba(0,0,0,.3); border-color:var(--accent2); }
+        
+        .facture-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap; gap:10px; }
+        .facture-numero { font-size:1.1rem; font-weight:700; color:var(--accent2); font-family:monospace; }
+        .facture-date { font-size:.85rem; color:var(--dim); }
+        .facture-commande { font-size:.85rem; color:var(--accent); }
+        
+        .facture-info { display:flex; flex-wrap:wrap; gap:15px; font-size:.85rem; color:var(--dim); margin-bottom:12px; }
+        .facture-info span { display:flex; align-items:center; gap:4px; }
+        
+        .facture-footer { display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid var(--border); }
+        .facture-montant { font-size:1.2rem; font-weight:700; color:var(--accent2); }
+        .facture-badge { display:flex; gap:8px; }
+        .badge { padding:4px 10px; border-radius:15px; font-size:.75rem; font-weight:600; }
+        .badge-pdf { background:rgba(59,130,246,.2); color:var(--accent); }
+        .badge-justif { background:rgba(249,115,22,.2); color:var(--orange); }
+        
+        .empty-state { text-align:center; padding:50px; color:var(--dim); }
+        .loading { text-align:center; padding:50px; color:var(--dim); }
+        
+        .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
+        .footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
+        
+        @media(min-width:768px) { 
+            .factures-grid { grid-template-columns:repeat(2, 1fr); } 
+            .stats-row { grid-template-columns:repeat(4, 1fr); } 
+        }
+        @media(min-width:1024px) { 
+            .factures-grid { grid-template-columns:repeat(3, 1fr); } 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <a href="./atlas-projects.html" class="back-link">← Projets</a>
+            <a href="./atlas-commandes.html" class="back-link">📦 Commandes</a>
+            <a href="./atlas-backoffice.html" class="back-link">⚙️ Administration</a>
+        </div>
+        
+        <div class="header">
+            <h1>🧾 Factures</h1>
+            <p>Factures internes Atlas Pose</p>
+        </div>
+        
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-value blue" id="stat-total">0</div><div class="stat-label">Total factures</div></div>
+            <div class="stat-card"><div class="stat-value green" id="stat-montant">0 DH</div><div class="stat-label">Montant total</div></div>
+            <div class="stat-card"><div class="stat-value orange" id="stat-mois">0</div><div class="stat-label">Ce mois</div></div>
+            <div class="stat-card"><div class="stat-value blue" id="stat-projets">0</div><div class="stat-label">Projets</div></div>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="🔍 Rechercher une facture...">
+        </div>
+        
+        <div class="factures-grid" id="factures-grid">
+            <div class="loading">Chargement des factures...</div>
+        </div>
+        
+        <div class="footer">
+            <a href="./atlas-projects.html">Projets</a>
+            <a href="./atlas-commandes.html">Commandes</a>
+            <a href="./atlas-backoffice.html">Administration</a>
+        </div>
+    </div>
+    
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let factures = [], commandes = [], searchQuery = '';
+
+async function loadData() {
+    try {
+        const [facRes, cmdRes] = await Promise.all([
+            db.from('atlas_factures').select('*').order('created_at', { ascending: false }),
+            db.from('atlas_commandes').select('id, numero, titre')
+        ]);
+        
+        factures = facRes.data || [];
+        commandes = cmdRes.data || [];
+        
+        // Compter justificatifs
+        for (let fac of factures) {
+            const { count } = await db.from('atlas_facture_justificatifs').select('*', { count: 'exact', head: true }).eq('facture_id', fac.id);
+            fac.nb_justificatifs = count || 0;
+        }
+        
+        renderStats();
+        renderFactures();
+    } catch (err) {
+        console.error('Erreur:', err);
+    }
+}
+
+function formatDate(d) {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+function formatMoney(n) {
+    return new Intl.NumberFormat('fr-MA', { minimumFractionDigits:0 }).format(n || 0) + ' DH';
+}
+
+function getCommandeInfo(commandeId) {
+    return commandes.find(c => c.id === commandeId);
+}
+
+function renderStats() {
+    const now = new Date();
+    const moisCourant = factures.filter(f => {
+        const d = new Date(f.date_facture);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    
+    const montantTotal = factures.reduce((sum, f) => sum + (parseFloat(f.montant_total) || 0), 0);
+    const projetsSet = new Set(factures.map(f => f.commande_id).filter(Boolean));
+    
+    document.getElementById('stat-total').textContent = factures.length;
+    document.getElementById('stat-montant').textContent = formatMoney(montantTotal);
+    document.getElementById('stat-mois').textContent = moisCourant.length;
+    document.getElementById('stat-projets').textContent = projetsSet.size;
+}
+
+function filterFactures() {
+    if (!searchQuery) return factures;
+    
+    const q = searchQuery.toLowerCase();
+    return factures.filter(f => {
+        const cmd = getCommandeInfo(f.commande_id);
+        return (f.numero && f.numero.toLowerCase().includes(q)) ||
+               (cmd && cmd.titre.toLowerCase().includes(q)) ||
+               (cmd && cmd.numero && cmd.numero.toLowerCase().includes(q));
+    });
+}
+
+function renderFactures() {
+    const filtered = filterFactures();
+    const grid = document.getElementById('factures-grid');
+    
+    if (!filtered.length) {
+        grid.innerHTML = '<div class="empty-state">Aucune facture trouvée</div>';
+        return;
+    }
+    
+    grid.innerHTML = filtered.map(f => {
+        const cmd = getCommandeInfo(f.commande_id);
+        
+        return `
+        <div class="facture-card" onclick="location.href='./atlas-facture.html?id=${f.id}'">
+            <div class="facture-header">
+                <div>
+                    <div class="facture-numero">${f.numero || 'FAC-???'}</div>
+                    ${cmd ? `<div class="facture-commande">📦 ${cmd.numero}</div>` : ''}
+                </div>
+                <div class="facture-date">📅 ${formatDate(f.date_facture)}</div>
+            </div>
+            <div class="facture-info">
+                ${cmd ? `<span>📋 ${cmd.titre}</span>` : ''}
+            </div>
+            <div class="facture-footer">
+                <span class="facture-montant">${formatMoney(f.montant_total)}</span>
+                <div class="facture-badge">
+                    ${f.pdf_path ? '<span class="badge badge-pdf">📄 PDF</span>' : ''}
+                    ${f.nb_justificatifs > 0 ? `<span class="badge badge-justif">📸 ${f.nb_justificatifs}</span>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+document.getElementById('search-input').addEventListener('input', (e) => {
+    searchQuery = e.target.value.trim();
+    renderFactures();
+});
+
+loadData();
+    </script>
+</body>
+</html>

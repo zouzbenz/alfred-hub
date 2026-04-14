@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Reception & Ventilation - Atlas Pose</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root { --bg:#0a0f1a; --card:#111827; --accent:#3b82f6; --accent2:#10b981; --text:#f3f4f6; --dim:#9ca3af; --border:#1f2937; --danger:#ef4444; --warn:#f59e0b; --purple:#8b5cf6; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+        .container { max-width:1000px; margin:0 auto; padding:15px; }
+        
+        .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px; padding:12px; background:var(--card); border-radius:12px; border:1px solid var(--border); }
+        .back-link { display:inline-flex; align-items:center; gap:6px; color:var(--accent); text-decoration:none; font-size:.85rem; padding:8px 12px; background:rgba(59,130,246,.1); border-radius:8px; }
+        
+        .header { padding:20px 15px 30px; }
+        .header h1 { font-size:1.6rem; margin-bottom:8px; }
+        .header-sub { color:var(--dim); font-size:.9rem; }
+        .header-info { display:flex; flex-wrap:wrap; gap:15px; margin-top:15px; }
+        .header-info .badge { padding:6px 12px; background:var(--card); border:1px solid var(--border); border-radius:8px; font-size:.85rem; }
+        
+        .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:20px; }
+        .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px; }
+        .section-title { font-size:1rem; font-weight:700; display:flex; align-items:center; gap:8px; }
+        
+        .btn { padding:10px 18px; border:none; border-radius:10px; font-weight:600; cursor:pointer; font-size:.85rem; transition:.2s; display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
+        .btn:hover { transform:translateY(-1px); }
+        .btn-primary { background:var(--accent); color:#fff; }
+        .btn-success { background:var(--accent2); color:#fff; }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+        .btn-danger { background:var(--danger); color:#fff; }
+        .btn-purple { background:var(--purple); color:#fff; }
+        .btn-small { padding:6px 12px; font-size:.8rem; }
+        .btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+        
+        .step-indicator { display:flex; gap:10px; margin-bottom:25px; }
+        .step { flex:1; padding:12px; background:var(--bg); border-radius:10px; text-align:center; }
+        .step.active { background:var(--accent); color:#fff; }
+        .step.done { background:var(--accent2); color:#fff; }
+        .step-num { font-size:1.2rem; font-weight:800; }
+        .step-label { font-size:.75rem; margin-top:4px; }
+        
+        .ligne-card { background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:15px; }
+        .ligne-card.ventilee { border-color:var(--accent2); background:rgba(16,185,129,.05); }
+        .ligne-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+        .ligne-title { font-weight:600; font-size:1rem; }
+        .ligne-meta { font-size:.8rem; color:var(--dim); margin-top:4px; }
+        .ligne-badge { padding:4px 10px; border-radius:15px; font-size:.75rem; font-weight:600; }
+        .badge-pending { background:rgba(245,158,11,.2); color:var(--warn); }
+        .badge-done { background:rgba(16,185,129,.2); color:var(--accent2); }
+        
+        .ventilation-form { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+        .ventilation-row { display:grid; grid-template-columns:1fr 80px 40px; gap:10px; margin-bottom:10px; align-items:center; }
+        .ventilation-row select, .ventilation-row input { padding:10px; background:var(--card); border:1px solid var(--border); border-radius:8px; color:#fff; font-size:.85rem; }
+        .ventilation-row input { text-align:center; }
+        .ventilation-row .btn-icon { padding:8px; min-width:40px; justify-content:center; }
+        
+        .upload-zone { border:2px dashed var(--border); border-radius:12px; padding:30px; text-align:center; cursor:pointer; transition:.2s; margin-top:15px; }
+        .upload-zone:hover { border-color:var(--accent); background:rgba(59,130,246,.05); }
+        .upload-zone.dragover { border-color:var(--accent); background:rgba(59,130,246,.1); }
+        .upload-icon { font-size:2.5rem; margin-bottom:10px; }
+        .upload-text { color:var(--dim); font-size:.9rem; }
+        .upload-hint { color:var(--dim); font-size:.75rem; margin-top:8px; }
+        
+        .uploaded-files { margin-top:15px; }
+        .uploaded-file { display:flex; align-items:center; gap:12px; padding:12px; background:var(--bg); border-radius:10px; margin-bottom:8px; }
+        .uploaded-file img { width:50px; height:50px; object-fit:cover; border-radius:6px; }
+        .uploaded-file .file-info { flex:1; }
+        .uploaded-file .file-name { font-size:.85rem; font-weight:500; }
+        .uploaded-file .file-size { font-size:.75rem; color:var(--dim); }
+        
+        .summary-box { background:linear-gradient(135deg, var(--purple), var(--accent)); padding:20px; border-radius:12px; margin-bottom:20px; }
+        .summary-title { font-size:1.1rem; font-weight:700; margin-bottom:15px; }
+        .summary-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:15px; }
+        .summary-item { background:rgba(255,255,255,.1); padding:12px; border-radius:8px; }
+        .summary-label { font-size:.75rem; opacity:.8; }
+        .summary-value { font-size:1.3rem; font-weight:700; margin-top:4px; }
+        
+        .actions-footer { display:flex; gap:12px; justify-content:space-between; flex-wrap:wrap; margin-top:20px; padding-top:20px; border-top:1px solid var(--border); }
+        
+        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--accent2); color:#fff; padding:12px 24px; border-radius:10px; font-weight:600; z-index:2000; opacity:0; transition:.3s; }
+        .toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
+        
+        .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
+        .footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
+        
+        @media(max-width:600px) {
+            .ventilation-row { grid-template-columns:1fr; }
+            .step-indicator { flex-direction:column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <a href="#" id="back-link" class="back-link">← Retour a la commande</a>
+        </div>
+        
+        <div class="header">
+            <h1>📦 Reception & Ventilation</h1>
+            <div class="header-sub" id="cmd-titre">Chargement...</div>
+            <div class="header-info">
+                <span class="badge" id="cmd-numero">-</span>
+                <span class="badge" id="cmd-total">-</span>
+            </div>
+        </div>
+        
+        <div class="step-indicator">
+            <div class="step" id="step-1">
+                <div class="step-num">1</div>
+                <div class="step-label">Ventilation</div>
+            </div>
+            <div class="step" id="step-2">
+                <div class="step-num">2</div>
+                <div class="step-label">Justificatifs</div>
+            </div>
+            <div class="step" id="step-3">
+                <div class="step-num">3</div>
+                <div class="step-label">Facturation</div>
+            </div>
+        </div>
+        
+        <div class="section" id="section-ventilation">
+            <div class="section-header">
+                <h3 class="section-title">📋 Repartition par projet</h3>
+                <span style="font-size:.85rem;color:var(--dim);">Repartissez chaque article sur un ou plusieurs projets</span>
+            </div>
+            <div id="lignes-container">
+                <p style="color:var(--dim);text-align:center;padding:20px;">Chargement...</p>
+            </div>
+        </div>
+        
+        <div class="section" id="section-justificatifs">
+            <div class="section-header">
+                <h3 class="section-title">📎 Justificatifs fournisseur</h3>
+            </div>
+            <p style="font-size:.9rem;color:var(--dim);margin-bottom:15px;">Uploadez les photos des factures fournisseurs reelles (optionnel mais recommande)</p>
+            
+            <div class="upload-zone" id="upload-zone">
+                <div class="upload-icon">📷</div>
+                <div class="upload-text">Cliquez ou glissez vos photos ici</div>
+                <div class="upload-hint">JPG, PNG ou PDF - Max 10 MB par fichier</div>
+            </div>
+            <input type="file" id="file-input" multiple accept="image/*,.pdf" style="display:none;">
+            
+            <div class="uploaded-files" id="uploaded-files"></div>
+        </div>
+        
+        <div class="summary-box" id="summary-box">
+            <div class="summary-title">📊 Resume de la ventilation</div>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-label">Articles</div>
+                    <div class="summary-value" id="summary-articles">0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Ventiles</div>
+                    <div class="summary-value" id="summary-ventiles">0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Montant total</div>
+                    <div class="summary-value" id="summary-montant">0 DH</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Justificatifs</div>
+                    <div class="summary-value" id="summary-justifs">0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="actions-footer">
+            <button class="btn btn-outline" onclick="goBack()">← Retour</button>
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-primary" id="btn-save" onclick="saveVentilation()">💾 Sauvegarder</button>
+                <button class="btn btn-success" id="btn-facturer" onclick="creerFacture()">🧾 Creer la facture</button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <a href="./atlas-commandes.html">Commandes</a>
+            <a href="./atlas-factures.html">Factures</a>
+            <a href="./atlas-projects.html">Projets</a>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const STORAGE_BUCKET = 'atlas-factures';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const { jsPDF } = window.jspdf;
+
+let commandeId = null, commande = null, lignes = [], projects = [], suppliers = [];
+let ventilations = {};
+let uploadedFiles = [];
+
+async function init() {
+    commandeId = new URLSearchParams(location.search).get('id');
+    if (!commandeId) { location.href = './atlas-commandes.html'; return; }
+    
+    document.getElementById('back-link').href = './atlas-commande.html?id=' + commandeId;
+    
+    await loadData();
+    setupUpload();
+}
+
+async function loadData() {
+    try {
+        const [cmdRes, lignesRes, projRes, suppRes] = await Promise.all([
+            db.from('atlas_commandes').select('*').eq('id', commandeId).single(),
+            db.from('atlas_commande_lignes').select('*').eq('commande_id', commandeId).order('created_at'),
+            db.from('atlas_projects').select('id, name').eq('statut', 'actif').order('name'),
+            db.from('atlas_fournisseurs').select('id, nom').order('nom')
+        ]);
+        
+        commande = cmdRes.data;
+        lignes = lignesRes.data || [];
+        projects = projRes.data || [];
+        suppliers = suppRes.data || [];
+        
+        if (!commande) { showToast('Commande introuvable', true); return; }
+        
+        if (commande.statut === 'validee') {
+            await db.from('atlas_commandes').update({ statut: 'recue', updated_at: new Date().toISOString() }).eq('id', commandeId);
+            commande.statut = 'recue';
+        }
+        
+        lignes.forEach(l => {
+            ventilations[l.id] = [{
+                project_id: commande.project_id || (projects[0]?.id || null),
+                quantite: l.quantite || 1
+            }];
+        });
+        
+        renderHeader();
+        renderLignes();
+        updateSummary();
+        updateSteps();
+        
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur de chargement', true);
+    }
+}
+
+function formatMoney(n) {
+    return new Intl.NumberFormat('fr-MA', { minimumFractionDigits:0 }).format(n || 0) + ' DH';
+}
+
+function renderHeader() {
+    document.getElementById('cmd-titre').textContent = commande.titre;
+    document.getElementById('cmd-numero').textContent = commande.numero || 'CMD-' + commande.id;
+    const total = lignes.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
+    document.getElementById('cmd-total').textContent = formatMoney(total);
+}
+
+function renderLignes() {
+    const container = document.getElementById('lignes-container');
+    
+    if (!lignes.length) {
+        container.innerHTML = '<p style="color:var(--dim);text-align:center;padding:20px;">Aucun article.</p>';
+        return;
+    }
+    
+    container.innerHTML = lignes.map(l => {
+        const vents = ventilations[l.id] || [];
+        const totalVentile = vents.reduce((sum, v) => sum + (parseFloat(v.quantite) || 0), 0);
+        const isComplete = Math.abs(totalVentile - (l.quantite || 1)) < 0.01;
+        
+        const fournisseur = l.fournisseur_id 
+            ? (suppliers.find(s => s.id === l.fournisseur_id)?.nom || '?')
+            : (l.fournisseur_autre || '-');
+        
+        return `
+        <div class="ligne-card ${isComplete ? 'ventilee' : ''}" data-id="${l.id}">
+            <div class="ligne-header">
+                <div>
+                    <div class="ligne-title">${l.designation}</div>
+                    <div class="ligne-meta">
+                        ${l.categorie || ''} - ${fournisseur} - ${l.quantite || 1} ${l.unite || 'unite'} - ${formatMoney(l.montant)}
+                    </div>
+                </div>
+                <span class="ligne-badge ${isComplete ? 'badge-done' : 'badge-pending'}">
+                    ${isComplete ? '✓ Ventile' : totalVentile + '/' + (l.quantite || 1)}
+                </span>
+            </div>
+            
+            <div class="ventilation-form">
+                <div id="vents-${l.id}">
+                    ${vents.map((v, idx) => renderVentilationRow(l.id, idx, v)).join('')}
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;margin-top:10px;">
+                    <button class="btn btn-outline btn-small" onclick="addVentilationRow(${l.id})">+ Ajouter un projet</button>
+                    <span style="font-size:.8rem;color:var(--dim);margin-left:auto;">
+                        Reste: ${Math.max(0, (l.quantite || 1) - totalVentile).toFixed(2)} ${l.unite || ''}
+                    </span>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderVentilationRow(ligneId, idx, vent) {
+    const projectOptions = projects.map(p => 
+        `<option value="${p.id}" ${vent.project_id == p.id ? 'selected' : ''}>${p.name}</option>`
+    ).join('');
+    
+    return `
+    <div class="ventilation-row" data-idx="${idx}">
+        <select onchange="updateVentilation(${ligneId}, ${idx}, 'project_id', this.value)">
+            <option value="">-- Projet --</option>
+            ${projectOptions}
+        </select>
+        <input type="number" value="${vent.quantite || 0}" min="0" step="0.01" 
+               onchange="updateVentilation(${ligneId}, ${idx}, 'quantite', this.value)">
+        ${idx > 0 ? `<button class="btn btn-danger btn-icon btn-small" onclick="removeVentilationRow(${ligneId}, ${idx})">x</button>` : '<div></div>'}
+    </div>`;
+}
+
+function addVentilationRow(ligneId) {
+    if (!ventilations[ligneId]) ventilations[ligneId] = [];
+    ventilations[ligneId].push({ project_id: null, quantite: 0 });
+    renderLignes();
+    updateSummary();
+}
+
+function removeVentilationRow(ligneId, idx) {
+    if (ventilations[ligneId] && ventilations[ligneId].length > 1) {
+        ventilations[ligneId].splice(idx, 1);
+        renderLignes();
+        updateSummary();
+    }
+}
+
+function updateVentilation(ligneId, idx, field, value) {
+    if (!ventilations[ligneId]) ventilations[ligneId] = [];
+    if (!ventilations[ligneId][idx]) ventilations[ligneId][idx] = {};
+    
+    if (field === 'quantite') {
+        ventilations[ligneId][idx][field] = parseFloat(value) || 0;
+    } else {
+        ventilations[ligneId][idx][field] = value ? parseInt(value) : null;
+    }
+    
+    renderLignes();
+    updateSummary();
+}
+
+function updateSummary() {
+    const totalArticles = lignes.length;
+    let ventiles = 0;
+    let montantTotal = 0;
+    
+    lignes.forEach(l => {
+        const vents = ventilations[l.id] || [];
+        const totalVentile = vents.reduce((sum, v) => sum + (parseFloat(v.quantite) || 0), 0);
+        if (Math.abs(totalVentile - (l.quantite || 1)) < 0.01) ventiles++;
+        montantTotal += parseFloat(l.montant) || 0;
+    });
+    
+    document.getElementById('summary-articles').textContent = totalArticles;
+    document.getElementById('summary-ventiles').textContent = ventiles + '/' + totalArticles;
+    document.getElementById('summary-montant').textContent = formatMoney(montantTotal);
+    document.getElementById('summary-justifs').textContent = uploadedFiles.length;
+    
+    const allVentiles = ventiles === totalArticles;
+    document.getElementById('btn-facturer').disabled = !allVentiles;
+}
+
+function updateSteps() {
+    const step1 = document.getElementById('step-1');
+    const step2 = document.getElementById('step-2');
+    const step3 = document.getElementById('step-3');
+    
+    step1.classList.add('active');
+    
+    let allVentiles = true;
+    lignes.forEach(l => {
+        const vents = ventilations[l.id] || [];
+        const totalVentile = vents.reduce((sum, v) => sum + (parseFloat(v.quantite) || 0), 0);
+        if (Math.abs(totalVentile - (l.quantite || 1)) >= 0.01) allVentiles = false;
+    });
+    
+    if (allVentiles) {
+        step1.classList.remove('active');
+        step1.classList.add('done');
+        step2.classList.add('active');
+    }
+    
+    if (uploadedFiles.length > 0) {
+        step2.classList.remove('active');
+        step2.classList.add('done');
+        step3.classList.add('active');
+    }
+}
+
+function setupUpload() {
+    const zone = document.getElementById('upload-zone');
+    const input = document.getElementById('file-input');
+    
+    zone.addEventListener('click', () => input.click());
+    
+    zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+    });
+    
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    
+    zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+    
+    input.addEventListener('change', () => {
+        handleFiles(input.files);
+        input.value = '';
+    });
+}
+
+function handleFiles(files) {
+    Array.from(files).forEach(file => {
+        if (file.size > 10 * 1024 * 1024) {
+            showToast('Fichier trop volumineux: ' + file.name, true);
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            uploadedFiles.push({
+                file: file,
+                preview: e.target.result,
+                uploaded: false,
+                path: null
+            });
+            renderUploadedFiles();
+            updateSummary();
+            updateSteps();
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function renderUploadedFiles() {
+    const container = document.getElementById('uploaded-files');
+    
+    container.innerHTML = uploadedFiles.map((f, idx) => {
+        const isImage = f.file.type.startsWith('image/');
+        const sizeMB = (f.file.size / 1024 / 1024).toFixed(2);
+        
+        return `
+        <div class="uploaded-file">
+            ${isImage ? `<img src="${f.preview}" alt="">` : '<div style="width:50px;height:50px;background:var(--card);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">📄</div>'}
+            <div class="file-info">
+                <div class="file-name">${f.file.name}</div>
+                <div class="file-size">${sizeMB} MB ${f.uploaded ? '✓ Uploade' : ''}</div>
+            </div>
+            <button class="btn btn-danger btn-small" onclick="removeFile(${idx})">x</button>
+        </div>`;
+    }).join('');
+}
+
+function removeFile(idx) {
+    uploadedFiles.splice(idx, 1);
+    renderUploadedFiles();
+    updateSummary();
+    updateSteps();
+}
+
+async function saveVentilation() {
+    showToast('Ventilation sauvegardee !');
+}
+
+function goBack() {
+    location.href = './atlas-commande.html?id=' + commandeId;
+}
+
+async function creerFacture() {
+    let allVentiles = true;
+    lignes.forEach(l => {
+        const vents = ventilations[l.id] || [];
+        const totalVentile = vents.reduce((sum, v) => sum + (parseFloat(v.quantite) || 0), 0);
+        if (Math.abs(totalVentile - (l.quantite || 1)) >= 0.01) allVentiles = false;
+    });
+    
+    if (!allVentiles) {
+        showToast('Veuillez ventiler tous les articles', true);
+        return;
+    }
+    
+    if (!confirm('Creer la facture ? Cette action est irreversible.')) return;
+    
+    try {
+        showToast('Creation en cours...');
+        
+        const montantTotal = lignes.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
+        
+        const { data: factureData, error: factureError } = await db.from('atlas_factures').insert([{
+            commande_id: parseInt(commandeId),
+            montant_total: montantTotal,
+            notes: 'Facture generee depuis commande ' + (commande.numero || '#' + commande.id)
+        }]).select().single();
+        
+        if (factureError) throw factureError;
+        const factureId = factureData.id;
+        
+        for (let i = 0; i < uploadedFiles.length; i++) {
+            const f = uploadedFiles[i];
+            const ext = f.file.name.split('.').pop();
+            const path = `justificatifs/FAC-${factureId}-${i + 1}.${ext}`;
+            
+            const { error: upErr } = await db.storage.from(STORAGE_BUCKET).upload(path, f.file, {
+                contentType: f.file.type,
+                upsert: true
+            });
+            
+            if (!upErr) {
+                await db.from('atlas_facture_justificatifs').insert([{
+                    facture_id: factureId,
+                    file_path: path,
+                    nom_fichier: f.file.name,
+                    type_fichier: f.file.type
+                }]);
+            }
+        }
+        
+        const ventilationsToInsert = [];
+        for (const ligne of lignes) {
+            const vents = ventilations[ligne.id] || [];
+            for (const v of vents) {
+                if (v.project_id && v.quantite > 0) {
+                    const prixUnit = ligne.prix_unitaire || 0;
+                    const montant = v.quantite * prixUnit;
+                    
+                    ventilationsToInsert.push({
+                        facture_id: factureId,
+                        ligne_commande_id: ligne.id,
+                        project_id: v.project_id,
+                        designation: ligne.designation,
+                        quantite: v.quantite,
+                        prix_unitaire: prixUnit,
+                        montant: montant
+                    });
+                }
+            }
+        }
+        
+        if (ventilationsToInsert.length > 0) {
+            await db.from('atlas_facture_ventilation').insert(ventilationsToInsert);
+        }
+        
+        const depensesByProject = {};
+        for (const v of ventilationsToInsert) {
+            if (!depensesByProject[v.project_id]) {
+                depensesByProject[v.project_id] = { items: [], total: 0 };
+            }
+            depensesByProject[v.project_id].items.push(v.designation);
+            depensesByProject[v.project_id].total += v.montant;
+        }
+        
+        for (const [projectId, data] of Object.entries(depensesByProject)) {
+            await db.from('atlas_depenses').insert([{
+                project_id: parseInt(projectId),
+                type: 'materiel',
+                description: `Commande ${commande.numero || '#' + commande.id}: ${data.items.slice(0, 3).join(', ')}${data.items.length > 3 ? '...' : ''}`,
+                montant: data.total,
+                date_depense: new Date().toISOString().split('T')[0],
+                source: 'facture',
+                source_id: factureId
+            }]);
+        }
+        
+        const fournisseurIds = [...new Set(lignes.map(l => l.fournisseur_id).filter(Boolean))];
+        for (const fId of fournisseurIds) {
+            const lignesFournisseur = lignes.filter(l => l.fournisseur_id === fId);
+            const montant = lignesFournisseur.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
+            
+            await db.from('atlas_operations').insert([{
+                fournisseur_id: fId,
+                type: 'facture',
+                description: `Facture ${factureData.numero} - Commande ${commande.numero || '#' + commande.id}`,
+                montant: montant,
+                date_operation: new Date().toISOString().split('T')[0],
+                source: 'facture',
+                source_id: factureId
+            }]);
+        }
+        
+        await db.from('atlas_commandes').update({
+            statut: 'facturee',
+            updated_at: new Date().toISOString()
+        }).eq('id', commandeId);
+        
+        await db.from('atlas_taches').update({
+            completed: true,
+            completed_at: new Date().toISOString()
+        }).eq('source', 'commande').eq('source_id', parseInt(commandeId)).ilike('titre', '%Receptionner%');
+        
+        // TODO: MAJ Stock (module a creer)
+        // TODO: MAJ Tresorerie (module a creer)
+        
+        showToast('Facture creee !');
+        
+        setTimeout(() => {
+            location.href = './atlas-facture.html?id=' + factureId;
+        }, 1500);
+        
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur: ' + err.message, true);
+    }
+}
+
+function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.background = isError ? 'var(--danger)' : 'var(--accent2)';
+    toast.classList.add('visible');
+    setTimeout(() => toast.classList.remove('visible'), 3000);
+}
+
+init();
+    </script>
+</body>
+</html>
