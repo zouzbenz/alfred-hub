@@ -214,7 +214,7 @@ async function loadData() {
         const [cmdRes, lignesRes, projRes, suppRes] = await Promise.all([
             db.from('atlas_commandes').select('*').eq('id', commandeId).single(),
             db.from('atlas_commande_lignes').select('*').eq('commande_id', commandeId).order('created_at'),
-            db.from('atlas_projects').select('id, name').eq('statut', 'actif').order('name'),
+            db.from('atlas_projects').select('id, name').order('name'),
             db.from('atlas_fournisseurs').select('id, nom').order('nom')
         ]);
         
