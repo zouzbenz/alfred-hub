@@ -570,7 +570,7 @@ async function creerFacture() {
         for (const [projectId, data] of Object.entries(depensesByProject)) {
             const depenseData = {
                 project_id: parseInt(projectId),
-                categorie: 'materiaux',
+                categorie: 'fourniture',
                 designation: `Commande ${commande.numero || '#' + commande.id}: ${data.items.slice(0, 3).join(', ')}${data.items.length > 3 ? '...' : ''}`,
                 montant: data.total,
                 entry_method: 'backoffice',
@@ -592,15 +592,14 @@ async function creerFacture() {
             
             const opData = {
                 fournisseur_id: fId,
+                type_operation: 'achat',
                 designation: `Facture ${factureData.numero || 'FAC-' + factureId} - ${designations}${lignesFournisseur.length > 3 ? '...' : ''}`,
-                categorie: 'achat',
                 montant: montant,
                 date_commande: commande.date_demande || new Date().toISOString().split('T')[0],
                 date_realisation: new Date().toISOString().split('T')[0],
                 numero_facture: factureData.numero || 'FAC-' + factureId,
                 notes: `Commande ${commande.numero || '#' + commande.id}`,
-                projet_id: commande.project_id,
-                created_by: 'backoffice'
+                projet_id: commande.project_id
             };
             console.log('Insert opération:', opData);
             const { error: opError } = await db.from('atlas_operations').insert([opData]);
