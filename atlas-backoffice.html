@@ -668,6 +668,11 @@ function switchTab(tabName) {
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
     document.getElementById(tabName + '-tab').classList.add('active');
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    // Chargement lazy des onglets
+    if (tabName === 'clients') renderClientsTab();
+    if (tabName === 'commandes') loadCommandesTab();
+    if (tabName === 'ouvriers') loadOuvriersTab();
+    if (tabName === 'taches') loadTachesTab();
 }
 
 function openTab(tabName) { switchTab(tabName); }
@@ -1360,16 +1365,6 @@ async function loadTachesTab() {
         }).join('');
         div.dataset.loaded = '1';
     } catch(err) { div.textContent = 'Erreur de chargement'; }
-}
-
-// Override switchTab pour charger les onglets à la demande
-const _origSwitchTab = switchTab;
-function switchTab(tabName) {
-    _origSwitchTab(tabName);
-    if (tabName === 'clients') renderClientsTab();
-    if (tabName === 'commandes') loadCommandesTab();
-    if (tabName === 'ouvriers') loadOuvriersTab();
-    if (tabName === 'taches') loadTachesTab();
 }
     </script>
     <script src="./atlas-nav.js"></script>
