@@ -1214,6 +1214,163 @@ function exportExcel() {
     XLSX.writeFile(wb, `Atlas_Pose_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
     showToast('Export téléchargé !');
 }
+
+// ==================== CLIENTS ====================
+function populateClientSelect() {
+    const sel = document.getElementById('p-client');
+    if (!sel) return;
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">-- Sélectionner un client --</option>' +
+        clients.map(c => `<option value="${c.id}">${c.nom}${c.reference ? ' (' + c.reference + ')' : ''}</option>`).join('');
+    if (currentVal) sel.value = currentVal;
+}
+
+function openQuickClientModal() {
+    const nom = prompt('Nom du nouveau client :');
+    if (!nom || !nom.trim()) return;
+    const tel = prompt('Téléphone (optionnel) :') || null;
+    createQuickClient(nom.trim(), tel);
+}
+
+async function createQuickClient(nom, telephone) {
+    try {
+        const { data, error } = await db.from('atlas_clients').insert([{ nom, telephone }]).select().single();
+        if (error) throw error;
+        clients.push(data);
+        clients.sort((a, b) => a.nom.localeCompare(b.nom));
+        populateClientSelect();
+        document.getElementById('p-client').value = data.id;
+        showToast('Client "' + nom + '" créé ✓');
+    } catch(err) {
+        alert('Erreur création client: ' + err.message);
+    }
+}
+
+function renderClientsTab() {
+    const tbody = document.getElementById('clients-tbody');
+    if (!tbody) return;
+    if (!clients.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--dim);padding:30px;">Aucun client — <a href="./atlas-clients.html" style="color:var(--accent);">Gérer les clients</a></td></tr>';
+        return;
+    }
+    tbody.innerHTML = clients.map(c => {
+        const nbProjets = projects.filter(p => p.client_id === c.id).length;
+        return `<tr>
+            <td style="font-weight:600;">${c.nom}</td>
+            <td style="font-family:monospace;color:var(--dim);">${c.reference || '-'}</td>
+            <td>${c.telephone || '-'}</td>
+            <td>${c.ville || '-'}</td>
+            <td><span style="color:var(--accent);font-weight:600;">${nbProjets}</span></td>
+            <td><span class="status-badge ${c.actif !== false ? 'status-en_cours' : 'status-a_venir'}">${c.actif !== false ? 'Actif' : 'Inactif'}</span></td>
+            <td class="actions-cell">
+                <a href="./atlas-client.html?id=${c.id}" class="btn btn-small btn-outline btn-icon" title="Fiche">👁️</a>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function openQuickClientFormModal() {
+    const nom = prompt('Nom du nouveau client :');
+    if (!nom || !nom.trim()) return;
+    const tel = prompt('Téléphone (optionnel) :') || null;
+    const ville = prompt('Ville (optionnel) :') || null;
+    try {
+        const { data, error } = await db.from('atlas_clients').insert([{ nom: nom.trim(), telephone: tel, ville }]).select().single();
+        if (error) throw error;
+        clients.push(data);
+        clients.sort((a, b) => a.nom.localeCompare(b.nom));
+        populateClientSelect();
+        renderClientsTab();
+        showToast('Client "' + nom.trim() + '" créé ✓');
+    } catch(err) {
+        alert('Erreur: ' + err.message);
+    }
+}
+
+async function loadCommandesTab() {
+    const tbody = document.getElementById('commandes-tbody');
+    if (!tbody || tbody.dataset.loaded) return;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--dim);">Chargement...</td></tr>';
+    try {
+        const { data } = await db.from('atlas_commandes').select('*').order('created_at', { ascending: false }).limit(20);
+        const cmds = data || [];
+        if (!cmds.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:20px;">Aucune commande</td></tr>';
+            return;
+        }
+        const labels = { brouillon:'📝 Brouillon', validee:'✅ Validée', recue:'📦 Reçue', annulee:'❌ Annulée', facturee:'🧾 Facturée' };
+        const statClasses = { brouillon:'status-a_venir', validee:'status-en_cours', recue:'status-termine', facturee:'status-termine' };
+        tbody.innerHTML = cmds.map(c => {
+            const proj = projects.find(p => p.id === c.project_id);
+            return `<tr>
+                <td style="font-family:monospace;font-size:.8rem;color:var(--dim);">${c.numero || '#' + c.id}</td>
+                <td style="font-weight:600;">${c.titre}</td>
+                <td>${proj ? proj.name : '-'}</td>
+                <td>${c.date_demande ? new Date(c.date_demande).toLocaleDateString('fr-FR') : '-'}</td>
+                <td><span class="status-badge ${statClasses[c.statut] || ''}">${labels[c.statut] || c.statut}</span></td>
+                <td class="actions-cell">
+                    <a href="./atlas-commande.html?id=${c.id}" class="btn btn-small btn-outline btn-icon">👁️</a>
+                </td>
+            </tr>`;
+        }).join('');
+        tbody.dataset.loaded = '1';
+    } catch(err) {
+        tbody.innerHTML = '<tr><td colspan="6" style="color:var(--danger);padding:20px;text-align:center;">Erreur de chargement</td></tr>';
+    }
+}
+
+async function loadOuvriersTab() {
+    const div = document.getElementById('ouvriers-summary');
+    if (!div || div.dataset.loaded) return;
+    try {
+        const { data } = await db.from('atlas_ouvriers').select('*');
+        const ouvriers = data || [];
+        const actifs = ouvriers.filter(o => o.actif !== false).length;
+        div.innerHTML = `
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;max-width:400px;margin:0 auto 20px;">
+                <div style="text-align:center;"><div style="font-size:1.8rem;font-weight:800;color:var(--accent);">${ouvriers.length}</div><div style="font-size:.75rem;color:var(--dim);">Total</div></div>
+                <div style="text-align:center;"><div style="font-size:1.8rem;font-weight:800;color:var(--accent2);">${actifs}</div><div style="font-size:.75rem;color:var(--dim);">Actifs</div></div>
+                <div style="text-align:center;"><div style="font-size:1.8rem;font-weight:800;color:var(--warn);">${ouvriers.length - actifs}</div><div style="font-size:.75rem;color:var(--dim);">Inactifs</div></div>
+            </div>
+            <div style="margin-top:10px;">
+                ${ouvriers.slice(0,8).map(o => `<span style="display:inline-block;padding:5px 12px;background:rgba(59,130,246,.1);border:1px solid var(--border);border-radius:20px;margin:4px;font-size:.82rem;">${o.prenom || ''} ${o.nom}</span>`).join('')}
+                ${ouvriers.length > 8 ? `<span style="color:var(--dim);font-size:.82rem;"> +${ouvriers.length - 8} autres</span>` : ''}
+            </div>`;
+        div.dataset.loaded = '1';
+    } catch(err) { div.textContent = 'Erreur de chargement'; }
+}
+
+async function loadTachesTab() {
+    const div = document.getElementById('taches-summary');
+    if (!div || div.dataset.loaded) return;
+    try {
+        const { data } = await db.from('atlas_taches').select('*').eq('completed', false).order('created_at', { ascending: false }).limit(15);
+        const taches = data || [];
+        if (!taches.length) { div.innerHTML = '<span style="color:var(--accent2);">✅ Aucune tâche en cours</span>'; return; }
+        const prioColors = { high: 'var(--danger)', medium: 'var(--warn)', low: 'var(--accent2)' };
+        div.innerHTML = taches.map(t => {
+            const proj = projects.find(p => p.id === t.project_id);
+            return `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:10px;align-items:center;">
+                <div>
+                    <div style="font-weight:500;font-size:.88rem;">${t.titre}</div>
+                    ${proj ? `<div style="font-size:.75rem;color:var(--dim);">🏗️ ${proj.name}</div>` : ''}
+                </div>
+                <span style="width:8px;height:8px;border-radius:50%;background:${prioColors[t.priority] || 'var(--dim)'};flex-shrink:0;"></span>
+            </div>`;
+        }).join('');
+        div.dataset.loaded = '1';
+    } catch(err) { div.textContent = 'Erreur de chargement'; }
+}
+
+// Override switchTab pour charger les onglets à la demande
+const _origSwitchTab = switchTab;
+function switchTab(tabName) {
+    _origSwitchTab(tabName);
+    if (tabName === 'clients') renderClientsTab();
+    if (tabName === 'commandes') loadCommandesTab();
+    if (tabName === 'ouvriers') loadOuvriersTab();
+    if (tabName === 'taches') loadTachesTab();
+}
     </script>
     <script src="./atlas-nav.js"></script>
 </body>

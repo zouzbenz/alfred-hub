@@ -497,23 +497,31 @@ async function toggleTask(taskId, completed) {
     const task = taches.find(t => t.id === taskId);
     if (!task) return;
     
-    const updateData = {
-        completed: completed,
-        completed_at: completed ? new Date().toISOString() : null,
-        completed_by: completed ? currentUser : null
-    };
+    // Update minimal — seulement 'completed' qui est sûr d'exister
+    const updateData = { completed: completed };
+    
+    // Ajouter completed_at et completed_by seulement si la tâche les supporte
+    if (task.hasOwnProperty('completed_at')) {
+        updateData.completed_at = completed ? new Date().toISOString() : null;
+    }
+    if (task.hasOwnProperty('completed_by')) {
+        updateData.completed_by = completed ? (currentUser || null) : null;
+    }
     
     try {
-        await db.from('atlas_taches').update(updateData).eq('id', taskId);
-        // Mettre à jour localement
+        const { error } = await db.from('atlas_taches').update(updateData).eq('id', taskId);
+        if (error) {
+            // Si erreur 400, réessayer avec seulement 'completed'
+            console.warn('Update complet échoué, retry minimal:', error.message);
+            await db.from('atlas_taches').update({ completed }).eq('id', taskId);
+        }
         const taskIndex = taches.findIndex(t => t.id === taskId);
         if (taskIndex !== -1) {
             taches[taskIndex] = { ...taches[taskIndex], ...updateData };
         }
-        renderTasks(); // Rafraîchir l'affichage
+        renderTasks();
     } catch (error) {
-        console.error('Erreur:', error);
-        // Rétablir l'état précédent en cas d'erreur
+        console.error('Erreur toggleTask:', error);
         const checkbox = document.querySelector(`[data-task-id="${taskId}"] .task-checkbox`);
         if (checkbox) checkbox.checked = !completed;
     }
