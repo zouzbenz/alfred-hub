@@ -501,8 +501,20 @@ async function creerFacture() {
         
         const montantTotal = lignes.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
         
+        // BUG 1 FIX — Générer un numéro de facture unique + date + statut
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const timestamp = Date.now().toString().slice(-4); // 4 derniers chiffres pour unicité
+        const numeroFacture = `FAC-${yyyy}${mm}-${timestamp}`;
+        const dateFacture = `${yyyy}-${mm}-${dd}`;
+        
         const { data: factureData, error: factureError } = await db.from('atlas_factures').insert([{
             commande_id: parseInt(commandeId),
+            numero: numeroFacture,
+            date_facture: dateFacture,
+            statut: 'emise',
             montant_total: montantTotal,
             notes: 'Facture generee depuis commande ' + (commande.numero || '#' + commande.id)
         }]).select().single();
@@ -510,24 +522,40 @@ async function creerFacture() {
         if (factureError) throw factureError;
         const factureId = factureData.id;
         
+        // BUG 2 + 3 FIX — Upload avec gestion d'erreur explicite + uploaded_at
+        let justifEchecs = 0;
         for (let i = 0; i < uploadedFiles.length; i++) {
             const f = uploadedFiles[i];
-            const ext = f.file.name.split('.').pop();
-            const path = `justificatifs/FAC-${factureId}-${i + 1}.${ext}`;
+            const ext = f.file.name.split('.').pop().toLowerCase();
+            const path = `justificatifs/${numeroFacture}-${i + 1}.${ext}`;
             
             const { error: upErr } = await db.storage.from(STORAGE_BUCKET).upload(path, f.file, {
                 contentType: f.file.type,
                 upsert: true
             });
             
-            if (!upErr) {
-                await db.from('atlas_facture_justificatifs').insert([{
-                    facture_id: factureId,
-                    file_path: path,
-                    nom_fichier: f.file.name,
-                    type_fichier: f.file.type
-                }]);
+            if (upErr) {
+                console.error(`Erreur upload fichier ${f.file.name}:`, upErr);
+                justifEchecs++;
+                continue; // on passe au suivant sans bloquer
             }
+            
+            const { error: insertErr } = await db.from('atlas_facture_justificatifs').insert([{
+                facture_id: factureId,
+                file_path: path,
+                nom_fichier: f.file.name,
+                type_fichier: f.file.type,
+                uploaded_at: new Date().toISOString()
+            }]);
+            
+            if (insertErr) {
+                console.error(`Erreur enregistrement justificatif ${f.file.name}:`, insertErr);
+                justifEchecs++;
+            }
+        }
+        
+        if (justifEchecs > 0) {
+            showToast(`${justifEchecs} justificatif(s) non enregistré(s) — vérifiez la console`, true);
         }
         
         const ventilationsToInsert = [];
