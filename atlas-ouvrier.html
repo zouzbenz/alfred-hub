@@ -494,5 +494,6 @@ async function deleteAffectation(id) { if (!confirm('Supprimer cette affectation
 function formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }); }
 function showToast(msg, isError = false) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.style.background = isError ? 'var(--danger)' : 'var(--accent2)'; toast.classList.add('visible'); setTimeout(() => toast.classList.remove('visible'), 3000); }
     </script>
+    <script src="./atlas-nav.js"></script>
 </body>
 </html>
