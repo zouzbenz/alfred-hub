@@ -112,17 +112,19 @@ const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let projects = [], budgets = [], depenses = [], currentFilter = 'all';
+let projects = [], budgets = [], depenses = [], clients = [], currentFilter = 'all';
 
 async function loadData() {
-    const [pRes, bRes, dRes] = await Promise.all([
+    const [pRes, bRes, dRes, cRes] = await Promise.all([
         db.from('atlas_projects').select('*').order('created_at', { ascending: false }),
         db.from('atlas_budget').select('*'),
-        db.from('atlas_depenses').select('*')
+        db.from('atlas_depenses').select('*'),
+        db.from('atlas_clients').select('id, nom')
     ]);
     projects = pRes.data || [];
     budgets = bRes.data || [];
     depenses = dRes.data || [];
+    clients = cRes.data || [];
     renderStats();
     renderProjects();
 }
@@ -158,7 +160,11 @@ function renderProjects() {
         <div class="project-card" onclick="location.href='./atlas-project.html?id=${p.id}'">
             <div class="project-header">
                 <div class="project-name">${p.name}</div>
-                <div class="project-client">${p.client_name || '-'}</div>
+                <div class="project-client">${(() => {
+                    const c = clients.find(cl => cl.id === p.client_id);
+                    if (c) return '<a href="./atlas-client.html?id=' + c.id + '" style="color:var(--accent);text-decoration:none;" onclick="event.stopPropagation()">' + c.nom + '</a>';
+                    return p.client_name || '-';
+                })()}</div>
                 <span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span>
             </div>
             <div class="project-body">

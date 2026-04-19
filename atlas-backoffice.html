@@ -274,7 +274,15 @@
                     
                     <div class="form-row two">
                         <div class="form-group"><label>Nom du projet *</label><input type="text" id="p-name" required></div>
-                        <div class="form-group"><label>Maître d'ouvrage</label><input type="text" id="p-client"></div>
+                        <div class="form-group">
+                            <label>Client / Maître d'ouvrage</label>
+                            <div style="display:flex;gap:6px;">
+                                <select id="p-client" style="flex:1;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#fff;font-size:.9rem;">
+                                    <option value="">-- Sélectionner un client --</option>
+                                </select>
+                                <button type="button" class="btn btn-outline btn-small" onclick="openQuickClientModal()" title="Nouveau client" style="padding:10px 12px;white-space:nowrap;">+ Client</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-row two">
                         <div class="form-group"><label>Architecte</label><input type="text" id="p-architecte"></div>
@@ -491,7 +499,7 @@ const CATEGORIES_SERVICES = [
     'Installation technique', 'Maintenance', 'Autres'
 ];
 
-let projects = [], budgets = [], depenses = [], suppliers = [], operations = [], currentProjectId = null;
+let projects = [], budgets = [], depenses = [], suppliers = [], operations = [], clients = [], currentProjectId = null;
 
 // ==================== AUTHENTIFICATION ====================
 if (sessionStorage.getItem('atlas-auth') === 'true') {
@@ -553,18 +561,21 @@ function getCategoryLabel(catId) {
 // ==================== CHARGEMENT DONNÉES ====================
 async function loadData() {
     try {
-        const [pRes, bRes, dRes, sRes, oRes] = await Promise.all([
+        const [pRes, bRes, dRes, sRes, oRes, cRes] = await Promise.all([
             db.from('atlas_projects').select('*').order('created_at', { ascending: false }),
             db.from('atlas_budget').select('*'),
             db.from('atlas_depenses').select('*').order('created_at', { ascending: false }),
             db.from('atlas_fournisseurs').select('*').order('nom', { ascending: true }),
-            db.from('atlas_operations').select('*')
+            db.from('atlas_operations').select('*'),
+            db.from('atlas_clients').select('*').order('nom', { ascending: true })
         ]);
         projects = pRes.data || [];
         budgets = bRes.data || [];
         depenses = dRes.data || [];
         suppliers = sRes.data || [];
         operations = oRes.data || [];
+        clients = cRes.data || [];
+        populateClientSelect();
         renderProjects();
         renderSuppliers();
         renderStats();
@@ -620,7 +631,9 @@ function renderProjects() {
         
         return `<tr>
             <td class="project-name">${p.name}</td>
-            <td>${p.client_name || '-'}</td>
+            <td>${clients.find(c=>c.id===p.client_id) ? 
+    '<a href="./atlas-client.html?id=' + p.client_id + '" style="color:var(--accent);text-decoration:none;" onclick="event.stopPropagation()">' + clients.find(c=>c.id===p.client_id).nom + '</a>' 
+    : (p.client_name || '-')}</td>
             <td><span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span></td>
             <td>${formatMoney(budget)}</td>
             <td>${formatMoney(spent)}</td>
@@ -668,7 +681,7 @@ function openProjectModal(project = null) {
     
     if (project) {
         document.getElementById('p-name').value = project.name || '';
-        document.getElementById('p-client').value = project.client_name || '';
+        document.getElementById('p-client').value = project.client_id || '';
         document.getElementById('p-architecte').value = project.architecte || '';
         document.getElementById('p-prescripteur').value = project.prescripteur || '';
         document.getElementById('p-status').value = project.status || 'a_venir';
@@ -704,7 +717,7 @@ async function saveProject(e) {
     const id = document.getElementById('project-id').value;
     const projectData = {
         name: document.getElementById('p-name').value,
-        client_name: document.getElementById('p-client').value || null,
+        client_id: parseInt(document.getElementById('p-client').value) || null,
         architecte: document.getElementById('p-architecte').value || null,
         prescripteur: document.getElementById('p-prescripteur').value || null,
         status: document.getElementById('p-status').value,

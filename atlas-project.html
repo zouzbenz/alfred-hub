@@ -267,7 +267,7 @@ const CATEGORIES = [
 ];
 
 const projectId = new URLSearchParams(location.search).get('id');
-let project = null, budgets = [], depenses = [], taches = [];
+let project = null, budgets = [], depenses = [], taches = [], clientData = null;
 const isAdmin = sessionStorage.getItem('atlas-auth') === 'true';
 const currentUser = sessionStorage.getItem('atlas-user') || 'Utilisateur';
 
@@ -289,6 +289,12 @@ async function loadProject() {
     budgets = bRes.data || [];
     depenses = dRes.data || [];
     taches = tRes.data || [];
+    
+    // Charger le client si lié
+    if (project.client_id) {
+        const { data: cData } = await db.from('atlas_clients').select('id, nom, telephone, email').eq('id', project.client_id).single();
+        clientData = cData;
+    }
     
     if (isAdmin || !project.password) showContent();
     checkReminders(); // Vérifier les rappels au chargement
@@ -327,7 +333,12 @@ function render() {
     document.getElementById('project-header').innerHTML = `
         <div class="project-title">${project.name}<span class="status-badge status-${project.status}">${project.status.replace('_', ' ')}</span></div>
         <div class="project-meta">
-            <span>🏢 ${project.client_name || '-'}</span>
+            <span>🏢 ${(() => {
+                if (project.client_id && clientData) {
+                    return '<a href="./atlas-client.html?id=' + project.client_id + '" style="color:var(--accent);text-decoration:none;">' + clientData.nom + '</a>';
+                }
+                return project.client_name || '-';
+            })()}</span>
             <span>📍 ${project.localisation || '-'}</span>
             <span>📐 ${project.surface_m2 || 0} m²</span>
             <span>👷 ${project.nb_employes || 0} employés</span>

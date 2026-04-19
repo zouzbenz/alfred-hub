@@ -8,6 +8,7 @@
 (function() {
   const NAV_ITEMS = [
     { href: './atlas-projects.html',   icon: '🏗️',  label: 'Projets',      id: 'projects'   },
+    { href: './atlas-clients.html',    icon: '👤',  label: 'Clients',      id: 'clients'    },
     { href: './atlas-commandes.html',  icon: '📦',  label: 'Commandes',    id: 'commandes'  },
     { href: './atlas-factures.html',   icon: '🧾',  label: 'Factures',     id: 'factures'   },
     { href: './atlas-tasks.html',      icon: '📋',  label: 'Tâches',       id: 'tasks'      },
