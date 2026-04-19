@@ -1328,7 +1328,7 @@ async function loadOuvriersTab() {
     const div = document.getElementById('ouvriers-summary');
     if (!div || div.dataset.loaded) return;
     try {
-        const { data } = await db.from('atlas_ouvriers').select('*');
+        const { data } = await db.from('atlas_main_oeuvre').select('*');
         const ouvriers = data || [];
         const actifs = ouvriers.filter(o => o.actif !== false).length;
         div.innerHTML = `
