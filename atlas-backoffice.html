@@ -204,6 +204,10 @@
             <!-- Tabs Navigation -->
             <div class="tabs">
                 <div class="tab active" data-tab="projects" onclick="switchTab('projects')">📋 Projets</div>
+                <div class="tab" data-tab="clients" onclick="switchTab('clients')">👤 Clients</div>
+                <div class="tab" data-tab="commandes" onclick="switchTab('commandes')">📦 Commandes</div>
+                <div class="tab" data-tab="ouvriers" onclick="switchTab('ouvriers')">👷 Équipe</div>
+                <div class="tab" data-tab="taches" onclick="switchTab('taches')">📋 Tâches</div>
                 <div class="tab" data-tab="suppliers" onclick="switchTab('suppliers')">🏢 Fournisseurs</div>
             </div>
             
@@ -233,6 +237,72 @@
                 </div>
             </div>
             
+            <!-- Clients Tab -->
+            <div class="tab-content" id="clients-tab">
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">👤 Clients</h2>
+                        <button class="btn btn-primary btn-small" onclick="openQuickClientFormModal()">+ Client</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="project-table">
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Référence</th>
+                                    <th>Téléphone</th>
+                                    <th>Ville</th>
+                                    <th>Projets</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clients-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Commandes Tab -->
+            <div class="tab-content" id="commandes-tab">
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">📦 Commandes récentes</h2>
+                        <a href="./atlas-commandes.html" class="btn btn-primary btn-small">Voir toutes →</a>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="project-table">
+                            <thead>
+                                <tr><th>N°</th><th>Titre</th><th>Projet</th><th>Date</th><th>Statut</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody id="commandes-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ouvriers Tab -->
+            <div class="tab-content" id="ouvriers-tab">
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">👷 Équipe</h2>
+                        <a href="./atlas-ouvriers.html" class="btn btn-primary btn-small">Gérer l'équipe →</a>
+                    </div>
+                    <div id="ouvriers-summary" style="color:var(--dim);padding:20px;text-align:center;">Chargement...</div>
+                </div>
+            </div>
+            
+            <!-- Tâches Tab -->
+            <div class="tab-content" id="taches-tab">
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">📋 Tâches en cours</h2>
+                        <a href="./atlas-tasks.html" class="btn btn-primary btn-small">Voir toutes →</a>
+                    </div>
+                    <div id="taches-summary" style="color:var(--dim);padding:20px;text-align:center;">Chargement...</div>
+                </div>
+            </div>
+
             <!-- Suppliers Tab -->
             <div class="tab-content" id="suppliers-tab">
                 <div class="section">
@@ -561,20 +631,27 @@ function getCategoryLabel(catId) {
 // ==================== CHARGEMENT DONNÉES ====================
 async function loadData() {
     try {
-        const [pRes, bRes, dRes, sRes, oRes, cRes] = await Promise.all([
+        const [pRes, bRes, dRes, sRes, oRes] = await Promise.all([
             db.from('atlas_projects').select('*').order('created_at', { ascending: false }),
             db.from('atlas_budget').select('*'),
             db.from('atlas_depenses').select('*').order('created_at', { ascending: false }),
             db.from('atlas_fournisseurs').select('*').order('nom', { ascending: true }),
-            db.from('atlas_operations').select('*'),
-            db.from('atlas_clients').select('*').order('nom', { ascending: true })
+            db.from('atlas_operations').select('*')
         ]);
         projects = pRes.data || [];
         budgets = bRes.data || [];
         depenses = dRes.data || [];
         suppliers = sRes.data || [];
         operations = oRes.data || [];
-        clients = cRes.data || [];
+        
+        // Clients — chargé séparément pour ne pas bloquer si table absente
+        try {
+            const cRes = await db.from('atlas_clients').select('*').order('nom', { ascending: true });
+            clients = cRes.data || [];
+        } catch(e) {
+            console.warn('Table atlas_clients non disponible:', e.message);
+            clients = [];
+        }
         populateClientSelect();
         renderProjects();
         renderSuppliers();

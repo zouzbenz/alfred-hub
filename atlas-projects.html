@@ -84,6 +84,10 @@
             <p>Suivi des chantiers</p>
         </div>
         
+        <div style="display:flex;justify-content:flex-end;margin-bottom:15px;">
+            <button class="filter-btn" onclick="openAddProjectModal()" style="background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;padding:12px 20px;">+ Nouveau projet</button>
+        </div>
+        
         <div class="stats-row">
             <div class="stat-card"><div class="stat-value blue" id="stat-total">0</div><div class="stat-label">Projets</div></div>
             <div class="stat-card"><div class="stat-value green" id="stat-encours">0</div><div class="stat-label">En cours</div></div>
@@ -195,6 +199,127 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
 
 loadData();
     </script>
+
+    <!-- Modal Nouveau Projet -->
+    <div id="add-project-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;justify-content:center;align-items:flex-start;padding:15px;overflow-y:auto;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:560px;margin:20px auto;">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="font-size:1.1rem;font-weight:700;">+ Nouveau Projet</h3>
+                <button onclick="closeAddProjectModal()" style="background:none;border:none;color:var(--dim);font-size:1.5rem;cursor:pointer;">×</button>
+            </div>
+            <div style="padding:20px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                        <label style="font-size:.8rem;color:var(--dim);">Nom du projet *</label>
+                        <input type="text" id="np-name" placeholder="Ex: Villa Thami" style="padding:11px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#fff;font-size:.9rem;">
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                        <label style="font-size:.8rem;color:var(--dim);">Client</label>
+                        <select id="np-client" style="padding:11px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#fff;font-size:.9rem;">
+                            <option value="">-- Sélectionner --</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                        <label style="font-size:.8rem;color:var(--dim);">Status</label>
+                        <select id="np-status" style="padding:11px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#fff;font-size:.9rem;">
+                            <option value="a_venir">À venir</option>
+                            <option value="en_cours">En cours</option>
+                            <option value="termine">Terminé</option>
+                        </select>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                        <label style="font-size:.8rem;color:var(--dim);">Localisation</label>
+                        <input type="text" id="np-localisation" placeholder="Ex: Casablanca" style="padding:11px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#fff;font-size:.9rem;">
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                        <label style="font-size:.8rem;color:var(--dim);">Surface (m²)</label>
+                        <input type="number" id="np-surface" placeholder="0" style="padding:11px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#fff;font-size:.9rem;">
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                        <label style="font-size:.8rem;color:var(--dim);">Date début</label>
+                        <input type="date" id="np-date" style="padding:11px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#fff;font-size:.9rem;">
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;">
+                    <label style="font-size:.8rem;color:var(--dim);">Notes</label>
+                    <textarea id="np-notes" rows="3" placeholder="Notes..." style="padding:11px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#fff;font-size:.9rem;resize:vertical;"></textarea>
+                </div>
+            </div>
+            <div style="padding:15px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;">
+                <button onclick="closeAddProjectModal()" class="filter-btn">Annuler</button>
+                <button onclick="saveNewProject()" class="filter-btn active" style="background:var(--accent);border-color:var(--accent);" id="np-save-btn">Créer le projet</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="np-toast" style="position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--accent2);color:#fff;padding:12px 24px;border-radius:10px;font-weight:600;z-index:2000;opacity:0;transition:.3s;font-size:.9rem;"></div>
+
+    <script>
+    async function openAddProjectModal() {
+        // Charger les clients
+        try {
+            const { data } = await db.from('atlas_clients').select('id, nom').order('nom');
+            const sel = document.getElementById('np-client');
+            sel.innerHTML = '<option value="">-- Sélectionner un client --</option>' +
+                (data || []).map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
+        } catch(e) { console.warn('Clients non disponibles'); }
+        
+        document.getElementById('np-name').value = '';
+        document.getElementById('np-notes').value = '';
+        document.getElementById('np-surface').value = '';
+        document.getElementById('np-date').value = '';
+        document.getElementById('add-project-modal').style.display = 'flex';
+        document.getElementById('np-name').focus();
+    }
+    
+    function closeAddProjectModal() {
+        document.getElementById('add-project-modal').style.display = 'none';
+    }
+    
+    async function saveNewProject() {
+        const nom = document.getElementById('np-name').value.trim();
+        if (!nom) { npToast('Le nom est obligatoire', true); return; }
+        
+        const btn = document.getElementById('np-save-btn');
+        btn.disabled = true; btn.textContent = '...';
+        
+        const data = {
+            name: nom,
+            client_id: parseInt(document.getElementById('np-client').value) || null,
+            status: document.getElementById('np-status').value,
+            localisation: document.getElementById('np-localisation').value.trim() || null,
+            surface_m2: parseInt(document.getElementById('np-surface').value) || 0,
+            date_debut: document.getElementById('np-date').value || null,
+            notes: document.getElementById('np-notes').value.trim() || null
+        };
+        
+        try {
+            const { data: newProj, error } = await db.from('atlas_projects').insert([data]).select().single();
+            if (error) throw error;
+            npToast('Projet créé ✓');
+            closeAddProjectModal();
+            setTimeout(() => location.href = './atlas-backoffice.html', 800);
+        } catch(err) {
+            npToast('Erreur: ' + err.message, true);
+        }
+        btn.disabled = false; btn.textContent = 'Créer le projet';
+    }
+    
+    function npToast(msg, isError = false) {
+        const t = document.getElementById('np-toast');
+        t.textContent = msg;
+        t.style.background = isError ? '#ef4444' : '#10b981';
+        t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)';
+        setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(20px)'; }, 3000);
+    }
+    
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAddProjectModal(); });
+    </script>
+
     <script src="./atlas-nav.js"></script>
 </body>
 </html>
