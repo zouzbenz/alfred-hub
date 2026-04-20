@@ -443,56 +443,61 @@ async function generatePDF(type) {
     }
 
     // -- Tableau lignes --
-    const cols = [margin, margin+90, margin+105, margin+120, margin+142, margin+158];
-    const colW = [90, 15, 15, 22, 16, w-margin-158];
-    const headers = ['DÉSIGNATION','QTÉ','U','PU HT','TVA','PT HT'];
+    // Colonnes bien espacées pour éviter le chevauchement
+    const cEnd = w - margin;
 
-    // Header
+    // Header row
     doc.setFillColor(240,240,240); doc.rect(margin, y, w-2*margin, 7, 'F');
     doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(60);
-    headers.forEach((h,i) => {
-        const align = i >= 3 ? 'right' : 'left';
-        const xPos = align === 'right' ? cols[i] + colW[i] - 2 : cols[i] + 2;
-        doc.text(h, xPos, y+5, { align });
-    });
+    doc.text('DÉSIGNATION', margin+2, y+5);
+    doc.text('QTÉ', 103, y+5, {align:'center'});
+    doc.text('U', 117, y+5, {align:'center'});
+    doc.text('PU HT', 140, y+5, {align:'center'});
+    doc.text('TVA', 158, y+5, {align:'center'});
+    doc.text('PT HT', cEnd, y+5, {align:'right'});
     y += 9;
 
-    // Rows
+    // Data rows
     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(30);
     lignes.forEach(l => {
-        if (y > 260) { doc.addPage(); y = margin; }
+        if (y > 252) { doc.addPage(); y = margin; }
         doc.setFont('helvetica','bold');
-        doc.text(l.designation || '', cols[0]+2, y+4);
+        const des = (l.designation||'').substring(0, 55);
+        doc.text(des, margin+2, y+4);
         doc.setFont('helvetica','normal');
-        doc.text(String(l.quantite||1), cols[1]+colW[1]-2, y+4, {align:'right'});
-        doc.text(l.unite||'', cols[2]+2, y+4);
-        doc.text(formatMoney(l.prix_unitaire_ht), cols[3]+colW[3]-2, y+4, {align:'right'});
-        doc.text((l.taux_tva||20)+'%', cols[4]+colW[4]-2, y+4, {align:'right'});
-        doc.text(formatMoney(l.montant_ht), w-margin-2, y+4, {align:'right'});
+        doc.text(String(l.quantite||1), 103, y+4, {align:'center'});
+        doc.text(l.unite||'', 117, y+4, {align:'center'});
+        doc.text(formatMoney(l.prix_unitaire_ht), 148, y+4, {align:'right'});
+        doc.text((l.taux_tva||20)+'%', 158, y+4, {align:'center'});
+        doc.text(formatMoney(l.montant_ht), cEnd, y+4, {align:'right'});
         y += 7;
         doc.setDrawColor(230); doc.line(margin, y-1, w-margin, y-1);
     });
 
-    // -- Montant en lettres + Totaux --
+    // -- Séparateur --
     y += 5;
-    doc.setDrawColor(200);
-    // Montant en lettres
+    doc.setDrawColor(200); doc.line(margin, y, w-margin, y);
+    y += 5;
+
+    // Montant en lettres (gauche)
     doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(30);
-    doc.text('ARRÊTÉ LA PRÉSENTE '+( type==='devis'?'OFFRE':'FACTURE')+' À LA SOMME DE :', margin, y+4);
+    doc.text('ARRÊTÉ LA PRÉSENTE '+(type==='devis'?'OFFRE':'FACTURE')+' À LA SOMME DE :', margin, y+3);
     doc.setFont('helvetica','normal'); doc.setFontSize(7);
-    doc.text(numberToWords(t.ttc) + ' dirhams toutes taxes comprises', margin, y+9);
+    const wordsText = numberToWords(t.ttc) + ' dirhams toutes taxes';
+    doc.text(wordsText, margin, y+8);
+    doc.text('comprises', margin, y+12);
 
     // Totaux (droite)
     const tX = 130;
     doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(60);
-    doc.text('TOTAL HT', tX, y+4); doc.text(formatMoney(t.ht), w-margin, y+4, {align:'right'});
-    doc.text(`TVA (${facture.taux_tva||20}%)`, tX, y+10); doc.text(formatMoney(t.tva), w-margin, y+10, {align:'right'});
-    doc.setDrawColor(0); doc.line(tX, y+13, w-margin, y+13);
+    doc.text('TOTAL HT', tX, y+4); doc.text(formatMoney(t.ht), cEnd, y+4, {align:'right'});
+    doc.text('TVA ('+(facture.taux_tva||20)+'%)', tX, y+10); doc.text(formatMoney(t.tva), cEnd, y+10, {align:'right'});
+    doc.setDrawColor(0); doc.line(tX, y+13, cEnd, y+13);
     doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(0);
-    doc.text('Montant NET TTC (MAD)', tX, y+19); doc.text(formatMoney(t.ttc), w-margin, y+19, {align:'right'});
+    doc.text('Montant NET TTC (MAD)', tX, y+19); doc.text(formatMoney(t.ttc), cEnd, y+19, {align:'right'});
 
     // -- Références bancaires --
-    y += 30;
+    y += 35;
     doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0);
     doc.text('RÉFÉRENCES BANCAIRES:', margin, y);
     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(60);
@@ -509,13 +514,15 @@ async function generatePDF(type) {
         doc.text(facture.notes, margin, y+5);
     }
 
-    // -- Footer --
-    const fY = 282;
+    // -- Footer légal --
+    const fY = 280;
     doc.setFontSize(7); doc.setTextColor(100); doc.setFont('helvetica','normal');
-    doc.text(societe.raison_sociale + ' ' + (societe.forme_juridique||''), w/2, fY, {align:'center'});
-    doc.text(societe.adresse || '', w/2, fY+4, {align:'center'});
-    doc.text(`RC N°: ${societe.rc||''} - Patente N°: ${societe.patente||''} - CNSS N°: ${societe.cnss||''} - IF N°: ${societe.identifiant_fiscal||''} - ICE N°: ${societe.ice||''}`, w/2, fY+8, {align:'center'});
+    doc.text((societe.raison_sociale||'Atlas Pose'), w/2, fY, {align:'center'});
+    doc.text((societe.adresse||''), w/2, fY+4, {align:'center'});
+    const legalLine = 'RC N°: '+(societe.rc||'')+' - Patente N°: '+(societe.patente||'')+' - CNSS N°: '+(societe.cnss||'')+' - IF N°: '+(societe.identifiant_fiscal||'')+' - ICE N°: '+(societe.ice||'');
+    doc.text(legalLine, w/2, fY+8, {align:'center'});
     doc.setFontSize(7); doc.text('1 / 1', w/2, fY+13, {align:'center'});
+
 
     // Upload PDF
     const pdfBlob = doc.output('blob');
@@ -629,6 +636,142 @@ function showToast(msg, isError=false) {
 }
 
 document.addEventListener('keydown', e => { if(e.key==='Escape') { closeLigneModal(); closePaiementModal(); } });
+init();
+    </script>
+    <script src="./atlas-nav.js"></script>
+</body>
+</html>
+    <script>
+const SUPABASE_URL='https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const STORAGE_BUCKET='atlas-factures';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const{jsPDF}=window.jspdf;
+let facId=null,facture=null,lignes=[],societe=null,projects=[],clients=[];
+
+async function init(){facId=new URLSearchParams(location.search).get('id');if(!facId){location.href='./atlas-factures.html';return;}await loadData();}
+
+async function loadData(){try{const[fR,lR,sR,pR,cR]=await Promise.all([db.from('atlas_factures_clients').select('*').eq('id',facId).single(),db.from('atlas_facture_client_lignes').select('*').eq('facture_id',facId).order('ordre'),db.from('atlas_societe').select('*').limit(1).single(),db.from('atlas_projects').select('id, name'),db.from('atlas_clients').select('*')]);facture=fR.data;lignes=lR.data||[];societe=sR.data;projects=pR.data||[];clients=cR.data||[];if(!facture){showToast('Introuvable',true);return;}renderPage();}catch(e){console.error(e);}}
+
+function fm(n){return new Intl.NumberFormat('fr-MA',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0);}
+function fmDH(n){return new Intl.NumberFormat('fr-MA',{minimumFractionDigits:0}).format(n||0)+' DH';}
+function fd(d){return d?new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}):'—';}
+function calc(){const ht=lignes.reduce((s,l)=>s+(parseFloat(l.montant_ht)||0),0);const tva=ht*(facture.taux_tva||20)/100;return{ht,tva,ttc:ht+tva};}
+
+function renderPage(){const t=calc();
+document.getElementById('fac-title').textContent=facture.numero||facture.numero_devis||'Brouillon #'+facture.id;
+document.getElementById('fac-sub').textContent=(facture.objet||'')+(facture.client_nom?' — '+facture.client_nom:'');
+document.getElementById('info-ht').textContent=fmDH(t.ht);document.getElementById('info-tva').textContent=fmDH(t.tva);
+document.getElementById('info-ttc').textContent=fmDH(t.ttc);
+const SL={brouillon:'Brouillon',devis:'Devis',emise:'Émise',payee:'Payée',annulee:'Annulée'};
+document.getElementById('info-statut').textContent=SL[facture.statut]||facture.statut;
+renderInfos();renderLignes();renderPDFs();renderActions();document.getElementById('fac-notes').value=facture.notes||'';}
+
+function renderInfos(){const pn=projects.find(p=>p.id===facture.project_id)?.name;
+document.getElementById('infos-display').innerHTML='<div class="info-grid"><div><div class="info-label">Client</div><div class="info-value">'+(facture.client_nom||'—')+'</div></div><div><div class="info-label">ICE Client</div><div class="info-value">'+(facture.client_ice||'—')+'</div></div><div><div class="info-label">Adresse Client</div><div class="info-value">'+(facture.client_adresse||'—')+'</div></div><div><div class="info-label">Projet</div><div class="info-value">'+(pn||'—')+'</div></div><div><div class="info-label">Date</div><div class="info-value">'+fd(facture.date_facture)+'</div></div><div><div class="info-label">Échéance</div><div class="info-value">'+fd(facture.date_echeance)+'</div></div><div><div class="info-label">TVA</div><div class="info-value">'+(facture.taux_tva||20)+'%</div></div>'+(facture.numero_devis?'<div><div class="info-label">N° Devis</div><div class="info-value">'+facture.numero_devis+'</div></div>':'')+(facture.methode_paiement?'<div><div class="info-label">Paiement</div><div class="info-value">'+facture.methode_paiement+(facture.reference_paiement?' ('+facture.reference_paiement+')':'')+'</div></div>':'')+'</div>';}
+
+function renderLignes(){const tb=document.getElementById('lignes-tbody');
+if(!lignes.length){tb.innerHTML='<tr><td colspan="7"><div class="empty-state"><p>Aucune ligne</p></div></td></tr>';}
+else{tb.innerHTML=lignes.map(l=>'<tr><td style="font-weight:500">'+l.designation+'</td><td class="hide-mobile">'+(l.quantite||1)+'</td><td class="hide-mobile">'+(l.unite||'')+'</td><td style="text-align:right">'+fm(l.prix_unitaire_ht)+'</td><td class="hide-mobile" style="text-align:right">'+(l.taux_tva||20)+'%</td><td style="text-align:right;font-weight:600">'+fm(l.montant_ht)+'</td><td style="white-space:nowrap"><button class="action-btn edit" onclick="editLigne('+l.id+')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button> <button class="action-btn" onclick="deleteLigne('+l.id+')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></td></tr>').join('');}
+const t=calc();document.getElementById('foot-ht').textContent=fm(t.ht)+' DH';document.getElementById('foot-tva-label').textContent='TVA ('+(facture.taux_tva||20)+'%)';document.getElementById('foot-tva').textContent=fm(t.tva)+' DH';document.getElementById('foot-ttc').textContent=fm(t.ttc)+' DH';}
+
+function renderPDFs(){const s=document.getElementById('pdf-section'),c=document.getElementById('pdf-content');if(!facture.devis_pdf_path&&!facture.facture_pdf_path){s.style.display='none';return;}s.style.display='block';let h='';
+if(facture.devis_pdf_path)h+='<div class="pdf-row"><div class="pdf-row-info"><span class="pdf-row-icon">📋</span><div><div class="pdf-row-name">Devis '+(facture.numero_devis||'')+'</div><div class="pdf-row-date">'+fd(facture.date_devis)+'</div></div></div><div style="display:flex;gap:6px"><button class="btn btn-outline btn-small" onclick="viewPDF(\'devis\')">Voir</button><button class="btn btn-outline btn-small" onclick="generatePDF(\'devis\')">🔄</button></div></div>';
+if(facture.facture_pdf_path)h+='<div class="pdf-row"><div class="pdf-row-info"><span class="pdf-row-icon">📄</span><div><div class="pdf-row-name">Facture '+(facture.numero||'')+'</div><div class="pdf-row-date">'+fd(facture.date_facture)+'</div></div></div><div style="display:flex;gap:6px"><button class="btn btn-outline btn-small" onclick="viewPDF(\'facture\')">Voir</button><button class="btn btn-outline btn-small" onclick="generatePDF(\'facture\')">🔄</button></div></div>';
+c.innerHTML=h;}
+
+function renderActions(){const b=document.getElementById('actions-bar');let a=[];
+if(facture.statut==='brouillon'){a.push('<button class="btn btn-clay" onclick="generateDevis()">📋 Générer devis</button>');a.push('<button class="btn btn-danger btn-small" onclick="deleteFacture()">Supprimer</button>');}
+else if(facture.statut==='devis'){a.push('<button class="btn btn-outline" onclick="generatePDF(\'devis\')">🔄 Régénérer devis</button>');a.push('<button class="btn btn-primary" onclick="emettre()">📄 Émettre facture</button>');}
+else if(facture.statut==='emise'){a.push('<button class="btn btn-outline" onclick="generatePDF(\'facture\')">🔄 Régénérer</button>');a.push('<button class="btn btn-success" onclick="openPaiementModal()">💰 Marquer payée</button>');}
+else if(facture.statut==='payee'){a.push('<span style="color:var(--accent2);font-weight:600;font-size:.9rem">✓ Payée le '+fd(facture.date_paiement)+'</span>');}
+b.innerHTML=a.join('');}
+
+function openLigneModal(l=null){document.getElementById('ligne-form').reset();document.getElementById('l-id').value='';document.getElementById('ligne-modal-title').textContent='Ajouter une ligne';document.getElementById('l-tva').value=facture.taux_tva||20;if(l){document.getElementById('ligne-modal-title').textContent='Modifier';document.getElementById('l-id').value=l.id;document.getElementById('l-designation').value=l.designation||'';document.getElementById('l-quantite').value=l.quantite||1;document.getElementById('l-unite').value=l.unite||'forfait';document.getElementById('l-prix').value=l.prix_unitaire_ht||'';document.getElementById('l-tva').value=l.taux_tva||20;}document.getElementById('ligne-modal').style.display='flex';}
+function closeLigneModal(){document.getElementById('ligne-modal').style.display='none';}
+function editLigne(id){const l=lignes.find(x=>x.id===id);if(l)openLigneModal(l);}
+
+async function saveLigne(e){e.preventDefault();const btn=document.getElementById('l-save-btn');btn.disabled=true;const id=document.getElementById('l-id').value;const q=parseFloat(document.getElementById('l-quantite').value)||1;const p=parseFloat(document.getElementById('l-prix').value)||0;const data={facture_id:parseInt(facId),designation:document.getElementById('l-designation').value.trim(),quantite:q,unite:document.getElementById('l-unite').value,prix_unitaire_ht:p,taux_tva:parseFloat(document.getElementById('l-tva').value)||20,montant_ht:q*p,ordre:lignes.length+1};try{const r=id?await db.from('atlas_facture_client_lignes').update(data).eq('id',parseInt(id)):await db.from('atlas_facture_client_lignes').insert([data]);if(r.error)throw r.error;await updateTotals();closeLigneModal();await loadData();showToast(id?'Modifiée ✓':'Ajoutée ✓');}catch(err){showToast('Erreur: '+err.message,true);}finally{btn.disabled=false;}}
+
+async function deleteLigne(id){if(!confirm('Supprimer ?'))return;try{await db.from('atlas_facture_client_lignes').delete().eq('id',id);await updateTotals();await loadData();showToast('Supprimée');}catch(e){showToast('Erreur',true);}}
+
+async function updateTotals(){const{data:ls}=await db.from('atlas_facture_client_lignes').select('montant_ht').eq('facture_id',facId);const ht=(ls||[]).reduce((s,l)=>s+(parseFloat(l.montant_ht)||0),0);const tva=ht*(facture.taux_tva||20)/100;await db.from('atlas_factures_clients').update({montant_ht:ht,montant_tva:tva,montant_ttc:ht+tva,updated_at:new Date().toISOString()}).eq('id',facId);}
+
+async function generateDevis(){if(!lignes.length){showToast('Ajoutez une ligne',true);return;}const now=new Date();const num='D-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+Date.now().toString().slice(-3);await db.from('atlas_factures_clients').update({statut:'devis',numero_devis:num,date_devis:now.toISOString().split('T')[0],updated_at:now.toISOString()}).eq('id',facId);await loadData();await generatePDF('devis');showToast('Devis généré ✓');}
+
+async function emettre(){if(!lignes.length){showToast('Ajoutez une ligne',true);return;}const now=new Date();const num='F-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+Date.now().toString().slice(-3);await db.from('atlas_factures_clients').update({statut:'emise',numero:num,date_facture:now.toISOString().split('T')[0],updated_at:now.toISOString()}).eq('id',facId);await loadData();await generatePDF('facture');showToast('Facture émise ✓');}
+
+function openPaiementModal(){document.getElementById('p-date').value=new Date().toISOString().split('T')[0];document.getElementById('paiement-modal').style.display='flex';}
+function closePaiementModal(){document.getElementById('paiement-modal').style.display='none';}
+
+async function confirmerPaiement(){const m=document.getElementById('p-methode').value,r=document.getElementById('p-reference').value.trim()||null,d=document.getElementById('p-date').value||new Date().toISOString().split('T')[0];try{await db.from('atlas_factures_clients').update({statut:'payee',methode_paiement:m,reference_paiement:r,date_paiement:d,updated_at:new Date().toISOString()}).eq('id',facId);const t=calc();await db.from('atlas_tresorerie').insert([{type:'entree',methode:m,montant:t.ttc,description:'Facture '+(facture.numero||'')+' — '+(facture.client_nom||''),date_flux:d,reference:r||facture.numero||null,project_id:facture.project_id,client_id:facture.client_id,notes:'Paiement facture '+(facture.numero||'#'+facId)}]);closePaiementModal();await loadData();showToast('Payée + trésorerie ✓');}catch(err){showToast('Erreur: '+err.message,true);}}
+
+async function generatePDF(type){if(!societe){showToast('Infos société manquantes',true);return;}await loadData();
+const doc=new jsPDF({unit:'mm',format:'a4'});const W=210,M=20,RW=W-2*M;const t=calc();let y=M;
+doc.setFont('helvetica','bold');doc.setFontSize(26);doc.setTextColor(51,102,187);doc.text('A',M,y+7);doc.text('P',M+20,y+7);
+doc.setFontSize(6.5);doc.text('ATLAS',M+2,y+11);doc.text('POSE',M+20,y+11);
+doc.setFontSize(5.5);doc.setTextColor(120);doc.text(societe.adresse||'',M,y+15);
+y=42;doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(0);doc.text(type==='devis'?'DEVIS':'FACTURE',M,y);
+y+=8;doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(80);
+const num=type==='devis'?facture.numero_devis:facture.numero;const dt=type==='devis'?facture.date_devis:facture.date_facture;
+doc.text('Référence',M,y);doc.text(num||'—',M+32,y);y+=5;doc.text('Date',M,y);doc.text(fd(dt),M+32,y);y+=5;
+if(facture.date_echeance){doc.text('Échéance',M,y);doc.text(fd(facture.date_echeance),M+32,y);y+=5;}
+if(type==='facture'&&facture.numero_devis){doc.text('Devis',M,y);doc.text(facture.numero_devis,M+32,y);y+=5;}
+const bx=128,by=42,bw=W-M-bx,bh=28;doc.setDrawColor(180);doc.rect(bx,by,bw,bh);
+doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(0);doc.text(facture.client_nom||'—',bx+4,by+7);
+doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(80);let cy=by+12;
+if(facture.client_ice){doc.text('ICE : '+facture.client_ice,bx+4,cy);cy+=4;}
+if(facture.client_adresse){doc.text(facture.client_adresse,bx+4,cy);cy+=4;}doc.text('Maroc',bx+4,cy);
+y=Math.max(y,by+bh+6);if(facture.objet){doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(60);doc.text('Objet: '+facture.objet,M,y);y+=8;}
+const cEnd=W-M;doc.setFillColor(240,240,240);doc.rect(M,y,RW,7,'F');
+doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(60);
+doc.text('DÉSIGNATION',M+2,y+5);doc.text('QTÉ',M+82,y+5);doc.text('U',M+97,y+5);
+doc.text('PU HT',M+127,y+5,{align:'right'});doc.text('TVA',M+143,y+5,{align:'right'});doc.text('PT HT',cEnd-2,y+5,{align:'right'});
+y+=9;doc.setFontSize(8);doc.setTextColor(30);
+lignes.forEach(l=>{if(y>258){doc.addPage();y=M;}doc.setFont('helvetica','bold');const des=l.designation||'';doc.text(des.length>45?des.substring(0,43)+'...':des,M+2,y+4);doc.setFont('helvetica','normal');doc.text(String(l.quantite||1),M+82,y+4);doc.text(l.unite||'',M+97,y+4);doc.text(fm(l.prix_unitaire_ht),M+127,y+4,{align:'right'});doc.text((l.taux_tva||20)+'%',M+143,y+4,{align:'right'});doc.text(fm(l.montant_ht),cEnd-2,y+4,{align:'right'});y+=7;doc.setDrawColor(230);doc.line(M,y-1,cEnd,y-1);});
+y+=6;doc.setDrawColor(200);doc.line(M,y-2,cEnd,y-2);
+doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(30);
+doc.text('ARRÊTÉ LA PRÉSENTE '+(type==='devis'?'OFFRE':'FACTURE')+' À LA SOMME DE :',M,y+4);
+doc.setFont('helvetica','normal');doc.text(numberToWords(Math.round(t.ttc))+' dirhams toutes taxes',M,y+9);doc.text('comprises',M,y+13);
+const tX=130;doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(60);
+doc.text('TOTAL HT',tX,y+4);doc.text(fm(t.ht),cEnd-2,y+4,{align:'right'});
+doc.text('TVA ('+(facture.taux_tva||20)+'%)',tX,y+10);doc.text(fm(t.tva),cEnd-2,y+10,{align:'right'});
+doc.setDrawColor(0);doc.line(tX,y+13,cEnd,y+13);
+doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(0);
+doc.text('Montant NET TTC (MAD)',tX,y+19);doc.text(fm(t.ttc),cEnd-2,y+19,{align:'right'});
+y+=30;doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(0);doc.text('RÉFÉRENCES BANCAIRES:',M,y);
+doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(60);
+doc.text(societe.banque_nom||'',M,y+5);doc.text('RIB: '+(societe.banque_rib||''),M,y+10);doc.text('SWIFT: '+(societe.banque_swift||''),M,y+15);
+if(facture.notes){y+=25;doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(0);doc.text('NOTES:',M,y);doc.setFont('helvetica','normal');doc.setTextColor(60);doc.text(doc.splitTextToSize(facture.notes,RW),M,y+5);}
+const fY=278;doc.setFontSize(7);doc.setTextColor(100);doc.setFont('helvetica','normal');
+doc.text(societe.raison_sociale+' '+(societe.forme_juridique||''),W/2,fY,{align:'center'});
+doc.text(societe.adresse||'',W/2,fY+4,{align:'center'});
+doc.text('RC N°: '+(societe.rc||'')+' - Patente N°: '+(societe.patente||'')+' - CNSS N°: '+(societe.cnss||'')+' - IF N°: '+(societe.identifiant_fiscal||'')+' - ICE N°: '+(societe.ice||''),W/2,fY+8,{align:'center'});
+doc.text('1 / 1',W/2,fY+13,{align:'center'});
+const blob=doc.output('blob');const path=type+'s/'+(num||'doc')+'-'+Date.now()+'.pdf';
+const{error:upErr}=await db.storage.from(STORAGE_BUCKET).upload(path,blob,{contentType:'application/pdf',upsert:true});
+if(upErr){console.error(upErr);showToast('Erreur upload',true);return;}
+const ud=type==='devis'?{devis_pdf_path:path}:{facture_pdf_path:path};
+await db.from('atlas_factures_clients').update({...ud,updated_at:new Date().toISOString()}).eq('id',facId);
+const{data:urlD}=db.storage.from(STORAGE_BUCKET).getPublicUrl(path);if(urlD?.publicUrl)window.open(urlD.publicUrl,'_blank');await loadData();}
+
+async function viewPDF(type){const p=type==='devis'?facture.devis_pdf_path:facture.facture_pdf_path;if(!p)return;const{data}=db.storage.from(STORAGE_BUCKET).getPublicUrl(p);if(data?.publicUrl)window.open(data.publicUrl,'_blank');}
+
+function numberToWords(n){const u=['','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix','onze','douze','treize','quatorze','quinze','seize','dix-sept','dix-huit','dix-neuf'];const d=['','','vingt','trente','quarante','cinquante','soixante','soixante','quatre-vingt','quatre-vingt'];function c(n){if(n===0)return'zéro';let s='';if(n>=1000000){s+=c(Math.floor(n/1000000))+' million'+(Math.floor(n/1000000)>1?'s':'')+' ';n%=1000000;}if(n>=1000){const k=Math.floor(n/1000);s+=(k===1?'mille':c(k)+' mille')+' ';n%=1000;}if(n>=100){const h=Math.floor(n/100);s+=(h===1?'cent':u[h]+' cent')+(n%100===0&&h>1?'s':'')+' ';n%=100;}if(n>=20){const t=Math.floor(n/10);if(t===7||t===9){s+=d[t]+'-'+u[10+n%10];n=0;}else{s+=d[t]+(n%10===1&&t!==8?'-et-':'');if(n%10){s+=(t===8?'-':n%10===1?'':'-')+u[n%10];}n=0;}}if(n>0)s+=u[n];return s.trim();}return c(Math.floor(n));}
+
+function toggleEditInfos(){const di=document.getElementById('infos-display'),ed=document.getElementById('infos-edit');
+if(ed.style.display==='none'){ed.style.display='block';di.style.display='none';
+ed.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div><label>Objet</label><input type="text" id="e-objet" value="'+(facture.objet||'')+'"></div><div><label>Client</label><select id="e-client"><option value="">—</option>'+clients.map(c=>'<option value="'+c.id+'"'+(c.id===facture.client_id?' selected':'')+'>'+c.nom+'</option>').join('')+'</select></div><div><label>ICE</label><input type="text" id="e-ice" value="'+(facture.client_ice||'')+'"></div><div><label>Adresse</label><input type="text" id="e-adresse" value="'+(facture.client_adresse||'')+'"></div><div><label>Projet</label><select id="e-project"><option value="">—</option>'+projects.map(p=>'<option value="'+p.id+'"'+(p.id===facture.project_id?' selected':'')+'>'+p.name+'</option>').join('')+'</select></div><div><label>TVA %</label><input type="number" id="e-tva" value="'+(facture.taux_tva||20)+'"></div><div><label>Date</label><input type="date" id="e-date" value="'+(facture.date_facture||'')+'"></div><div><label>Échéance</label><input type="date" id="e-echeance" value="'+(facture.date_echeance||'')+'"></div></div><div style="display:flex;gap:10px;margin-top:14px"><button class="btn btn-clay btn-small" onclick="saveInfos()">Sauvegarder</button><button class="btn btn-outline btn-small" onclick="toggleEditInfos()">Annuler</button></div>';
+document.getElementById('btn-edit-infos').textContent='✕ Annuler';}else{ed.style.display='none';di.style.display='block';document.getElementById('btn-edit-infos').textContent='✏️ Modifier';}}
+
+async function saveInfos(){const cId=document.getElementById('e-client').value?parseInt(document.getElementById('e-client').value):null;const cl=clients.find(c=>c.id===cId);const data={objet:document.getElementById('e-objet').value.trim(),client_id:cId,client_nom:cl?.nom||null,client_ice:document.getElementById('e-ice').value.trim()||null,client_adresse:document.getElementById('e-adresse').value.trim()||null,project_id:document.getElementById('e-project').value?parseInt(document.getElementById('e-project').value):null,taux_tva:parseFloat(document.getElementById('e-tva').value)||20,date_facture:document.getElementById('e-date').value||null,date_echeance:document.getElementById('e-echeance').value||null,updated_at:new Date().toISOString()};try{await db.from('atlas_factures_clients').update(data).eq('id',facId);await updateTotals();await loadData();toggleEditInfos();showToast('Mis à jour ✓');}catch(err){showToast('Erreur: '+err.message,true);}}
+
+async function saveNotes(){try{await db.from('atlas_factures_clients').update({notes:document.getElementById('fac-notes').value.trim(),updated_at:new Date().toISOString()}).eq('id',facId);showToast('Notes ✓');}catch(e){showToast('Erreur',true);}}
+
+async function deleteFacture(){if(!confirm('Supprimer ?'))return;try{await db.from('atlas_facture_client_lignes').delete().eq('facture_id',facId);await db.from('atlas_factures_clients').delete().eq('id',facId);showToast('Supprimée');setTimeout(()=>location.href='./atlas-factures.html',500);}catch(e){showToast('Erreur',true);}}
+
+function showToast(m,e=false){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+(e?'toast-error':'toast-success');t.style.display='block';setTimeout(()=>{t.style.display='none';},3000);}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeLigneModal();closePaiementModal();}});
 init();
     </script>
     <script src="./atlas-nav.js"></script>

@@ -24,25 +24,13 @@
 
         <!-- Stats globales -->
         <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-value green" id="stat-ca">0 DH</div>
-                <div class="stat-label">CA Clients TTC</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value red" id="stat-depenses">0 DH</div>
-                <div class="stat-label">Fournisseurs</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value blue" id="stat-marge">0 DH</div>
-                <div class="stat-label">Marge brute</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value clay" id="stat-impayees">0</div>
-                <div class="stat-label">Impayées</div>
-            </div>
+            <div class="stat-card"><div class="stat-value green" id="stat-ca">0 DH</div><div class="stat-label">CA Clients TTC</div></div>
+            <div class="stat-card"><div class="stat-value red" id="stat-depenses">0 DH</div><div class="stat-label">Fournisseurs</div></div>
+            <div class="stat-card"><div class="stat-value blue" id="stat-marge">0 DH</div><div class="stat-label">Marge brute</div></div>
+            <div class="stat-card"><div class="stat-value clay" id="stat-impayees">0</div><div class="stat-label">Impayées</div></div>
         </div>
 
-        <!-- Tabs Clients / Fournisseurs -->
+        <!-- Tabs -->
         <div class="tabs">
             <button class="tab active" data-tab="clients" onclick="switchTab('clients')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
@@ -56,7 +44,7 @@
             </button>
         </div>
 
-        <!-- Filters + Search (commun) -->
+        <!-- Filters Clients -->
         <div class="filters" id="filters-clients">
             <button class="filter-btn active" data-filter="all">Toutes</button>
             <button class="filter-btn" data-filter="brouillon">Brouillons</button>
@@ -64,32 +52,27 @@
             <button class="filter-btn" data-filter="emise">Émises</button>
             <button class="filter-btn" data-filter="payee">Payées</button>
         </div>
+        <!-- Filters Fournisseurs -->
         <div class="filters" id="filters-fournisseurs" style="display:none">
             <button class="filter-btn active" data-filter="all">Toutes</button>
-            <button class="filter-btn" data-filter="emise">Émises</button>
-            <button class="filter-btn" data-filter="generee">Générées</button>
         </div>
 
-        <div class="search-filter-row">
+        <!-- Search -->
+        <div class="search-row">
             <div class="search-box">
                 <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" id="search-input" placeholder="Rechercher une facture...">
             </div>
-            <select id="project-filter"><option value="">Tous les projets</option></select>
         </div>
 
         <!-- Section Clients -->
         <div id="section-clients">
-            <div class="factures-grid" id="grid-clients">
-                <div class="empty-state"><p>Chargement...</p></div>
-            </div>
+            <div class="factures-grid" id="grid-clients"><div class="empty-state"><p>Chargement...</p></div></div>
         </div>
 
         <!-- Section Fournisseurs -->
         <div id="section-fournisseurs" style="display:none">
-            <div class="factures-grid" id="grid-fournisseurs">
-                <div class="empty-state"><p>Chargement...</p></div>
-            </div>
+            <div class="factures-grid" id="grid-fournisseurs"><div class="empty-state"><p>Chargement...</p></div></div>
         </div>
 
         <div class="footer">Atlas<em class="serif">Pose</em> · Factures v2.0</div>
@@ -125,11 +108,10 @@
     <div class="toast" id="toast"></div>
 
     <style>
-        .search-filter-row { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
-        .search-box { position:relative; flex:1; min-width:200px; }
-        .search-box input { padding-left:40px; }
-        .search-icon { position:absolute; left:13px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--dim); pointer-events:none; }
-        .search-filter-row select { min-width:160px; }
+        .search-row { margin-bottom:20px; }
+        .search-box { position:relative; max-width:480px; margin:0 auto; }
+        .search-box input { padding-left:40px; border-radius:99px; }
+        .search-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--dim); pointer-events:none; }
 
         /* Tabs */
         .tabs { display:flex; gap:4px; margin-bottom:20px; background:var(--bg2); border-radius:var(--r-lg); padding:4px; border:1px solid var(--border); }
@@ -143,33 +125,42 @@
         /* Factures grid */
         .factures-grid { display:grid; grid-template-columns:1fr; gap:12px; }
         @media(min-width:600px) { .factures-grid { grid-template-columns:repeat(2,1fr); } }
-        @media(min-width:900px) { .factures-grid { grid-template-columns:repeat(3,1fr); } }
+        @media(min-width:960px) { .factures-grid { grid-template-columns:repeat(3,1fr); } }
 
-        .facture-card { background:var(--card); border:1px solid var(--border); border-radius:var(--r-xl); padding:18px; transition:all .2s; cursor:pointer; }
-        .facture-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); border-color:var(--accent); }
-        .fc-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
-        .fc-numero { font-family:'Outfit',sans-serif; font-weight:700; font-size:1rem; letter-spacing:-0.02em; }
-        .fc-numero.client { color:var(--accent2); }
-        .fc-numero.fournisseur { color:var(--warn); }
-        .fc-objet { font-size:.82rem; color:var(--text2); margin-top:2px; }
-        .fc-info { display:flex; flex-wrap:wrap; gap:8px; font-size:.78rem; color:var(--dim); margin-bottom:10px; }
-        .fc-info span { display:flex; align-items:center; gap:4px; }
-        .fc-footer { display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid var(--border); }
-        .fc-montant { font-family:'Outfit',sans-serif; font-weight:800; font-size:1.1rem; letter-spacing:-0.02em; }
-        .fc-montant.client { color:var(--accent2); }
-        .fc-montant.fournisseur { color:var(--warn); }
+        /* ── Card Fournisseur (reprend l'ancien design) ── */
+        .fac-card { background:var(--card); border:1px solid var(--border); border-radius:var(--r-xl); padding:18px; transition:all .2s; cursor:pointer; }
+        .fac-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); border-color:var(--accent2); }
+        .fac-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
+        .fac-numero { font-family:'Outfit',sans-serif; font-weight:700; font-size:1.05rem; letter-spacing:-0.02em; color:var(--accent2); }
+        .fac-date { font-size:.82rem; color:var(--dim); white-space:nowrap; }
+        .fac-commande { font-size:.82rem; color:var(--accent); margin-top:2px; }
+        .fac-info { font-size:.82rem; color:var(--dim); margin-bottom:10px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+        .fac-projets { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px; }
+        .fac-projet-tag { font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:99px; background:var(--accent-lo); color:var(--accent); border:1px solid rgba(59,130,246,.15); }
+        .fac-footer { display:flex; justify-content:space-between; align-items:center; padding-top:10px; border-top:1px solid var(--border); }
+        .fac-montant { font-family:'Outfit',sans-serif; font-weight:800; font-size:1.1rem; color:var(--accent2); letter-spacing:-0.02em; }
+        .fac-badges { display:flex; gap:6px; }
+        .fac-badge { padding:3px 9px; border-radius:99px; font-size:.7rem; font-weight:600; }
+        .fac-badge-pdf { background:var(--accent-lo); color:var(--accent); }
+        .fac-badge-justif { background:var(--clay-lo); color:var(--clay); }
 
-        /* Status facture */
+        /* ── Card Client ── */
+        .fac-card.client-card:hover { border-color:var(--clay); }
+        .fac-numero.client { color:var(--clay); }
+        .fac-montant.client { color:var(--clay); }
         .fc-statut { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:99px; font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
         .fc-statut::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; }
         .fc-statut-brouillon { background:var(--card2); color:var(--dim); }
         .fc-statut-devis { background:var(--clay-lo); color:var(--clay); }
         .fc-statut-emise { background:var(--accent-md); color:var(--accent); }
-        .fc-statut-generee { background:var(--accent-md); color:var(--accent); }
         .fc-statut-payee { background:var(--accent2-md); color:var(--accent2); }
         .fc-statut-annulee { background:var(--danger-lo); color:var(--danger); }
 
-        @media(max-width:768px) { .tabs { flex-direction:column; } }
+        @media(max-width:768px) {
+            .tabs { flex-direction:column; }
+            .tab { justify-content:flex-start; padding:10px 14px; }
+            .fac-card-header { flex-direction:column; }
+        }
     </style>
 
     <script>
@@ -177,197 +168,203 @@ const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let facturesClients = [], facturesFournisseurs = [], projects = [], clients = [];
-let currentTab = 'clients', filterClient = 'all', filterFourn = 'all', searchQuery = '', projectFilter = '';
+let facturesClients=[], facturesFourn=[], commandes=[], projects=[], clients=[], ventilations=[];
+let currentTab='clients', filterClient='all', filterFourn='all', searchQuery='';
 
 async function loadData() {
     try {
-        const [fcRes, ffRes, pRes, cRes] = await Promise.all([
-            db.from('atlas_factures_clients').select('*').order('created_at', { ascending: false }),
-            db.from('atlas_factures').select('*').order('created_at', { ascending: false }),
+        const [fcRes, ffRes, cmdRes, pRes, cRes, ventRes] = await Promise.all([
+            db.from('atlas_factures_clients').select('*').order('created_at',{ascending:false}),
+            db.from('atlas_factures').select('*').order('created_at',{ascending:false}),
+            db.from('atlas_commandes').select('id, numero, titre'),
             db.from('atlas_projects').select('id, name'),
-            db.from('atlas_clients').select('id, nom, telephone, email, adresse, ville')
+            db.from('atlas_clients').select('id, nom, telephone, email, adresse, ville'),
+            db.from('atlas_facture_ventilation').select('facture_id, project_id')
         ]);
-        facturesClients = fcRes.data || [];
-        facturesFournisseurs = ffRes.data || [];
-        projects = pRes.data || [];
-        clients = cRes.data || [];
+        facturesClients = fcRes.data||[];
+        facturesFourn = ffRes.data||[];
+        commandes = cmdRes.data||[];
+        projects = pRes.data||[];
+        clients = cRes.data||[];
+        ventilations = ventRes.data||[];
+
+        // Compter justificatifs pour chaque facture fournisseur
+        for (let fac of facturesFourn) {
+            const {count} = await db.from('atlas_facture_justificatifs').select('*',{count:'exact',head:true}).eq('facture_id',fac.id);
+            fac.nb_justificatifs = count||0;
+        }
+
         populateSelects();
         renderStats();
         renderAll();
-    } catch (err) { console.error('Erreur:', err); }
+    } catch(err) { console.error('Erreur:',err); }
 }
 
 function populateSelects() {
-    document.getElementById('project-filter').innerHTML = '<option value="">Tous les projets</option>' + projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-    document.getElementById('fc-client').innerHTML = '<option value="">— Sélectionner —</option>' + clients.map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
-    document.getElementById('fc-project').innerHTML = '<option value="">— Aucun —</option>' + projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    document.getElementById('fc-client').innerHTML = '<option value="">— Sélectionner —</option>'+clients.map(c=>`<option value="${c.id}">${c.nom}</option>`).join('');
+    document.getElementById('fc-project').innerHTML = '<option value="">— Aucun —</option>'+projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
 }
 
 function formatMoney(n) { return new Intl.NumberFormat('fr-MA',{minimumFractionDigits:0}).format(n||0)+' DH'; }
 function formatDate(d) { return d ? new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}) : '—'; }
+function getCmd(id) { return commandes.find(c=>c.id===id); }
+function getProjName(id) { return projects.find(p=>p.id===id)?.name||null; }
+
+// Récupérer les projets ventilés pour une facture fournisseur
+function getFactureProjects(facId) {
+    const pIds = [...new Set(ventilations.filter(v=>v.facture_id===facId).map(v=>v.project_id))];
+    return pIds.map(id=>getProjName(id)).filter(Boolean);
+}
 
 function renderStats() {
-    const caClients = facturesClients.reduce((s,f) => s + (parseFloat(f.montant_ttc)||0), 0);
-    const depFourn = facturesFournisseurs.reduce((s,f) => s + (parseFloat(f.montant_total)||0), 0);
+    const caClients = facturesClients.reduce((s,f)=>s+(parseFloat(f.montant_ttc)||0),0);
+    const depFourn = facturesFourn.reduce((s,f)=>s+(parseFloat(f.montant_total)||0),0);
     document.getElementById('stat-ca').textContent = formatMoney(caClients);
     document.getElementById('stat-depenses').textContent = formatMoney(depFourn);
-    document.getElementById('stat-marge').textContent = formatMoney(caClients - depFourn);
-
-    const impayees = facturesClients.filter(f => f.statut === 'emise').length;
-    document.getElementById('stat-impayees').textContent = impayees;
-
+    document.getElementById('stat-marge').textContent = formatMoney(caClients-depFourn);
+    document.getElementById('stat-impayees').textContent = facturesClients.filter(f=>f.statut==='emise').length;
     document.getElementById('tab-count-clients').textContent = facturesClients.length;
-    document.getElementById('tab-count-fournisseurs').textContent = facturesFournisseurs.length;
+    document.getElementById('tab-count-fournisseurs').textContent = facturesFourn.length;
 }
 
 function switchTab(tab) {
     currentTab = tab;
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-    document.getElementById('section-clients').style.display = tab === 'clients' ? 'block' : 'none';
-    document.getElementById('section-fournisseurs').style.display = tab === 'fournisseurs' ? 'block' : 'none';
-    document.getElementById('filters-clients').style.display = tab === 'clients' ? 'flex' : 'none';
-    document.getElementById('filters-fournisseurs').style.display = tab === 'fournisseurs' ? 'flex' : 'none';
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+    document.getElementById('section-clients').style.display = tab==='clients'?'block':'none';
+    document.getElementById('section-fournisseurs').style.display = tab==='fournisseurs'?'block':'none';
+    document.getElementById('filters-clients').style.display = tab==='clients'?'flex':'none';
+    document.getElementById('filters-fournisseurs').style.display = tab==='fournisseurs'?'flex':'none';
 }
-
-function getFilteredClients() {
-    let data = [...facturesClients];
-    if (filterClient !== 'all') data = data.filter(f => f.statut === filterClient);
-    if (projectFilter) data = data.filter(f => String(f.project_id) === projectFilter);
-    if (searchQuery) { const q = searchQuery.toLowerCase(); data = data.filter(f => (f.numero||'').toLowerCase().includes(q) || (f.objet||'').toLowerCase().includes(q) || (f.client_nom||'').toLowerCase().includes(q)); }
-    return data;
-}
-
-function getFilteredFournisseurs() {
-    let data = [...facturesFournisseurs];
-    if (filterFourn !== 'all') data = data.filter(f => f.statut === filterFourn);
-    if (searchQuery) { const q = searchQuery.toLowerCase(); data = data.filter(f => (f.numero||'').toLowerCase().includes(q)); }
-    return data;
-}
+// Expose for nav sub-menu
+window.switchTab = switchTab;
 
 function renderAll() { renderClients(); renderFournisseurs(); }
 
-const STATUT_LABELS = { brouillon:'Brouillon', devis:'Devis', emise:'Émise', payee:'Payée', annulee:'Annulée', generee:'Générée' };
+const STATUT_LABELS = {brouillon:'Brouillon',devis:'Devis',emise:'Émise',payee:'Payée',annulee:'Annulée'};
 
 function renderClients() {
-    const filtered = getFilteredClients();
+    let data = [...facturesClients];
+    if (filterClient!=='all') data = data.filter(f=>f.statut===filterClient);
+    if (searchQuery) { const q=searchQuery.toLowerCase(); data=data.filter(f=>(f.numero||'').toLowerCase().includes(q)||(f.objet||'').toLowerCase().includes(q)||(f.client_nom||'').toLowerCase().includes(q)); }
     const grid = document.getElementById('grid-clients');
-    if (!filtered.length) { grid.innerHTML = '<div class="empty-state"><p>Aucune facture client</p></div>'; return; }
+    if (!data.length) { grid.innerHTML='<div class="empty-state"><p>Aucune facture client</p></div>'; return; }
 
-    grid.innerHTML = filtered.map(f => `
-        <div class="facture-card" onclick="location.href='./atlas-facture-client.html?id=${f.id}'">
-            <div class="fc-header">
+    grid.innerHTML = data.map(f=>{
+        const projName = getProjName(f.project_id);
+        return `<div class="fac-card client-card" onclick="location.href='./atlas-facture-client.html?id=${f.id}'">
+            <div class="fac-card-header">
                 <div>
-                    <div class="fc-numero client">${f.numero || f.numero_devis || 'Brouillon'}</div>
-                    <div class="fc-objet">${f.objet || '—'}</div>
+                    <div class="fac-numero client">${f.numero||f.numero_devis||'Brouillon #'+f.id}</div>
+                    <div style="font-size:.82rem;color:var(--text2);margin-top:2px">${f.objet||''}</div>
                 </div>
                 <span class="fc-statut fc-statut-${f.statut}">${STATUT_LABELS[f.statut]||f.statut}</span>
             </div>
-            <div class="fc-info">
-                <span>👤 ${f.client_nom || '—'}</span>
+            <div class="fac-info">
+                <span>👤 ${f.client_nom||'—'}</span>
                 <span>📅 ${formatDate(f.date_facture)}</span>
-                ${f.project_id ? `<span>🏗️ ${projects.find(p=>p.id===f.project_id)?.name||''}</span>` : ''}
             </div>
-            <div class="fc-footer">
-                <span class="fc-montant client">${formatMoney(f.montant_ttc)}</span>
-                ${f.devis_pdf_path ? '<span style="font-size:.72rem;color:var(--clay)">📋 Devis</span>' : ''}
-                ${f.facture_pdf_path ? '<span style="font-size:.72rem;color:var(--accent2)">📄 Facture</span>' : ''}
+            ${projName?`<div class="fac-projets"><span class="fac-projet-tag">🏗️ ${projName}</span></div>`:''}
+            <div class="fac-footer">
+                <span class="fac-montant client">${formatMoney(f.montant_ttc)}</span>
+                <div class="fac-badges">
+                    ${f.devis_pdf_path?'<span class="fac-badge fac-badge-pdf">📋 Devis</span>':''}
+                    ${f.facture_pdf_path?'<span class="fac-badge fac-badge-pdf">📄 Facture</span>':''}
+                </div>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 function renderFournisseurs() {
-    const filtered = getFilteredFournisseurs();
+    let data = [...facturesFourn];
+    if (searchQuery) { const q=searchQuery.toLowerCase(); data=data.filter(f=>(f.numero||'').toLowerCase().includes(q)); }
     const grid = document.getElementById('grid-fournisseurs');
-    if (!filtered.length) { grid.innerHTML = '<div class="empty-state"><p>Aucune facture fournisseur</p></div>'; return; }
+    if (!data.length) { grid.innerHTML='<div class="empty-state"><p>Aucune facture fournisseur</p></div>'; return; }
 
-    grid.innerHTML = filtered.map(f => `
-        <div class="facture-card" onclick="location.href='./atlas-facture.html?id=${f.id}'">
-            <div class="fc-header">
-                <div><div class="fc-numero fournisseur">${f.numero || 'FAC-'+f.id}</div></div>
-                <span class="fc-statut fc-statut-${f.statut||'generee'}">${STATUT_LABELS[f.statut]||'Générée'}</span>
+    grid.innerHTML = data.map(f=>{
+        const cmd = getCmd(f.commande_id);
+        const projets = getFactureProjects(f.id);
+
+        return `<div class="fac-card" onclick="location.href='./atlas-facture.html?id=${f.id}'">
+            <div class="fac-card-header">
+                <div>
+                    <div class="fac-numero">${f.numero||'FAC-'+f.id}</div>
+                    ${cmd?`<div class="fac-commande">📦 ${cmd.numero}</div>`:''}
+                </div>
+                <div class="fac-date">📅 ${formatDate(f.date_facture)}</div>
             </div>
-            <div class="fc-info">
-                <span>📅 ${formatDate(f.date_facture)}</span>
+            <div class="fac-info">
+                ${cmd?`<span>📋 ${cmd.titre}</span>`:''}
             </div>
-            <div class="fc-footer">
-                <span class="fc-montant fournisseur">${formatMoney(f.montant_total)}</span>
-                ${f.pdf_path ? '<span style="font-size:.72rem;color:var(--accent)">📄 PDF</span>' : ''}
+            ${projets.length?`<div class="fac-projets">${projets.map(p=>`<span class="fac-projet-tag">🏗️ ${p}</span>`).join('')}</div>`:''}
+            <div class="fac-footer">
+                <span class="fac-montant">${formatMoney(f.montant_total)}</span>
+                <div class="fac-badges">
+                    ${f.pdf_path?'<span class="fac-badge fac-badge-pdf">📄 PDF</span>':''}
+                    ${f.nb_justificatifs>0?`<span class="fac-badge fac-badge-justif">📸 ${f.nb_justificatifs}</span>`:''}
+                </div>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 // Filters
-document.querySelectorAll('#filters-clients .filter-btn').forEach(btn => btn.addEventListener('click', () => {
-    document.querySelectorAll('#filters-clients .filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active'); filterClient = btn.dataset.filter; renderClients();
+document.querySelectorAll('#filters-clients .filter-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('#filters-clients .filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); filterClient=btn.dataset.filter; renderClients();
 }));
-document.querySelectorAll('#filters-fournisseurs .filter-btn').forEach(btn => btn.addEventListener('click', () => {
-    document.querySelectorAll('#filters-fournisseurs .filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active'); filterFourn = btn.dataset.filter; renderFournisseurs();
-}));
-document.getElementById('search-input').addEventListener('input', e => { searchQuery = e.target.value.trim(); renderAll(); });
-document.getElementById('project-filter').addEventListener('change', e => { projectFilter = e.target.value; renderAll(); });
+document.getElementById('search-input').addEventListener('input',e=>{ searchQuery=e.target.value.trim(); renderAll(); });
 
 // Modal
 function onClientSelect() {
-    const cId = document.getElementById('fc-client').value;
-    const client = clients.find(c => c.id == cId);
-    if (client) {
-        document.getElementById('fc-client-adresse').value = [client.adresse, client.ville].filter(Boolean).join(', ');
-    }
+    const c = clients.find(x=>x.id==document.getElementById('fc-client').value);
+    if(c) document.getElementById('fc-client-adresse').value = [c.adresse,c.ville].filter(Boolean).join(', ');
 }
-
 function openNewFactureClient() {
     document.getElementById('new-fc-form').reset();
-    document.getElementById('fc-tva').value = '20';
-    document.getElementById('new-fc-modal').style.display = 'flex';
+    document.getElementById('fc-tva').value='20';
+    document.getElementById('new-fc-modal').style.display='flex';
 }
-function closeNewFCModal() { document.getElementById('new-fc-modal').style.display = 'none'; }
+function closeNewFCModal() { document.getElementById('new-fc-modal').style.display='none'; }
 
 async function createFactureClient(e) {
     e.preventDefault();
-    const btn = document.getElementById('fc-save-btn');
-    btn.disabled = true; btn.textContent = 'Création...';
-
-    const clientId = parseInt(document.getElementById('fc-client').value);
-    const client = clients.find(c => c.id === clientId);
-
-    const data = {
-        objet: document.getElementById('fc-objet').value.trim(),
-        statut: 'brouillon',
-        client_id: clientId,
-        project_id: document.getElementById('fc-project').value ? parseInt(document.getElementById('fc-project').value) : null,
-        client_nom: client?.nom || null,
-        client_ice: document.getElementById('fc-client-ice').value.trim() || null,
-        client_adresse: document.getElementById('fc-client-adresse').value.trim() || null,
-        taux_tva: parseFloat(document.getElementById('fc-tva').value) || 20,
-        date_echeance: document.getElementById('fc-echeance').value || null,
-        notes: document.getElementById('fc-notes').value.trim() || null,
-        date_facture: new Date().toISOString().split('T')[0],
+    const btn=document.getElementById('fc-save-btn'); btn.disabled=true; btn.textContent='Création...';
+    const clientId=parseInt(document.getElementById('fc-client').value);
+    const client=clients.find(c=>c.id===clientId);
+    const data={
+        objet:document.getElementById('fc-objet').value.trim(), statut:'brouillon',
+        client_id:clientId, project_id:document.getElementById('fc-project').value?parseInt(document.getElementById('fc-project').value):null,
+        client_nom:client?.nom||null, client_ice:document.getElementById('fc-client-ice').value.trim()||null,
+        client_adresse:document.getElementById('fc-client-adresse').value.trim()||null,
+        taux_tva:parseFloat(document.getElementById('fc-tva').value)||20,
+        date_echeance:document.getElementById('fc-echeance').value||null,
+        notes:document.getElementById('fc-notes').value.trim()||null,
+        date_facture:new Date().toISOString().split('T')[0],
     };
-
     try {
-        const { data: newFac, error } = await db.from('atlas_factures_clients').insert([data]).select().single();
-        if (error) throw error;
+        const {data:newFac,error}=await db.from('atlas_factures_clients').insert([data]).select().single();
+        if(error) throw error;
         showToast('Facture créée en brouillon ✓');
         closeNewFCModal();
-        setTimeout(() => location.href = './atlas-facture-client.html?id=' + newFac.id, 500);
-    } catch (err) { showToast('Erreur: ' + err.message, true); }
-    finally { btn.disabled = false; btn.textContent = 'Créer en brouillon'; }
+        setTimeout(()=>location.href='./atlas-facture-client.html?id='+newFac.id,500);
+    } catch(err) { showToast('Erreur: '+err.message,true); }
+    finally { btn.disabled=false; btn.textContent='Créer en brouillon'; }
 }
 
-function showToast(msg, isError=false) {
-    const t = document.getElementById('toast'); t.textContent = msg;
-    t.className = 'toast '+(isError?'toast-error':'toast-success'); t.style.display='block';
-    setTimeout(() => { t.style.display='none'; }, 3000);
+function showToast(msg,isError=false) {
+    const t=document.getElementById('toast'); t.textContent=msg;
+    t.className='toast '+(isError?'toast-error':'toast-success'); t.style.display='block';
+    setTimeout(()=>{t.style.display='none';},3000);
 }
 
-document.addEventListener('keydown', e => { if(e.key==='Escape') closeNewFCModal(); });
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeNewFCModal();});
+
+// Auto-switch tab based on URL hash
+if(window.location.hash==='#fournisseurs') switchTab('fournisseurs');
+
 loadData();
-setInterval(loadData, 60000);
+setInterval(loadData,60000);
     </script>
     <script src="./atlas-nav.js"></script>
 </body>
