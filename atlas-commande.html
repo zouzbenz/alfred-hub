@@ -125,6 +125,13 @@
             <button class="btn btn-success" id="btn-workflow" onclick="goToReception()">📦 Marquer reçue et ventiler</button>
         </div>
         
+        <!-- Banner resync pour commandes facturées modifiées -->
+        <div id="resync-banner" style="display:none;background:linear-gradient(135deg,var(--warn),#d97706);padding:18px;border-radius:12px;margin-bottom:20px;text-align:center;">
+            <h3 style="margin-bottom:6px;font-size:1rem;">⚠️ Commande modifiable</h3>
+            <p style="opacity:.9;font-size:.85rem;margin-bottom:12px;">Cette commande est déjà facturée. Si vous modifiez des articles, cliquez sur "Resynchroniser" pour mettre à jour les dépenses, stock et trésorerie liés.</p>
+            <button class="btn" style="background:#fff;color:#92400e;font-weight:700;" onclick="resyncDonnees()">🔄 Resynchroniser les données liées</button>
+        </div>
+        
         <div class="header" id="header">
             <div class="header-top">
                 <div>
@@ -285,7 +292,10 @@
         
         <!-- Actions -->
         <div class="actions-footer" id="actions-footer">
-            <button class="btn btn-outline" onclick="history.back()">Retour</button>
+            <div style="display:flex;gap:8px">
+                <button class="btn btn-outline" onclick="history.back()">Retour</button>
+                <button class="btn btn-danger btn-small" onclick="deleteCommande()">🗑️ Supprimer</button>
+            </div>
             <button class="btn btn-success" id="btn-valider" onclick="validerCommande()">✅ Valider et générer PDF</button>
         </div>
         
@@ -513,7 +523,7 @@ function renderLignes() {
     }
     
     let total = 0;
-    const isEditable = ['brouillon', 'validee'].includes(commande.statut);
+    const isEditable = commande.statut !== 'annulee';
     
     tbody.innerHTML = lignes.map(l => {
         const montant = parseFloat(l.montant) || 0;
@@ -544,10 +554,16 @@ function renderLignes() {
 }
 
 function updateUI() {
-    const isEditable = ['brouillon', 'validee'].includes(commande.statut);
+    const isEditable = commande.statut !== 'annulee';
     
     // Bouton ajouter article
     document.getElementById('add-ligne-btn').style.display = isEditable ? 'inline-flex' : 'none';
+    
+    // Bandeau resync pour commandes facturées
+    const resyncBanner = document.getElementById('resync-banner');
+    if (resyncBanner) {
+        resyncBanner.style.display = (commande.statut === 'facturee' || commande.statut === 'recue') && facture ? 'block' : 'none';
+    }
     
     // Workflow banner
     const banner = document.getElementById('workflow-banner');
@@ -619,11 +635,6 @@ document.addEventListener('click', function(e) {
 async function changeStatut(newStatut) {
     document.getElementById('statut-dropdown').classList.remove('visible');
     if (newStatut === commande.statut) return;
-    
-    if (commande.statut === 'facturee' && newStatut !== 'facturee') {
-        showToast('Impossible de modifier une commande facturée', true);
-        return;
-    }
     
     try {
         await db.from('atlas_commandes').update({ statut: newStatut, updated_at: new Date().toISOString() }).eq('id', commandeId);
@@ -999,6 +1010,167 @@ async function regeneratePDF() {
         await loadData();
     } catch (err) {
         console.error('Erreur:', err);
+        showToast('Erreur: ' + err.message, true);
+    }
+}
+
+async function resyncDonnees() {
+    if (!facture) { showToast('Pas de facture liée', true); return; }
+    if (!confirm('Resynchroniser les dépenses, stock et trésorerie avec les données actuelles de la commande ?')) return;
+
+    try {
+        showToast('Resynchronisation en cours...');
+        const montantTotal = lignes.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
+
+        // 1. Mettre à jour la facture fournisseur
+        await db.from('atlas_factures').update({
+            montant_total: montantTotal,
+            updated_at: new Date().toISOString()
+        }).eq('id', facture.id);
+
+        // 2. Supprimer et recréer les dépenses liées à cette commande
+        // On identifie les dépenses par la désignation qui contient le numéro de commande
+        const cmdRef = commande.numero || '#' + commande.id;
+        const { data: existingDep } = await db.from('atlas_depenses').select('id').ilike('designation', '%' + cmdRef + '%');
+        if (existingDep && existingDep.length) {
+            await db.from('atlas_depenses').delete().in('id', existingDep.map(d => d.id));
+        }
+
+        // Recréer les dépenses depuis la ventilation
+        const { data: vents } = await db.from('atlas_facture_ventilation').select('*').eq('facture_id', facture.id);
+        if (vents && vents.length) {
+            // Recalculer les ventilations avec les nouveaux prix
+            const depByProject = {};
+            for (const v of vents) {
+                const ligne = lignes.find(l => l.id === v.ligne_commande_id);
+                const prixUnit = ligne ? (parseFloat(ligne.prix_unitaire) || 0) : (parseFloat(v.prix_unitaire) || 0);
+                const montant = v.quantite * prixUnit;
+
+                if (!depByProject[v.project_id]) depByProject[v.project_id] = { items: [], total: 0 };
+                depByProject[v.project_id].items.push(v.designation);
+                depByProject[v.project_id].total += montant;
+
+                // Mettre à jour la ventilation aussi
+                await db.from('atlas_facture_ventilation').update({ prix_unitaire: prixUnit, montant: montant }).eq('id', v.id);
+            }
+
+            for (const [pId, data] of Object.entries(depByProject)) {
+                await db.from('atlas_depenses').insert([{
+                    project_id: parseInt(pId),
+                    categorie: 'fourniture',
+                    designation: 'Commande ' + cmdRef + ': ' + data.items.slice(0, 3).join(', ') + (data.items.length > 3 ? '...' : ''),
+                    montant: data.total,
+                    entry_method: 'backoffice',
+                    fournisseur: suppliers.find(s => s.id === lignes[0]?.fournisseur_id)?.nom || lignes[0]?.fournisseur_autre || null
+                }]);
+            }
+        }
+
+        // 3. Mettre à jour le stock lié à cette commande
+        await db.from('atlas_stock').delete().eq('commande_id', parseInt(commandeId));
+        const stockToInsert = [];
+        if (vents && vents.length) {
+            for (const v of vents) {
+                const ligne = lignes.find(l => l.id === v.ligne_commande_id);
+                if (ligne && v.project_id && v.quantite > 0) {
+                    stockToInsert.push({
+                        nom: ligne.designation,
+                        type: 'autre',
+                        declinaison: ligne.reference || null,
+                        quantite: v.quantite,
+                        unite: ligne.unite || 'unite',
+                        date_arrivee: new Date().toISOString().split('T')[0],
+                        project_id: parseInt(v.project_id),
+                        commande_id: parseInt(commandeId),
+                        fournisseur_id: ligne.fournisseur_id ? parseInt(ligne.fournisseur_id) : null,
+                        notes: 'Resync commande ' + cmdRef
+                    });
+                }
+            }
+        }
+        if (stockToInsert.length) await db.from('atlas_stock').insert(stockToInsert);
+
+        // 4. Mettre à jour la trésorerie liée à cette commande
+        await db.from('atlas_tresorerie').delete().eq('commande_id', parseInt(commandeId));
+        // Regrouper par fournisseur
+        const fournIds = [...new Set(lignes.map(l => l.fournisseur_id).filter(Boolean))];
+        for (const fId of fournIds) {
+            const lignesFourn = lignes.filter(l => l.fournisseur_id === fId);
+            const montantFourn = lignesFourn.reduce((s, l) => s + (parseFloat(l.montant) || 0), 0);
+            const fournNom = suppliers.find(s => s.id === fId)?.nom || 'Fournisseur';
+            await db.from('atlas_tresorerie').insert([{
+                type: 'sortie', methode: 'virement', montant: montantFourn,
+                description: fournNom + ' — ' + lignesFourn.map(l => l.designation).slice(0, 2).join(', '),
+                date_flux: new Date().toISOString().split('T')[0],
+                reference: facture.numero || null,
+                project_id: commande.project_id ? parseInt(commande.project_id) : null,
+                facture_id: facture.id, commande_id: parseInt(commandeId),
+                notes: 'Resync commande ' + cmdRef
+            }]);
+        }
+        // Lignes sans fournisseur_id
+        const lignesSF = lignes.filter(l => !l.fournisseur_id);
+        if (lignesSF.length) {
+            const montantSF = lignesSF.reduce((s, l) => s + (parseFloat(l.montant) || 0), 0);
+            await db.from('atlas_tresorerie').insert([{
+                type: 'sortie', methode: 'cash', montant: montantSF,
+                description: (lignesSF[0]?.fournisseur_autre || 'Divers') + ' — ' + lignesSF.map(l => l.designation).slice(0, 2).join(', '),
+                date_flux: new Date().toISOString().split('T')[0],
+                reference: facture.numero || null,
+                project_id: commande.project_id ? parseInt(commande.project_id) : null,
+                facture_id: facture.id, commande_id: parseInt(commandeId),
+                notes: 'Resync commande ' + cmdRef
+            }]);
+        }
+
+        showToast('Resynchronisation terminée ✓');
+        await loadData();
+    } catch (err) {
+        console.error('Erreur resync:', err);
+        showToast('Erreur: ' + err.message, true);
+    }
+}
+
+async function deleteCommande() {
+    const items = [];
+    if (facture) items.push('la facture ' + (facture.numero || '#' + facture.id));
+    items.push(lignes.length + ' ligne(s) de commande');
+
+    const { count: depCount } = await db.from('atlas_depenses').select('*', { count: 'exact', head: true }).ilike('designation', '%' + (commande.numero || '#' + commande.id) + '%');
+    if (depCount) items.push(depCount + ' dépense(s)');
+
+    const { count: stockCount } = await db.from('atlas_stock').select('*', { count: 'exact', head: true }).eq('commande_id', parseInt(commandeId));
+    if (stockCount) items.push(stockCount + ' article(s) en stock');
+
+    const { count: tresoCount } = await db.from('atlas_tresorerie').select('*', { count: 'exact', head: true }).eq('commande_id', parseInt(commandeId));
+    if (tresoCount) items.push(tresoCount + ' mouvement(s) trésorerie');
+
+    if (!confirm('Supprimer cette commande et tout ce qui y est lié ?\n\n— ' + items.join('\n— ') + '\n\nCette action est irréversible.')) return;
+
+    try {
+        showToast('Suppression en cours...');
+        const cmdRef = commande.numero || '#' + commande.id;
+
+        // Supprimer dans l'ordre inverse des dépendances
+        await db.from('atlas_tresorerie').delete().eq('commande_id', parseInt(commandeId));
+        await db.from('atlas_stock').delete().eq('commande_id', parseInt(commandeId));
+        await db.from('atlas_depenses').delete().ilike('designation', '%' + cmdRef + '%');
+
+        if (facture) {
+            await db.from('atlas_facture_justificatifs').delete().eq('facture_id', facture.id);
+            await db.from('atlas_facture_ventilation').delete().eq('facture_id', facture.id);
+            await db.from('atlas_factures').delete().eq('id', facture.id);
+        }
+
+        await db.from('atlas_commande_lignes').delete().eq('commande_id', parseInt(commandeId));
+        await db.from('atlas_taches').delete().eq('source', 'commande').eq('source_id', parseInt(commandeId));
+        await db.from('atlas_operations').delete().ilike('notes', '%' + cmdRef + '%');
+        await db.from('atlas_commandes').delete().eq('id', parseInt(commandeId));
+
+        showToast('Commande supprimée avec toutes les données liées');
+        setTimeout(() => location.href = './atlas-commandes.html', 1000);
+    } catch (err) {
+        console.error('Erreur suppression:', err);
         showToast('Erreur: ' + err.message, true);
     }
 }
