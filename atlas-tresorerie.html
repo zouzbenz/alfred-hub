@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Trésorerie - Atlas Pose</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+    <div class="container">
+
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Trésorerie</h1>
+                <p class="page-subtitle">Flux financiers — entrées & sorties</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-outline btn-small" onclick="exportCSV()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export
+                </button>
+                <button class="btn btn-clay" onclick="openModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Nouveau flux
+                </button>
+            </div>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value green" id="stat-entrees">0 DH</div>
+                <div class="stat-label">Entrées</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value red" id="stat-sorties">0 DH</div>
+                <div class="stat-label">Sorties</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value blue" id="stat-solde">0 DH</div>
+                <div class="stat-label">Solde net</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value clay" id="stat-count">0</div>
+                <div class="stat-label">Mouvements</div>
+            </div>
+        </div>
+
+        <!-- Solde par méthode -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">Solde par méthode</span>
+            </div>
+            <div class="methode-grid" id="methode-grid"></div>
+        </div>
+
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">Tous</button>
+            <button class="filter-btn" data-filter="entree">Entrées</button>
+            <button class="filter-btn" data-filter="sortie">Sorties</button>
+            <button class="filter-btn" data-filter="cash">Cash</button>
+            <button class="filter-btn" data-filter="virement">Virement</button>
+            <button class="filter-btn" data-filter="cheque">Chèque</button>
+        </div>
+
+        <div class="search-filter-row">
+            <div class="search-box">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="search-input" placeholder="Rechercher un mouvement...">
+            </div>
+            <select id="project-filter"><option value="">Tous les projets</option></select>
+            <select id="month-filter"><option value="">Toutes les périodes</option></select>
+        </div>
+
+        <div class="section">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Lié à</th>
+                            <th>Méthode</th>
+                            <th style="text-align:right">Montant</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="flux-tbody">
+                        <tr><td colspan="7" class="empty-state">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="footer">Atlas<em class="serif">Pose</em> · Trésorerie v1.0</div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="flux-modal" style="display:none" onclick="if(event.target===this)closeModal()">
+        <div class="modal">
+            <div class="modal-title">Nouveau mouvement</div>
+            <form id="flux-form" onsubmit="saveFlux(event)">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                    <div><label>Type *</label><select id="f-type" required><option value="entree">Entrée</option><option value="sortie">Sortie</option></select></div>
+                    <div><label>Méthode *</label><select id="f-methode" required><option value="cash">Cash</option><option value="virement">Virement</option><option value="cheque">Chèque</option></select></div>
+                </div>
+                <div style="margin-top:14px"><label>Montant (DH) *</label><input type="number" id="f-montant" step="0.01" min="0" required placeholder="0.00"></div>
+                <div style="margin-top:14px"><label>Description *</label><input type="text" id="f-description" required placeholder="Ex: Paiement client Villa Anfa"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+                    <div><label>Date</label><input type="date" id="f-date"></div>
+                    <div><label>Référence</label><input type="text" id="f-reference" placeholder="N° chèque, virement..."></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+                    <div><label>Projet lié</label><select id="f-project"><option value="">— Aucun —</option></select></div>
+                    <div><label>Client lié</label><select id="f-client"><option value="">— Aucun —</option></select></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+                    <div><label>Facture liée</label><select id="f-facture"><option value="">— Aucune —</option></select></div>
+                    <div><label>Commande liée</label><select id="f-commande"><option value="">— Aucune —</option></select></div>
+                </div>
+                <div style="margin-top:14px"><label>Notes</label><textarea id="f-notes" rows="2" placeholder="Détails supplémentaires..."></textarea></div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:22px">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-clay" id="save-btn">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <style>
+        .search-filter-row { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+        .search-box { position:relative; flex:1; min-width:200px; }
+        .search-box input { padding-left:40px; }
+        .search-icon { position:absolute; left:13px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--dim); pointer-events:none; }
+        .search-filter-row select { min-width:160px; }
+
+        .methode-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+        @media(max-width:600px) { .methode-grid { grid-template-columns:1fr; } }
+        .methode-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--r-md); padding:14px; text-align:center; }
+        .methode-icon { font-size:1.1rem; margin-bottom:6px; }
+        .methode-label { font-size:.68rem; color:var(--dim); text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
+        .methode-value { font-family:'Outfit',sans-serif; font-size:1.15rem; font-weight:800; margin-top:4px; letter-spacing:-0.03em; }
+        .methode-value.positive { color:var(--accent2); }
+        .methode-value.negative { color:var(--danger); }
+        .methode-value.zero { color:var(--dim); }
+
+        .flux-type { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:99px; font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+        .flux-entree { background:var(--accent2-md); color:var(--accent2); }
+        .flux-sortie { background:var(--danger-lo); color:var(--danger); }
+
+        .flux-methode { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:99px; font-size:.68rem; font-weight:600; background:var(--card2); color:var(--text2); border:1px solid var(--border); }
+
+        .flux-link { display:inline-flex; align-items:center; gap:4px; font-size:.78rem; color:var(--accent); text-decoration:none; padding:2px 8px; border-radius:var(--r-sm); transition:background .15s; }
+        .flux-link:hover { background:var(--accent-lo); }
+
+        .montant-cell { font-family:'Outfit',sans-serif; font-weight:700; font-size:.95rem; text-align:right; letter-spacing:-0.02em; }
+        .montant-cell.positive { color:var(--accent2); }
+        .montant-cell.negative { color:var(--danger); }
+
+        .action-btn { background:none; border:none; color:var(--dim); cursor:pointer; padding:4px; border-radius:var(--r-sm); transition:all .15s; }
+        .action-btn:hover { color:var(--danger); background:var(--danger-lo); }
+        .action-btn svg { width:14px; height:14px; }
+
+        @media(max-width:768px) {
+            .search-filter-row select { min-width:100%; }
+            table { font-size:.78rem; }
+            thead th:nth-child(4), tbody td:nth-child(4) { display:none; }
+        }
+    </style>
+
+    <script>
+const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let flux = [], projects = [], clients = [], factures = [], commandes = [];
+let currentFilter = 'all', searchQuery = '', projectFilter = '', monthFilter = '';
+
+async function loadData() {
+    try {
+        const [fxRes, pRes, cRes, facRes, cmdRes] = await Promise.all([
+            db.from('atlas_tresorerie').select('*').order('date_flux', { ascending: false }),
+            db.from('atlas_projects').select('id, name'),
+            db.from('atlas_clients').select('id, nom'),
+            db.from('atlas_factures').select('id, numero, montant_total'),
+            db.from('atlas_commandes').select('id, numero, titre')
+        ]);
+        flux = fxRes.data || [];
+        projects = pRes.data || [];
+        clients = cRes.data || [];
+        factures = facRes.data || [];
+        commandes = cmdRes.data || [];
+        populateFilters();
+        renderAll();
+    } catch (err) { console.error('Erreur chargement:', err); }
+}
+
+function populateFilters() {
+    const pSel = document.getElementById('project-filter');
+    pSel.innerHTML = '<option value="">Tous les projets</option>' + projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+    const months = new Set();
+    flux.forEach(f => { if (f.date_flux) { const d = new Date(f.date_flux); months.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); } });
+    const mSel = document.getElementById('month-filter');
+    mSel.innerHTML = '<option value="">Toutes les périodes</option>' + [...months].sort().reverse().map(m => {
+        const [y, mo] = m.split('-');
+        return `<option value="${m}">${new Date(y, mo-1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'})}</option>`;
+    }).join('');
+
+    document.getElementById('f-project').innerHTML = '<option value="">— Aucun —</option>' + projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    document.getElementById('f-client').innerHTML = '<option value="">— Aucun —</option>' + clients.map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
+    document.getElementById('f-facture').innerHTML = '<option value="">— Aucune —</option>' + factures.map(f => `<option value="${f.id}">${f.numero || 'FAC-'+f.id}</option>`).join('');
+    document.getElementById('f-commande').innerHTML = '<option value="">— Aucune —</option>' + commandes.map(c => `<option value="${c.id}">${c.numero || 'CMD-'+c.id} — ${c.titre}</option>`).join('');
+}
+
+function formatMoney(n) { return new Intl.NumberFormat('fr-MA', {minimumFractionDigits:0}).format(n||0) + ' DH'; }
+function formatDate(d) { return d ? new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}) : '—'; }
+
+function getFiltered() {
+    let data = [...flux];
+    if (currentFilter === 'entree') data = data.filter(f => f.type === 'entree');
+    else if (currentFilter === 'sortie') data = data.filter(f => f.type === 'sortie');
+    else if (['cash','virement','cheque'].includes(currentFilter)) data = data.filter(f => f.methode === currentFilter);
+    if (projectFilter) data = data.filter(f => String(f.project_id) === projectFilter);
+    if (monthFilter) data = data.filter(f => { if (!f.date_flux) return false; const d = new Date(f.date_flux); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` === monthFilter; });
+    if (searchQuery) { const q = searchQuery.toLowerCase(); data = data.filter(f => (f.description||'').toLowerCase().includes(q) || (f.reference||'').toLowerCase().includes(q) || (f.notes||'').toLowerCase().includes(q)); }
+    return data;
+}
+
+function renderAll() { renderStats(); renderMethodes(); renderFlux(); }
+
+function renderStats() {
+    const filtered = getFiltered();
+    const entrees = filtered.filter(f => f.type === 'entree').reduce((s,f) => s + (parseFloat(f.montant)||0), 0);
+    const sorties = filtered.filter(f => f.type === 'sortie').reduce((s,f) => s + (parseFloat(f.montant)||0), 0);
+    document.getElementById('stat-entrees').textContent = formatMoney(entrees);
+    document.getElementById('stat-sorties').textContent = formatMoney(sorties);
+    const soldeEl = document.getElementById('stat-solde');
+    const solde = entrees - sorties;
+    soldeEl.textContent = formatMoney(solde);
+    soldeEl.className = 'stat-value ' + (solde > 0 ? 'green' : solde < 0 ? 'red' : 'blue');
+    document.getElementById('stat-count').textContent = filtered.length;
+}
+
+function renderMethodes() {
+    const methods = ['cash','virement','cheque'];
+    const icons = {cash:'💵',virement:'🏦',cheque:'📝'};
+    const labels = {cash:'Cash',virement:'Virement',cheque:'Chèque'};
+    document.getElementById('methode-grid').innerHTML = methods.map(m => {
+        const e = flux.filter(f => f.methode===m && f.type==='entree').reduce((s,f) => s+(parseFloat(f.montant)||0),0);
+        const s = flux.filter(f => f.methode===m && f.type==='sortie').reduce((s,f) => s+(parseFloat(f.montant)||0),0);
+        const solde = e - s;
+        return `<div class="methode-card"><div class="methode-icon">${icons[m]}</div><div class="methode-label">${labels[m]}</div><div class="methode-value ${solde>0?'positive':solde<0?'negative':'zero'}">${formatMoney(solde)}</div></div>`;
+    }).join('');
+}
+
+function getName(arr, id, field) { const item = arr.find(x => x.id == id); return item ? (item[field] || item.nom || item.name || item.numero || null) : null; }
+
+function renderFlux() {
+    const filtered = getFiltered();
+    const tbody = document.getElementById('flux-tbody');
+    if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><p>Aucun mouvement trouvé</p></div></td></tr>'; return; }
+
+    tbody.innerHTML = filtered.map(f => {
+        const isE = f.type === 'entree';
+        const mIcons = {cash:'💵',virement:'🏦',cheque:'📝'};
+        const mLabels = {cash:'Cash',virement:'Virement',cheque:'Chèque'};
+        let links = [];
+        if (f.project_id) { const n = getName(projects,f.project_id,'name'); if(n) links.push(`<a class="flux-link" href="./atlas-project.html?id=${f.project_id}">🏗️ ${n}</a>`); }
+        if (f.client_id) { const n = getName(clients,f.client_id,'nom'); if(n) links.push(`<a class="flux-link" href="./atlas-client.html?id=${f.client_id}">👤 ${n}</a>`); }
+        if (f.facture_id) { const n = getName(factures,f.facture_id,'numero'); if(n) links.push(`<a class="flux-link" href="./atlas-facture.html?id=${f.facture_id}">🧾 ${n}</a>`); }
+        if (f.commande_id) { const n = getName(commandes,f.commande_id,'numero'); if(n) links.push(`<a class="flux-link" href="./atlas-commande.html?id=${f.commande_id}">📦 ${n}</a>`); }
+
+        return `<tr>
+            <td style="white-space:nowrap">${formatDate(f.date_flux)}</td>
+            <td><span class="flux-type ${isE?'flux-entree':'flux-sortie'}">${isE?'↗ Entrée':'↙ Sortie'}</span></td>
+            <td><div style="font-weight:500">${f.description||'—'}</div>${f.reference?`<div style="font-size:.72rem;color:var(--dim);margin-top:2px">Réf: ${f.reference}</div>`:''}</td>
+            <td>${links.length ? links.join(' ') : '<span style="color:var(--dim)">—</span>'}</td>
+            <td><span class="flux-methode">${mIcons[f.methode]||''} ${mLabels[f.methode]||f.methode}</span></td>
+            <td class="montant-cell ${isE?'positive':'negative'}">${isE?'+':'-'}${formatMoney(f.montant)}</td>
+            <td><button class="action-btn" onclick="deleteFlux(${f.id})" title="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></td>
+        </tr>`;
+    }).join('');
+}
+
+// Events
+document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderAll();
+}));
+document.getElementById('search-input').addEventListener('input', e => { searchQuery = e.target.value.trim(); renderAll(); });
+document.getElementById('project-filter').addEventListener('change', e => { projectFilter = e.target.value; renderAll(); });
+document.getElementById('month-filter').addEventListener('change', e => { monthFilter = e.target.value; renderAll(); });
+
+function openModal() {
+    document.getElementById('flux-form').reset();
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('flux-modal').style.display = 'flex';
+}
+function closeModal() { document.getElementById('flux-modal').style.display = 'none'; }
+
+async function saveFlux(e) {
+    e.preventDefault();
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true; btn.textContent = 'Enregistrement...';
+    const data = {
+        type: document.getElementById('f-type').value,
+        methode: document.getElementById('f-methode').value,
+        montant: parseFloat(document.getElementById('f-montant').value),
+        description: document.getElementById('f-description').value.trim(),
+        date_flux: document.getElementById('f-date').value || new Date().toISOString().split('T')[0],
+        reference: document.getElementById('f-reference').value.trim() || null,
+        project_id: document.getElementById('f-project').value ? parseInt(document.getElementById('f-project').value) : null,
+        client_id: document.getElementById('f-client').value ? parseInt(document.getElementById('f-client').value) : null,
+        facture_id: document.getElementById('f-facture').value ? parseInt(document.getElementById('f-facture').value) : null,
+        commande_id: document.getElementById('f-commande').value ? parseInt(document.getElementById('f-commande').value) : null,
+        notes: document.getElementById('f-notes').value.trim() || null,
+    };
+    try {
+        const { error } = await db.from('atlas_tresorerie').insert([data]);
+        if (error) throw error;
+        showToast('Mouvement enregistré ✓');
+        closeModal(); loadData();
+    } catch (err) { showToast('Erreur: ' + err.message, true); }
+    finally { btn.disabled = false; btn.textContent = 'Enregistrer'; }
+}
+
+async function deleteFlux(id) {
+    if (!confirm('Supprimer ce mouvement ?')) return;
+    try { const {error} = await db.from('atlas_tresorerie').delete().eq('id',id); if(error) throw error; showToast('Supprimé'); loadData(); }
+    catch(err) { showToast('Erreur: '+err.message, true); }
+}
+
+function exportCSV() {
+    const filtered = getFiltered();
+    if (!filtered.length) { showToast('Rien à exporter', true); return; }
+    const h = ['Date','Type','Méthode','Description','Référence','Montant','Projet','Client','Notes'];
+    const rows = filtered.map(f => [f.date_flux||'',f.type,f.methode,f.description||'',f.reference||'',f.montant||0,getName(projects,f.project_id,'name')||'',getName(clients,f.client_id,'nom')||'',f.notes||'']);
+    const csv = '\uFEFF' + h.join(';') + '\n' + rows.map(r => r.map(v => `"${v}"`).join(';')).join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    a.download = `tresorerie-${new Date().toISOString().split('T')[0]}.csv`; a.click();
+    showToast('Export CSV ✓');
+}
+
+function showToast(msg, isError=false) {
+    const t = document.getElementById('toast'); t.textContent = msg;
+    t.className = 'toast '+(isError?'toast-error':'toast-success'); t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+loadData();
+setInterval(loadData, 60000);
+    </script>
+    <script src="./atlas-nav.js"></script>
+</body>
+</html>
