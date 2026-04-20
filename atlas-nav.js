@@ -1,5 +1,5 @@
 /**
- * Atlas Pose — Navigation & Design System v4.0
+ * Atlas Pose — Navigation & Design System v4.1
  * Dark / Light mode avec toggle persistant (localStorage)
  * Outfit (police principale, titres + UI) + Instrument Serif (accents)
  * Logo : tile diamond mark en terracotta
@@ -22,6 +22,12 @@
     { href: './atlas-factures.html',
       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="11" y2="17"/></svg>`,
       label: 'Factures', id: 'factures' },
+    { href: './atlas-tresorerie.html',
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,
+      label: 'Trésorerie', id: 'tresorerie' },
+    { href: './atlas-stock.html',
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
+      label: 'Stock', id: 'stock' },
     { href: './atlas-tasks.html',
       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>`,
       label: 'Tâches', id: 'tasks' },
@@ -350,13 +356,13 @@
       </div>
       <div class="nav-links">
         <div class="nav-section-lbl">Principal</div>
-        ${renderItems(NAV_ITEMS.slice(0, 7))}
+        ${renderItems(NAV_ITEMS.slice(0, 9))}
         <div class="nav-div"></div>
         <div class="nav-section-lbl">Système</div>
-        ${renderItems(NAV_ITEMS.slice(7))}
+        ${renderItems(NAV_ITEMS.slice(9))}
       </div>
       <div class="nav-footer">
-        <div class="nav-footer-pill"><div class="nav-footer-dot"></div>v4.0 · Atlas Pose</div>
+        <div class="nav-footer-pill"><div class="nav-footer-dot"></div>v4.1 · Atlas Pose</div>
       </div>
     `;
     document.body.insertBefore(sidebar, document.body.firstChild);
