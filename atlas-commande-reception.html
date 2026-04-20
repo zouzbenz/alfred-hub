@@ -653,9 +653,89 @@ async function creerFacture() {
             completed_at: new Date().toISOString()
         }).eq('source', 'commande').eq('source_id', parseInt(commandeId)).ilike('titre', '%Receptionner%');
         
-        // TODO: MAJ Stock (module a creer)
-        // TODO: MAJ Tresorerie (module a creer)
-        
+        // ── TRÉSORERIE : sortie d'argent par fournisseur ──
+        for (const fId of fournisseurIds) {
+            const lignesFourn = lignes.filter(l => l.fournisseur_id === fId);
+            const montantFourn = lignesFourn.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
+            const fournNom = suppliers.find(s => s.id === fId)?.nom || 'Fournisseur';
+            const designFourn = lignesFourn.map(l => l.designation).slice(0, 2).join(', ');
+
+            const tresoData = {
+                type: 'sortie',
+                methode: 'virement',
+                montant: montantFourn,
+                description: `${fournNom} — ${designFourn}${lignesFourn.length > 2 ? '...' : ''}`,
+                date_flux: new Date().toISOString().split('T')[0],
+                reference: factureData.numero || null,
+                project_id: commande.project_id ? parseInt(commande.project_id) : null,
+                facture_id: factureId,
+                commande_id: parseInt(commandeId),
+                notes: `Commande ${commande.numero || '#' + commande.id}`
+            };
+            console.log('Insert trésorerie:', tresoData);
+            const { error: tresoErr } = await db.from('atlas_tresorerie').insert([tresoData]);
+            if (tresoErr) console.error('Erreur trésorerie:', tresoErr);
+        }
+
+        // Trésorerie pour lignes sans fournisseur_id (fournisseur_autre)
+        const lignesSansFourn = lignes.filter(l => !l.fournisseur_id);
+        if (lignesSansFourn.length > 0) {
+            const montantSF = lignesSansFourn.reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0);
+            const fournAutre = lignesSansFourn[0]?.fournisseur_autre || 'Fournisseur divers';
+            const designSF = lignesSansFourn.map(l => l.designation).slice(0, 2).join(', ');
+
+            const { error: tresoErr2 } = await db.from('atlas_tresorerie').insert([{
+                type: 'sortie',
+                methode: 'cash',
+                montant: montantSF,
+                description: `${fournAutre} — ${designSF}${lignesSansFourn.length > 2 ? '...' : ''}`,
+                date_flux: new Date().toISOString().split('T')[0],
+                reference: factureData.numero || null,
+                project_id: commande.project_id ? parseInt(commande.project_id) : null,
+                facture_id: factureId,
+                commande_id: parseInt(commandeId),
+                notes: `Commande ${commande.numero || '#' + commande.id}`
+            }]);
+            if (tresoErr2) console.error('Erreur trésorerie (sans fourn):', tresoErr2);
+        }
+
+        // ── STOCK : créer un article par ligne ventilée ──
+        const stockToInsert = [];
+        for (const ligne of lignes) {
+            const vents = ventilations[ligne.id] || [];
+            for (const v of vents) {
+                if (v.project_id && v.quantite > 0) {
+                    // Mapper la catégorie commande vers type stock
+                    const typeMap = {
+                        'Matériaux': 'carrelage', 'Outillage': 'outillage',
+                        'Consommables': 'colle', 'EPI': 'quincaillerie',
+                        'Transport': 'autre', 'Location': 'autre',
+                        'Sous-traitance': 'autre', 'Autre': 'autre'
+                    };
+                    const stockType = typeMap[ligne.categorie] || 'autre';
+
+                    stockToInsert.push({
+                        nom: ligne.designation,
+                        type: stockType,
+                        declinaison: ligne.reference || null,
+                        quantite: v.quantite,
+                        unite: ligne.unite || 'unite',
+                        date_arrivee: new Date().toISOString().split('T')[0],
+                        project_id: parseInt(v.project_id),
+                        commande_id: parseInt(commandeId),
+                        fournisseur_id: ligne.fournisseur_id ? parseInt(ligne.fournisseur_id) : null,
+                        notes: `Via commande ${commande.numero || '#' + commande.id}`
+                    });
+                }
+            }
+        }
+
+        if (stockToInsert.length > 0) {
+            console.log('Insert stock:', stockToInsert);
+            const { error: stockErr } = await db.from('atlas_stock').insert(stockToInsert);
+            if (stockErr) console.error('Erreur stock:', stockErr);
+        }
+
         showToast('Facture creee !');
         
         setTimeout(() => {

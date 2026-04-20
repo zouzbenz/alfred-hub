@@ -21,7 +21,11 @@
       label: 'Commandes', id: 'commandes' },
     { href: './atlas-factures.html',
       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="11" y2="17"/></svg>`,
-      label: 'Factures', id: 'factures' },
+      label: 'Factures', id: 'factures',
+      children: [
+        { href: './atlas-factures.html#clients', label: 'Clients', id: 'factures-clients' },
+        { href: './atlas-factures.html#fournisseurs', label: 'Fournisseurs', id: 'factures-fournisseurs' },
+      ] },
     { href: './atlas-tresorerie.html',
       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,
       label: 'Trésorerie', id: 'tresorerie' },
@@ -60,6 +64,8 @@
   /* ── ACTIVE PAGE ─────────────────────────────────────────────── */
   function getActivePage() {
     const file = window.location.pathname.split('/').pop().replace('.html', '');
+    // facture-client detail pages count as factures
+    if (file.includes('facture-client') || file === 'atlas-facture-client') return 'factures';
     for (const item of NAV_ITEMS) {
       if (item.href.includes(file)) return item.id;
     }
@@ -311,6 +317,13 @@
     .nav-item.active::before { content:''; position:absolute; left:-1px; top:22%; bottom:22%; width:2px; background:var(--accent); border-radius:0 2px 2px 0; }
     [data-theme="light"] .nav-item.active { background:var(--accent-lo); border-color:rgba(29,78,216,.15); }
     .nav-div { height:1px; background:var(--border); margin:7px 6px; }
+    .nav-chevron { width:12px !important; height:12px !important; margin-left:auto; opacity:.4; transition:transform .15s; }
+    .nav-item.active .nav-chevron { opacity:.7; transform:rotate(180deg); }
+    .nav-children { padding:2px 0 4px 26px; display:flex; flex-direction:column; gap:1px; }
+    .nav-sub-item { display:flex; align-items:center; gap:6px; padding:6px 10px; border-radius:8px; text-decoration:none; color:var(--dim); font-size:.76rem; font-weight:500; transition:all .12s; position:relative; }
+    .nav-sub-item::before { content:''; width:4px; height:4px; border-radius:50%; background:var(--border2); flex-shrink:0; }
+    .nav-sub-item:hover { color:var(--text); background:rgba(128,128,128,.05); }
+    .nav-sub-item:hover::before { background:var(--accent); }
     .nav-footer { padding:14px 16px; border-top:1px solid var(--border); flex-shrink:0; }
     .nav-footer-pill { display:inline-flex; align-items:center; gap:6px; font-size:.65rem; color:var(--dim); background:var(--bg2); border:1px solid var(--border); padding:4px 10px; border-radius:99px; }
     .nav-footer-dot { width:5px; height:5px; background:var(--accent2); border-radius:50%; }
@@ -335,9 +348,17 @@
 
   /* ── BUILD SIDEBAR ──────────────────────────────────────────── */
   function buildSidebar() {
-    const renderItems = (items) => items.map(i => `
-      <a href="${i.href}" class="nav-item ${activePage === i.id ? 'active' : ''}">${i.icon}<span>${i.label}</span></a>
-    `).join('');
+    const renderItems = (items) => items.map(i => {
+      const isActive = activePage === i.id;
+      const hasChildren = i.children && i.children.length > 0;
+      let html = `<a href="${i.href}" class="nav-item ${isActive ? 'active' : ''}">${i.icon}<span>${i.label}</span>${hasChildren ? '<svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>' : ''}</a>`;
+      if (hasChildren && isActive) {
+        html += '<div class="nav-children">' + i.children.map(c =>
+          `<a href="${c.href}" class="nav-sub-item" onclick="event.preventDefault();const h=this.href.split('#')[1];if(h&&window.switchTab)window.switchTab(h);else location.href=this.href;"><span>${c.label}</span></a>`
+        ).join('') + '</div>';
+      }
+      return html;
+    }).join('');
 
     const sidebar = document.createElement('nav');
     sidebar.id = 'atlas-sidebar';
@@ -362,7 +383,7 @@
         ${renderItems(NAV_ITEMS.slice(9))}
       </div>
       <div class="nav-footer">
-        <div class="nav-footer-pill"><div class="nav-footer-dot"></div>v4.1 · Atlas Pose</div>
+        <div class="nav-footer-pill"><div class="nav-footer-dot"></div>v4.2 · Atlas Pose</div>
       </div>
     `;
     document.body.insertBefore(sidebar, document.body.firstChild);
