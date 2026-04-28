@@ -134,10 +134,17 @@
             </div>
         </div>
         
-        <!-- Notes -->
-        <div class="section" id="notes-section" style="display:none;">
+        <!-- Notes éditables -->
+        <div class="section">
             <h3 class="section-title">📝 Notes</h3>
-            <p id="fac-notes" style="color:var(--dim);"></p>
+            <textarea id="fac-notes-edit" style="width:100%;min-height:60px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);resize:vertical;font-size:.9rem;font-family:inherit;" placeholder="Notes..."></textarea>
+            <button class="btn btn-outline btn-small" style="margin-top:10px;" onclick="saveNotes()">Sauvegarder notes</button>
+        </div>
+        
+        <!-- Actions édition / suppression -->
+        <div class="section" style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+            <button class="btn btn-outline" onclick="editMontant()">✏️ Modifier montant</button>
+            <button class="btn" style="background:var(--danger);color:#fff;" onclick="deleteFactureFournisseur()">🗑️ Supprimer facture</button>
         </div>
         
         <div class="footer">
@@ -230,10 +237,7 @@ function renderPage() {
     }
     
     // Notes
-    if (facture.notes) {
-        document.getElementById('notes-section').style.display = 'block';
-        document.getElementById('fac-notes').textContent = facture.notes;
-    }
+    document.getElementById('fac-notes-edit').value = facture.notes || '';
     
     // Ventilation
     renderVentilation();
@@ -320,6 +324,105 @@ function openImageModal(url) {
 
 function closeImageModal() {
     document.getElementById('image-modal').classList.remove('visible');
+}
+
+async function saveNotes() {
+    try {
+        await db.from('atlas_factures').update({ notes: document.getElementById('fac-notes-edit').value.trim(), updated_at: new Date().toISOString() }).eq('id', factureId);
+        showToast('Notes sauvegardées ✓');
+    } catch (err) { showToast('Erreur', true); }
+}
+
+async function editMontant() {
+    const newMontant = prompt('Nouveau montant total (DH) :', facture.montant_total || 0);
+    if (newMontant === null) return;
+    const montant = parseFloat(newMontant);
+    if (isNaN(montant) || montant < 0) { showToast('Montant invalide', true); return; }
+
+    try {
+        const ancienMontant = parseFloat(facture.montant_total) || 1;
+
+        // 1. Mettre à jour la facture
+        await db.from('atlas_factures').update({ montant_total: montant, updated_at: new Date().toISOString() }).eq('id', factureId);
+
+        // 2. Mettre à jour la trésorerie liée (proportionnellement)
+        const { data: tresoEntries } = await db.from('atlas_tresorerie').select('id, montant').eq('facture_id', parseInt(factureId));
+        if (tresoEntries && tresoEntries.length) {
+            for (const entry of tresoEntries) {
+                const ratio = (parseFloat(entry.montant) || 0) / ancienMontant;
+                await db.from('atlas_tresorerie').update({ montant: montant * ratio, updated_at: new Date().toISOString() }).eq('id', entry.id);
+            }
+        }
+
+        // 3. Mettre à jour les dépenses liées (proportionnellement)
+        if (commande) {
+            const cmdRef = commande.numero || '#' + commande.id;
+            const { data: deps } = await db.from('atlas_depenses').select('id, montant').ilike('designation', '%' + cmdRef + '%');
+            if (deps && deps.length) {
+                const totalDepOld = deps.reduce((s, d) => s + (parseFloat(d.montant) || 0), 0) || 1;
+                for (const dep of deps) {
+                    const ratio = (parseFloat(dep.montant) || 0) / totalDepOld;
+                    await db.from('atlas_depenses').update({ montant: montant * ratio }).eq('id', dep.id);
+                }
+            }
+        }
+
+        showToast('Montant mis à jour + propagation ✓');
+        await loadData();
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur: ' + err.message, true);
+    }
+}
+
+async function deleteFactureFournisseur() {
+    // Recenser tout ce qui va être supprimé
+    const items = ['Facture ' + (facture.numero || '#' + factureId)];
+
+    const { count: ventCount } = await db.from('atlas_facture_ventilation').select('*', { count: 'exact', head: true }).eq('facture_id', parseInt(factureId));
+    if (ventCount) items.push(ventCount + ' ventilation(s)');
+
+    const { count: justifCount } = await db.from('atlas_facture_justificatifs').select('*', { count: 'exact', head: true }).eq('facture_id', parseInt(factureId));
+    if (justifCount) items.push(justifCount + ' justificatif(s)');
+
+    const { count: tresoCount } = await db.from('atlas_tresorerie').select('*', { count: 'exact', head: true }).eq('facture_id', parseInt(factureId));
+    if (tresoCount) items.push(tresoCount + ' mouvement(s) trésorerie');
+
+    if (commande) {
+        const cmdRef = commande.numero || '#' + commande.id;
+        const { count: depCount } = await db.from('atlas_depenses').select('*', { count: 'exact', head: true }).ilike('designation', '%' + cmdRef + '%');
+        if (depCount) items.push(depCount + ' dépense(s)');
+
+        const { count: stockCount } = await db.from('atlas_stock').select('*', { count: 'exact', head: true }).eq('commande_id', parseInt(facture.commande_id));
+        if (stockCount) items.push(stockCount + ' article(s) stock');
+    }
+
+    if (!confirm('Supprimer cette facture et toutes les données liées ?\n\n— ' + items.join('\n— ') + '\n\nCette action est irréversible.')) return;
+
+    try {
+        showToast('Suppression en cours...');
+
+        // Supprimer en cascade (ordre inverse des dépendances)
+        await db.from('atlas_tresorerie').delete().eq('facture_id', parseInt(factureId));
+        await db.from('atlas_facture_justificatifs').delete().eq('facture_id', parseInt(factureId));
+        await db.from('atlas_facture_ventilation').delete().eq('facture_id', parseInt(factureId));
+
+        if (commande) {
+            const cmdRef = commande.numero || '#' + commande.id;
+            await db.from('atlas_depenses').delete().ilike('designation', '%' + cmdRef + '%');
+            await db.from('atlas_stock').delete().eq('commande_id', parseInt(facture.commande_id));
+            // Remettre la commande en statut "recue"
+            await db.from('atlas_commandes').update({ statut: 'recue', updated_at: new Date().toISOString() }).eq('id', facture.commande_id);
+        }
+
+        await db.from('atlas_factures').delete().eq('id', parseInt(factureId));
+
+        showToast('Facture et données liées supprimées');
+        setTimeout(() => location.href = './atlas-factures.html', 1000);
+    } catch (err) {
+        console.error('Erreur:', err);
+        showToast('Erreur: ' + err.message, true);
+    }
 }
 
 function showToast(msg, isError = false) {
