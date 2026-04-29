@@ -10,6 +10,9 @@
 
   /* ── NAV ITEMS ──────────────────────────────────────────────── */
   const NAV_ITEMS = [
+    { href: './atlas-dashboard.html',
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>`,
+      label: 'Dashboard', id: 'dashboard' },
     { href: './atlas-projects.html',
       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="12" rx="2"/><path d="M9 21h6M12 15v6"/></svg>`,
       label: 'Projets', id: 'projects' },
@@ -377,13 +380,13 @@
       </div>
       <div class="nav-links">
         <div class="nav-section-lbl">Principal</div>
-        ${renderItems(NAV_ITEMS.slice(0, 9))}
+        ${renderItems(NAV_ITEMS.slice(0, 10))}
         <div class="nav-div"></div>
         <div class="nav-section-lbl">Système</div>
-        ${renderItems(NAV_ITEMS.slice(9))}
+        ${renderItems(NAV_ITEMS.slice(10))}
       </div>
       <div class="nav-footer">
-        <div class="nav-footer-pill"><div class="nav-footer-dot"></div>v4.2 · Atlas Pose</div>
+        <div class="nav-footer-pill"><div class="nav-footer-dot"></div>v4.3 · Atlas Pose</div>
       </div>
     `;
     document.body.insertBefore(sidebar, document.body.firstChild);

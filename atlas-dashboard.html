@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard - Atlas Pose</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+    <div class="container">
+
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Dashboard</h1>
+                <p class="page-subtitle">Vue d'ensemble — Atlas Pose</p>
+            </div>
+            <div class="header-actions">
+                <select id="year-filter" onchange="renderAll()">
+                    <option value="">Toutes les années</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="chantiers" onclick="switchTab('chantiers')">🏗️ <span>Chantiers</span></button>
+            <button class="tab" data-tab="commercial" onclick="switchTab('commercial')">📊 <span>Commercial</span></button>
+            <button class="tab" data-tab="tresorerie" onclick="switchTab('tresorerie')">💰 <span>Trésorerie</span></button>
+            <button class="tab" data-tab="synthese" onclick="switchTab('synthese')">📈 <span>Synthèse</span></button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- ONGLET 1 : SUIVI CHANTIERS -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <div id="tab-chantiers">
+            <div class="stats-row" id="chantiers-stats"></div>
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-title">Suivi par chantier</span>
+                    <div class="filters" id="chantiers-filters" style="margin-bottom:0">
+                        <button class="filter-btn active" data-filter="all" onclick="filterChantiers('all')">Tous</button>
+                        <button class="filter-btn" data-filter="en_cours" onclick="filterChantiers('en_cours')">En cours</button>
+                        <button class="filter-btn" data-filter="termine" onclick="filterChantiers('termine')">Terminés</button>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead><tr>
+                            <th>Chantier</th><th>Client</th><th>Type</th><th class="hide-mobile">Surface</th>
+                            <th style="text-align:right">Devis HT</th><th style="text-align:right" class="hide-mobile">Matériaux</th>
+                            <th style="text-align:right" class="hide-mobile">MO</th><th style="text-align:right">Marge</th>
+                            <th style="text-align:right" class="hide-mobile">Taux</th><th>Statut</th>
+                        </tr></thead>
+                        <tbody id="chantiers-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- ONGLET 2 : SUIVI COMMERCIAL -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <div id="tab-commercial" style="display:none">
+            <div class="stats-row" id="commercial-stats"></div>
+            <div class="section">
+                <div class="section-header"><span class="section-title">Pipeline commercial</span></div>
+                <div class="pipeline" id="pipeline"></div>
+            </div>
+            <div class="section">
+                <div class="section-header"><span class="section-title">Dernières factures clients</span></div>
+                <div class="table-wrapper">
+                    <table><thead><tr><th>Facture</th><th>Client</th><th>Objet</th><th style="text-align:right">Montant TTC</th><th>Statut</th><th>Date</th></tr></thead>
+                    <tbody id="commercial-tbody"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- ONGLET 3 : SUIVI TRÉSORERIE -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <div id="tab-tresorerie" style="display:none">
+            <div class="stats-row" id="treso-stats"></div>
+            <div class="section">
+                <div class="section-header"><span class="section-title">Facturation vs Encaissements par mois</span></div>
+                <div class="table-wrapper">
+                    <table><thead><tr><th>Mois</th><th style="text-align:right">Facturé TTC</th><th style="text-align:right">Encaissé</th><th style="text-align:right">Écart</th></tr></thead>
+                    <tbody id="treso-mois-tbody"></tbody></table>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-header"><span class="section-title">DSO par client (délai moyen de paiement)</span></div>
+                <div class="table-wrapper">
+                    <table><thead><tr><th>Client</th><th style="text-align:right">Nb factures</th><th style="text-align:right">DSO moyen (jours)</th><th style="text-align:right">Encours</th></tr></thead>
+                    <tbody id="dso-tbody"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- ONGLET 4 : SYNTHÈSE -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <div id="tab-synthese" style="display:none">
+            <div class="stats-row" id="synthese-stats"></div>
+            <!-- Alertes -->
+            <div class="section" id="alertes-section">
+                <div class="section-header"><span class="section-title">🚨 Alertes</span></div>
+                <div id="alertes-container"></div>
+            </div>
+            <!-- CA mensuel -->
+            <div class="section">
+                <div class="section-header"><span class="section-title">Évolution mensuelle</span></div>
+                <div class="table-wrapper">
+                    <table><thead><tr><th>Mois</th><th style="text-align:right">CA TTC</th><th style="text-align:right">Dépenses</th><th style="text-align:right">Marge</th><th style="text-align:right">Taux</th></tr></thead>
+                    <tbody id="evolution-tbody"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">Atlas<em class="serif">Pose</em> · Dashboard v1.0</div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <style>
+        .tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--bg2);border-radius:var(--r-lg);padding:4px;border:1px solid var(--border)}
+        .tab{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 10px;background:transparent;border:none;border-radius:var(--r-md);color:var(--text2);font-family:'Outfit',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer;transition:all .15s}
+        .tab:hover{color:var(--text);background:rgba(128,128,128,.06)}
+        .tab.active{background:var(--card);color:var(--text);font-weight:600;box-shadow:var(--shadow-sm);border:1px solid var(--border)}
+
+        .pipeline{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+        .pipeline-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;text-align:center}
+        .pipeline-value{font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:4px}
+        .pipeline-label{font-size:.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+
+        .alerte{display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:var(--r-md);margin-bottom:8px;font-size:.85rem}
+        .alerte-danger{background:var(--danger-lo);border:1px solid rgba(239,68,68,.2);color:var(--danger)}
+        .alerte-warn{background:var(--warn-lo);border:1px solid rgba(245,158,11,.2);color:var(--warn)}
+        .alerte-info{background:var(--accent-lo);border:1px solid rgba(59,130,246,.2);color:var(--accent)}
+        .alerte-icon{font-size:1.2rem;flex-shrink:0;margin-top:2px}
+        .alerte-text{flex:1}
+        .alerte-title{font-weight:700;margin-bottom:2px}
+
+        .marge-positive{color:var(--accent2)}.marge-negative{color:var(--danger)}
+        .taux-bon{color:var(--accent2)}.taux-moyen{color:var(--warn)}.taux-mauvais{color:var(--danger)}
+
+        .type-tag{padding:2px 8px;border-radius:99px;font-size:.68rem;font-weight:600;text-transform:uppercase}
+        .type-residentiel{background:var(--accent-lo);color:var(--accent)}
+        .type-tertiaire{background:var(--clay-lo);color:var(--clay)}
+
+        @media(max-width:768px){
+            .tabs{flex-direction:column}.tab{justify-content:flex-start;padding:10px 14px}
+            .pipeline{grid-template-columns:repeat(2,1fr)}
+            .hide-mobile{display:none}
+            .page-header{flex-direction:column;align-items:stretch}
+        }
+    </style>
+
+    <script>
+const SUPABASE_URL='https://wxhlstificzqovfcumop.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let projects=[],clients=[],facClients=[],facFourn=[],depenses=[],tresorerie=[],pointage=[],budget=[];
+let currentTab='chantiers',chantierFilter='all';
+
+async function loadData(){
+    try{
+        const[pR,cR,fcR,ffR,dR,tR,ptR,bR]=await Promise.all([
+            db.from('atlas_projects').select('*'),
+            db.from('atlas_clients').select('id, nom'),
+            db.from('atlas_factures_clients').select('*'),
+            db.from('atlas_factures').select('*'),
+            db.from('atlas_depenses').select('*'),
+            db.from('atlas_tresorerie').select('*'),
+            db.from('atlas_pointage').select('project_id, montant_du, paye'),
+            db.from('atlas_budget').select('project_id, budget_prevu')
+        ]);
+        projects=pR.data||[];clients=cR.data||[];facClients=fcR.data||[];facFourn=ffR.data||[];
+        depenses=dR.data||[];tresorerie=tR.data||[];pointage=ptR.data||[];budget=bR.data||[];
+        populateYearFilter();
+        renderAll();
+    }catch(e){console.error(e);}
+}
+
+function fm(n){return new Intl.NumberFormat('fr-MA',{minimumFractionDigits:0}).format(n||0)+' DH';}
+function fmPct(n){return (n||0).toFixed(1)+'%';}
+function getClientName(id){return clients.find(c=>c.id===id)?.nom||'—';}
+function getMonthLabel(ym){const[y,m]=ym.split('-');return new Date(y,m-1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});}
+
+function populateYearFilter(){
+    const years=new Set();
+    facClients.forEach(f=>{if(f.date_facture)years.add(new Date(f.date_facture).getFullYear());});
+    projects.forEach(p=>{if(p.date_debut)years.add(new Date(p.date_debut).getFullYear());});
+    years.add(new Date().getFullYear());
+    const sel=document.getElementById('year-filter');
+    sel.innerHTML='<option value="">Toutes les années</option>'+[...years].sort().reverse().map(y=>'<option value="'+y+'">'+y+'</option>').join('');
+}
+
+function getYear(){return document.getElementById('year-filter').value;}
+
+function switchTab(t){currentTab=t;
+    document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
+    ['chantiers','commercial','tresorerie','synthese'].forEach(id=>{
+        document.getElementById('tab-'+id).style.display=id===t?'block':'none';});
+    renderAll();}
+
+function renderAll(){
+    if(currentTab==='chantiers')renderChantiers();
+    else if(currentTab==='commercial')renderCommercial();
+    else if(currentTab==='tresorerie')renderTresorerie();
+    else renderSynthese();
+}
+
+// ══════════════════════════════════════════
+// ONGLET 1 : CHANTIERS
+// ══════════════════════════════════════════
+function getProjectCosts(pId){
+    const materiaux=depenses.filter(d=>d.project_id===pId).reduce((s,d)=>s+(parseFloat(d.montant)||0),0);
+    const mo=pointage.filter(p=>p.project_id===pId).reduce((s,p)=>s+(parseFloat(p.montant_du)||0),0);
+    const budgetPrevu=budget.filter(b=>b.project_id===pId).reduce((s,b)=>s+(parseFloat(b.budget_prevu)||0),0);
+    return{materiaux,mo,autres:0,total:materiaux+mo,budgetPrevu};
+}
+
+function filterChantiers(f){chantierFilter=f;
+    document.querySelectorAll('#chantiers-filters .filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.filter===f));
+    renderChantiers();}
+
+function renderChantiers(){
+    const yr=getYear();
+    let data=[...projects];
+    if(yr)data=data.filter(p=>p.date_debut&&new Date(p.date_debut).getFullYear()===parseInt(yr));
+    if(chantierFilter!=='all')data=data.filter(p=>p.status===chantierFilter);
+
+    // Stats
+    const totalProj=data.length;
+    const enCours=data.filter(p=>p.status==='en_cours').length;
+    const totalCA=data.reduce((s,p)=>s+(parseFloat(p.ca_estimatif)||0),0);
+    const totalCouts=data.reduce((s,p)=>{const c=getProjectCosts(p.id);return s+c.total;},0);
+    document.getElementById('chantiers-stats').innerHTML=`
+        <div class="stat-card"><div class="stat-value blue">${totalProj}</div><div class="stat-label">Chantiers</div></div>
+        <div class="stat-card"><div class="stat-value orange">${enCours}</div><div class="stat-label">En cours</div></div>
+        <div class="stat-card"><div class="stat-value green">${fm(totalCA)}</div><div class="stat-label">CA estimatif</div></div>
+        <div class="stat-card"><div class="stat-value red">${fm(totalCouts)}</div><div class="stat-label">Coûts totaux</div></div>`;
+
+    const tbody=document.getElementById('chantiers-tbody');
+    if(!data.length){tbody.innerHTML='<tr><td colspan="10" class="empty-state">Aucun chantier</td></tr>';return;}
+
+    tbody.innerHTML=data.map(p=>{
+        const costs=getProjectCosts(p.id);
+        const devisHT=parseFloat(p.ca_estimatif)||0;
+        const marge=devisHT-costs.total;
+        const taux=devisHT>0?(marge/devisHT*100):0;
+        const tauxClass=taux>20?'taux-bon':taux>10?'taux-moyen':'taux-mauvais';
+        const typeLabel=p.type_projet==='tertiaire'?'Tertiaire':'Résidentiel';
+        const typeClass=p.type_projet==='tertiaire'?'type-tertiaire':'type-residentiel';
+        const statusLabels={a_venir:'Devis',en_cours:'En cours',termine:'Terminé'};
+        const statusClasses={a_venir:'status-a_venir',en_cours:'status-en_cours',termine:'status-termine'};
+        return '<tr onclick="location.href=\'./atlas-project.html?id='+p.id+'\'" style="cursor:pointer">'+
+            '<td style="font-weight:600">'+p.name+'</td>'+
+            '<td>'+(p.client_name||'—')+'</td>'+
+            '<td><span class="type-tag '+typeClass+'">'+typeLabel+'</span></td>'+
+            '<td class="hide-mobile">'+(p.surface_m2||'—')+' m²</td>'+
+            '<td style="text-align:right">'+fm(devisHT)+'</td>'+
+            '<td style="text-align:right" class="hide-mobile">'+fm(costs.materiaux)+'</td>'+
+            '<td style="text-align:right" class="hide-mobile">'+fm(costs.mo)+'</td>'+
+            '<td style="text-align:right;font-weight:700" class="'+(marge>=0?'marge-positive':'marge-negative')+'">'+fm(marge)+'</td>'+
+            '<td style="text-align:right" class="hide-mobile '+tauxClass+'">'+fmPct(taux)+'</td>'+
+            '<td><span class="status-badge '+(statusClasses[p.status]||'')+'">'+( statusLabels[p.status]||p.status)+'</span></td></tr>';
+    }).join('');
+}
+
+// ══════════════════════════════════════════
+// ONGLET 2 : COMMERCIAL
+// ══════════════════════════════════════════
+function renderCommercial(){
+    const yr=getYear();
+    let fcs=[...facClients];
+    if(yr)fcs=fcs.filter(f=>f.date_facture&&new Date(f.date_facture).getFullYear()===parseInt(yr));
+
+    const devisEnvoyes=fcs.filter(f=>['devis','emise','payee'].includes(f.statut)).length;
+    const devisSignes=fcs.filter(f=>['emise','payee'].includes(f.statut)).length;
+    const tauxTransfo=devisEnvoyes>0?(devisSignes/devisEnvoyes*100):0;
+    const caSigne=fcs.filter(f=>['emise','payee'].includes(f.statut)).reduce((s,f)=>s+(parseFloat(f.montant_ttc)||0),0);
+    const caFacture=fcs.filter(f=>f.statut==='emise').reduce((s,f)=>s+(parseFloat(f.montant_ttc)||0),0);
+    const caEncaisse=fcs.filter(f=>f.statut==='payee').reduce((s,f)=>s+(parseFloat(f.montant_ttc)||0),0);
+
+    document.getElementById('commercial-stats').innerHTML=`
+        <div class="stat-card"><div class="stat-value blue">${fm(caSigne)}</div><div class="stat-label">CA Signé</div></div>
+        <div class="stat-card"><div class="stat-value orange">${fm(caFacture)}</div><div class="stat-label">CA Facturé</div></div>
+        <div class="stat-card"><div class="stat-value green">${fm(caEncaisse)}</div><div class="stat-label">CA Encaissé</div></div>
+        <div class="stat-card"><div class="stat-value clay">${fmPct(tauxTransfo)}</div><div class="stat-label">Taux transfo</div></div>`;
+
+    document.getElementById('pipeline').innerHTML=`
+        <div class="pipeline-item"><div class="pipeline-value" style="color:var(--text2)">${devisEnvoyes}</div><div class="pipeline-label">Devis envoyés</div></div>
+        <div class="pipeline-item"><div class="pipeline-value" style="color:var(--accent)">${devisSignes}</div><div class="pipeline-label">Devis signés</div></div>
+        <div class="pipeline-item"><div class="pipeline-value" style="color:var(--warn)">${fcs.filter(f=>f.statut==='emise').length}</div><div class="pipeline-label">En attente paiement</div></div>
+        <div class="pipeline-item"><div class="pipeline-value" style="color:var(--accent2)">${fcs.filter(f=>f.statut==='payee').length}</div><div class="pipeline-label">Payées</div></div>`;
+
+    const tbody=document.getElementById('commercial-tbody');
+    const recent=fcs.slice(0,15);
+    if(!recent.length){tbody.innerHTML='<tr><td colspan="6" class="empty-state">Aucune facture</td></tr>';return;}
+    const SL={brouillon:'Brouillon',devis:'Devis',emise:'Émise',payee:'Payée',annulee:'Annulée'};
+    tbody.innerHTML=recent.map(f=>'<tr onclick="location.href=\'./atlas-facture-client.html?id='+f.id+'\'" style="cursor:pointer">'+
+        '<td style="font-weight:600">'+(f.numero||f.numero_devis||'#'+f.id)+'</td>'+
+        '<td>'+(f.client_nom||'—')+'</td>'+
+        '<td class="hide-mobile">'+(f.objet||'—')+'</td>'+
+        '<td style="text-align:right;font-weight:700">'+fm(f.montant_ttc)+'</td>'+
+        '<td><span class="status-badge status-'+(f.statut==='payee'?'termine':f.statut==='emise'?'en_cours':'a_venir')+'">'+(SL[f.statut]||f.statut)+'</span></td>'+
+        '<td>'+(f.date_facture?new Date(f.date_facture).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}):'—')+'</td></tr>').join('');
+}
+
+// ══════════════════════════════════════════
+// ONGLET 3 : TRÉSORERIE
+// ══════════════════════════════════════════
+function renderTresorerie(){
+    const yr=getYear();
+
+    // Facturation par mois (factures clients)
+    let fcs=[...facClients].filter(f=>['emise','payee'].includes(f.statut));
+    if(yr)fcs=fcs.filter(f=>f.date_facture&&new Date(f.date_facture).getFullYear()===parseInt(yr));
+
+    // Encaissements par mois (trésorerie entrées)
+    let entrees=[...tresorerie].filter(t=>t.type==='entree');
+    if(yr)entrees=entrees.filter(t=>t.date_flux&&new Date(t.date_flux).getFullYear()===parseInt(yr));
+
+    const totalFacture=fcs.reduce((s,f)=>s+(parseFloat(f.montant_ttc)||0),0);
+    const totalEncaisse=entrees.reduce((s,t)=>s+(parseFloat(t.montant)||0),0);
+    const sorties=[...tresorerie].filter(t=>t.type==='sortie');
+    if(yr)sorties.filter(t=>t.date_flux&&new Date(t.date_flux).getFullYear()===parseInt(yr));
+    const totalSorties=sorties.reduce((s,t)=>s+(parseFloat(t.montant)||0),0);
+
+    document.getElementById('treso-stats').innerHTML=`
+        <div class="stat-card"><div class="stat-value blue">${fm(totalFacture)}</div><div class="stat-label">Facturé</div></div>
+        <div class="stat-card"><div class="stat-value green">${fm(totalEncaisse)}</div><div class="stat-label">Encaissé</div></div>
+        <div class="stat-card"><div class="stat-value red">${fm(totalSorties)}</div><div class="stat-label">Sorties</div></div>
+        <div class="stat-card"><div class="stat-value ${totalEncaisse-totalSorties>=0?'green':'red'}">${fm(totalEncaisse-totalSorties)}</div><div class="stat-label">Solde net</div></div>`;
+
+    // Mois
+    const moisMap={};
+    fcs.forEach(f=>{if(!f.date_facture)return;const m=f.date_facture.substring(0,7);if(!moisMap[m])moisMap[m]={facture:0,encaisse:0};moisMap[m].facture+=(parseFloat(f.montant_ttc)||0);});
+    entrees.forEach(t=>{if(!t.date_flux)return;const m=t.date_flux.substring(0,7);if(!moisMap[m])moisMap[m]={facture:0,encaisse:0};moisMap[m].encaisse+=(parseFloat(t.montant)||0);});
+    const moisSorted=Object.keys(moisMap).sort().reverse();
+    const tbody=document.getElementById('treso-mois-tbody');
+    if(!moisSorted.length){tbody.innerHTML='<tr><td colspan="4" class="empty-state">Aucune donnée</td></tr>';return;}
+    tbody.innerHTML=moisSorted.map(m=>{const d=moisMap[m];const ecart=d.facture-d.encaisse;
+        return '<tr><td>'+getMonthLabel(m)+'</td><td style="text-align:right">'+fm(d.facture)+'</td><td style="text-align:right">'+fm(d.encaisse)+'</td><td style="text-align:right;font-weight:600" class="'+(ecart<=0?'marge-positive':'marge-negative')+'">'+fm(ecart)+'</td></tr>';}).join('');
+
+    // DSO par client
+    const dsoMap={};
+    facClients.filter(f=>f.statut==='payee'&&f.date_facture&&f.date_paiement).forEach(f=>{
+        const cId=f.client_id;if(!cId)return;
+        if(!dsoMap[cId])dsoMap[cId]={nom:f.client_nom||getClientName(cId),days:[],encours:0,nb:0};
+        const diff=Math.ceil((new Date(f.date_paiement)-new Date(f.date_facture))/(1000*60*60*24));
+        dsoMap[cId].days.push(Math.max(0,diff));dsoMap[cId].nb++;});
+    // Ajouter encours (factures émises non payées)
+    facClients.filter(f=>f.statut==='emise').forEach(f=>{const cId=f.client_id;if(!cId)return;
+        if(!dsoMap[cId])dsoMap[cId]={nom:f.client_nom||getClientName(cId),days:[],encours:0,nb:0};
+        dsoMap[cId].encours+=(parseFloat(f.montant_ttc)||0);});
+
+    const dsoTbody=document.getElementById('dso-tbody');
+    const dsoEntries=Object.values(dsoMap).sort((a,b)=>(b.encours||0)-(a.encours||0));
+    if(!dsoEntries.length){dsoTbody.innerHTML='<tr><td colspan="4" class="empty-state">Aucune donnée</td></tr>';return;}
+    dsoTbody.innerHTML=dsoEntries.map(d=>{const avg=d.days.length?Math.round(d.days.reduce((a,b)=>a+b,0)/d.days.length):'—';
+        return '<tr><td style="font-weight:500">'+d.nom+'</td><td style="text-align:right">'+d.nb+'</td><td style="text-align:right;font-weight:600">'+(typeof avg==='number'?avg+' j':avg)+'</td><td style="text-align:right;font-weight:700;color:var(--warn)">'+fm(d.encours)+'</td></tr>';}).join('');
+}
+
+// ══════════════════════════════════════════
+// ONGLET 4 : SYNTHÈSE
+// ══════════════════════════════════════════
+function renderSynthese(){
+    const yr=getYear();
+    let fcs=[...facClients];
+    if(yr)fcs=fcs.filter(f=>f.date_facture&&new Date(f.date_facture).getFullYear()===parseInt(yr));
+    let deps=[...depenses];
+    if(yr)deps=deps.filter(d=>d.date_depense&&new Date(d.date_depense).getFullYear()===parseInt(yr));
+    let ff=[...facFourn];
+    if(yr)ff=ff.filter(f=>f.date_facture&&new Date(f.date_facture).getFullYear()===parseInt(yr));
+
+    const caTotal=fcs.filter(f=>['emise','payee'].includes(f.statut)).reduce((s,f)=>s+(parseFloat(f.montant_ttc)||0),0);
+    const depTotal=deps.reduce((s,d)=>s+(parseFloat(d.montant)||0),0)+ff.reduce((s,f)=>s+(parseFloat(f.montant_total)||0),0);
+    const marge=caTotal-depTotal;
+    const tauxMarge=caTotal>0?(marge/caTotal*100):0;
+
+    document.getElementById('synthese-stats').innerHTML=`
+        <div class="stat-card"><div class="stat-value green">${fm(caTotal)}</div><div class="stat-label">CA Total</div></div>
+        <div class="stat-card"><div class="stat-value red">${fm(depTotal)}</div><div class="stat-label">Dépenses</div></div>
+        <div class="stat-card"><div class="stat-value ${marge>=0?'green':'red'}">${fm(marge)}</div><div class="stat-label">Marge brute</div></div>
+        <div class="stat-card"><div class="stat-value ${tauxMarge>15?'green':tauxMarge>5?'orange':'red'}">${fmPct(tauxMarge)}</div><div class="stat-label">Taux de marge</div></div>`;
+
+    // Alertes
+    renderAlertes();
+
+    // Évolution mensuelle
+    const moisMap={};
+    fcs.filter(f=>['emise','payee'].includes(f.statut)).forEach(f=>{if(!f.date_facture)return;const m=f.date_facture.substring(0,7);if(!moisMap[m])moisMap[m]={ca:0,dep:0};moisMap[m].ca+=(parseFloat(f.montant_ttc)||0);});
+    deps.forEach(d=>{if(!d.date_depense)return;const m=d.date_depense.substring(0,7);if(!moisMap[m])moisMap[m]={ca:0,dep:0};moisMap[m].dep+=(parseFloat(d.montant)||0);});
+    ff.forEach(f=>{if(!f.date_facture)return;const m=f.date_facture.substring(0,7);if(!moisMap[m])moisMap[m]={ca:0,dep:0};moisMap[m].dep+=(parseFloat(f.montant_total)||0);});
+
+    const moisSorted=Object.keys(moisMap).sort().reverse();
+    const eTbody=document.getElementById('evolution-tbody');
+    if(!moisSorted.length){eTbody.innerHTML='<tr><td colspan="5" class="empty-state">Aucune donnée</td></tr>';return;}
+    eTbody.innerHTML=moisSorted.map(m=>{const d=moisMap[m];const mg=d.ca-d.dep;const tx=d.ca>0?(mg/d.ca*100):0;
+        return '<tr><td>'+getMonthLabel(m)+'</td><td style="text-align:right">'+fm(d.ca)+'</td><td style="text-align:right">'+fm(d.dep)+'</td><td style="text-align:right;font-weight:700" class="'+(mg>=0?'marge-positive':'marge-negative')+'">'+fm(mg)+'</td><td style="text-align:right" class="'+(tx>15?'taux-bon':tx>5?'taux-moyen':'taux-mauvais')+'">'+fmPct(tx)+'</td></tr>';}).join('');
+}
+
+function renderAlertes(){
+    const alertes=[];
+    const now=new Date();
+
+    // Factures impayées > 30 jours
+    facClients.filter(f=>f.statut==='emise'&&f.date_facture).forEach(f=>{
+        const days=Math.ceil((now-new Date(f.date_facture))/(1000*60*60*24));
+        if(days>30)alertes.push({type:'danger',icon:'🔴',title:'Facture impayée depuis '+days+' jours',text:(f.numero||'#'+f.id)+' — '+(f.client_nom||'Client')+' — '+fm(f.montant_ttc)});
+    });
+
+    // Projets en dépassement budget
+    projects.filter(p=>p.status==='en_cours').forEach(p=>{
+        const costs=getProjectCosts(p.id);
+        const devisHT=parseFloat(p.ca_estimatif)||0;
+        if(devisHT>0&&costs.total>devisHT*0.9){
+            const pct=Math.round(costs.total/devisHT*100);
+            alertes.push({type:pct>100?'danger':'warn',icon:pct>100?'🔴':'🟡',title:'Chantier '+p.name+' — coûts à '+pct+'% du devis',text:'Dépensé: '+fm(costs.total)+' / Devis: '+fm(devisHT)});
+        }
+    });
+
+    // Trésorerie basse (solde net < 10000)
+    const entrees=tresorerie.filter(t=>t.type==='entree').reduce((s,t)=>s+(parseFloat(t.montant)||0),0);
+    const sorties=tresorerie.filter(t=>t.type==='sortie').reduce((s,t)=>s+(parseFloat(t.montant)||0),0);
+    const solde=entrees-sorties;
+    if(solde<10000)alertes.push({type:'warn',icon:'⚠️',title:'Trésorerie basse',text:'Solde net actuel: '+fm(solde)});
+
+    // Factures clients en brouillon depuis > 7 jours
+    facClients.filter(f=>f.statut==='brouillon'&&f.created_at).forEach(f=>{
+        const days=Math.ceil((now-new Date(f.created_at))/(1000*60*60*24));
+        if(days>7)alertes.push({type:'info',icon:'📋',title:'Brouillon en attente depuis '+days+' jours',text:(f.objet||'Facture #'+f.id)+' — '+(f.client_nom||'')});
+    });
+
+    const container=document.getElementById('alertes-container');
+    if(!alertes.length){container.innerHTML='<div style="text-align:center;padding:20px;color:var(--accent2);font-weight:600">✅ Aucune alerte — tout est en ordre</div>';return;}
+    container.innerHTML=alertes.map(a=>'<div class="alerte alerte-'+a.type+'"><span class="alerte-icon">'+a.icon+'</span><div class="alerte-text"><div class="alerte-title">'+a.title+'</div><div>'+a.text+'</div></div></div>').join('');
+}
+
+function showToast(m,e=false){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+(e?'toast-error':'toast-success');t.style.display='block';setTimeout(()=>{t.style.display='none';},3000);}
+
+loadData();
+setInterval(loadData,120000);
+    </script>
+    <script src="./atlas-nav.js"></script>
+</body>
+</html>
