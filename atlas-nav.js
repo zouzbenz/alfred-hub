@@ -44,6 +44,9 @@
     { href: './atlas-suppliers.html',
       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
       label: 'Fournisseurs', id: 'suppliers' },
+    { href: './atlas-intervenants.html',
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`,
+      label: 'Intervenants', id: 'intervenants' },
     { href: './atlas-backoffice.html',
       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`,
       label: 'Admin', id: 'backoffice' },
@@ -380,13 +383,13 @@
       </div>
       <div class="nav-links">
         <div class="nav-section-lbl">Principal</div>
-        ${renderItems(NAV_ITEMS.slice(0, 10))}
+        ${renderItems(NAV_ITEMS.slice(0, 11))}
         <div class="nav-div"></div>
         <div class="nav-section-lbl">Système</div>
-        ${renderItems(NAV_ITEMS.slice(10))}
+        ${renderItems(NAV_ITEMS.slice(11))}
       </div>
       <div class="nav-footer">
-        <div class="nav-footer-pill"><div class="nav-footer-dot"></div>v4.3 · Atlas Pose</div>
+        <div class="nav-footer-pill"><div class="nav-footer-dot"></div>v4.4 · Atlas Pose</div>
       </div>
     `;
     document.body.insertBefore(sidebar, document.body.firstChild);

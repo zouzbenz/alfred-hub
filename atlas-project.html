@@ -142,6 +142,21 @@
         .empty-state { text-align:center; padding:30px; color:var(--dim); }
         .footer { text-align:center; padding:30px; color:var(--dim); font-size:.8rem; }
         .footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
+
+        /* Écosystème chantier */
+        .eco-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+        .eco-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px}
+        .eco-card-header{display:flex;justify-content:space-between;align-items:flex-start}
+        .eco-name{font-weight:700;font-size:.92rem}
+        .eco-metier{font-size:.65rem;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(194,65,12,.12);color:#c2410c;text-transform:uppercase;letter-spacing:.03em}
+        .eco-entreprise{font-size:.78rem;color:var(--dim)}
+        .eco-contact{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+        .eco-contact a{font-size:.78rem;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:3px}
+        .eco-contact a:hover{text-decoration:underline}
+        .eco-wa{padding:3px 10px;border-radius:99px;font-size:.7rem;font-weight:600;background:#25d366;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+        .eco-role{font-size:.72rem;color:var(--dim);font-style:italic;margin-top:2px}
+        .eco-remove{background:none;border:none;color:var(--dim);cursor:pointer;font-size:.75rem;padding:2px 6px;border-radius:6px;transition:all .15s}
+        .eco-remove:hover{color:var(--danger);background:rgba(239,68,68,.1)}
         
         @media(min-width:768px) { .stats-grid { grid-template-columns:repeat(4, 1fr); } }
         @media(max-width:480px) { .depense-header { flex-direction:column; } .form-row { grid-template-columns:1fr; } }
@@ -196,6 +211,15 @@
                 <div id="depenses-list"></div>
             </div>
             
+            <!-- Écosystème chantier -->
+            <div class="section">
+                <div class="section-header">
+                    <h3 class="section-title">👥 Écosystème chantier</h3>
+                    <button class="btn btn-outline btn-small" onclick="openEcoModal()">+ Ajouter</button>
+                </div>
+                <div class="eco-grid" id="eco-grid"><div style="color:var(--dim);font-size:.85rem">Chargement...</div></div>
+            </div>
+            
             <div class="footer"><a href="./atlas-projects.html">Projets</a><a href="./atlas-tasks.html">📋 Tâches globales</a></div>
         </div>
     </div>
@@ -246,6 +270,36 @@
         </div>
     </div>
     
+    <!-- Modal Écosystème -->
+    <div id="eco-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);z-index:1001;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeEcoModal()">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto">
+            <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:16px">Ajouter un intervenant</h3>
+            <div style="margin-bottom:14px">
+                <label style="font-size:.72rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Depuis l'annuaire</label>
+                <select id="eco-select" style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.875rem"><option value="">— Choisir —</option></select>
+            </div>
+            <div style="margin-bottom:14px">
+                <label style="font-size:.72rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Rôle sur ce projet</label>
+                <input type="text" id="eco-role" placeholder="Ex: Responsable plâtrerie RDC" style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.875rem">
+            </div>
+            <div style="text-align:center;color:var(--dim);font-size:.8rem;margin:16px 0">— ou créer un nouveau —</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+                <div><label style="font-size:.72rem;font-weight:700;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:4px">Nom *</label><input type="text" id="eco-new-nom" placeholder="Nom" style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.85rem"></div>
+                <div><label style="font-size:.72rem;font-weight:700;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:4px">Métier *</label>
+                    <select id="eco-new-metier" style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.85rem"><option value="">—</option><option value="architecte">Architecte</option><option value="architecte_interieur">Archi. intérieur</option><option value="maitre_ouvrage">Maître d'ouvrage</option><option value="maitre_oeuvre">Maître d'œuvre</option><option value="macon">Maçon</option><option value="platrier">Plâtrier</option><option value="etancheiste">Étanchéiste</option><option value="plombier">Plombier</option><option value="electricien">Électricien</option><option value="chauffagiste">Chauffagiste</option><option value="climatisation">Climatisation</option><option value="sanitariste">Sanitaires</option><option value="peintre">Peintre</option><option value="menuisier_bois">Menuisier bois</option><option value="menuisier_alu">Menuisier alu</option><option value="cuisiniste">Cuisiniste</option><option value="faux_plafondiste">Faux plafond</option><option value="marbrier">Marbrier</option><option value="vitrier">Vitrier</option><option value="serrurier">Serrurier</option><option value="autre">Autre</option></select>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+                <div><label style="font-size:.72rem;font-weight:700;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:4px">Téléphone</label><input type="tel" id="eco-new-tel" placeholder="06..." style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.85rem"></div>
+                <div><label style="font-size:.72rem;font-weight:700;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:4px">Email</label><input type="email" id="eco-new-email" placeholder="email@..." style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.85rem"></div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end">
+                <button class="btn btn-outline" onclick="closeEcoModal()">Annuler</button>
+                <button class="btn btn-success" onclick="addIntervenant()">Ajouter au projet</button>
+            </div>
+        </div>
+    </div>
+
     <script>
 const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
@@ -268,6 +322,8 @@ const CATEGORIES = [
 
 const projectId = new URLSearchParams(location.search).get('id');
 let project = null, budgets = [], depenses = [], taches = [], clientData = null;
+let allIntervenants = [], projetIntervenants = [];
+const METIER_LABELS={architecte:'Architecte',architecte_interieur:"Archi. d'intérieur",maitre_ouvrage:"Maître d'ouvrage",maitre_oeuvre:"Maître d'œuvre",bureau_etudes:"Bureau d'études",decorateur:'Décorateur',macon:'Maçon',platrier:'Plâtrier',etancheiste:'Étanchéiste',plombier:'Plombier',electricien:'Électricien',chauffagiste:'Chauffagiste',climatisation:'Climatisation',sanitariste:'Sanitaires',peintre:'Peintre',menuisier_bois:'Menuisier bois',menuisier_alu:'Menuisier alu',cuisiniste:'Cuisiniste',faux_plafondiste:'Faux plafond',marbrier:'Marbrier',vitrier:'Vitrier',serrurier:'Serrurier',geometre:'Géomètre',bureau_controle:'Bureau contrôle',autre:'Autre'};
 const isAdmin = sessionStorage.getItem('atlas-auth') === 'true';
 const currentUser = sessionStorage.getItem('atlas-user') || 'Utilisateur';
 
@@ -295,6 +351,14 @@ async function loadProject() {
         const { data: cData } = await db.from('atlas_clients').select('id, nom, telephone, email').eq('id', project.client_id).single();
         clientData = cData;
     }
+    
+    // Charger les intervenants du projet
+    const [aiRes, piRes] = await Promise.all([
+        db.from('atlas_intervenants').select('*').eq('actif', true).order('nom'),
+        db.from('atlas_projet_intervenants').select('*').eq('project_id', projectId)
+    ]);
+    allIntervenants = aiRes.data || [];
+    projetIntervenants = piRes.data || [];
     
     if (isAdmin || !project.password) showContent();
     checkReminders(); // Vérifier les rappels au chargement
@@ -372,6 +436,7 @@ function render() {
     renderGallery();
     renderDepenses();
     renderTasks(); // Ajout des tâches
+    renderEcosysteme();
 }
 
 function renderGallery() {
@@ -706,6 +771,100 @@ if ('Notification' in window) {
     if (Notification.permission === 'default') {
         Notification.requestPermission();
     }
+}
+
+// ══════════════════════════════════════════
+// ÉCOSYSTÈME CHANTIER
+// ══════════════════════════════════════════
+function renderEcosysteme() {
+    const grid = document.getElementById('eco-grid');
+    if (!projetIntervenants.length) {
+        grid.innerHTML = '<div style="color:var(--dim);font-size:.85rem;padding:10px;text-align:center">Aucun intervenant rattaché — cliquez + Ajouter</div>';
+        return;
+    }
+    grid.innerHTML = projetIntervenants.map(pi => {
+        const interv = allIntervenants.find(i => i.id === pi.intervenant_id);
+        if (!interv) return '';
+        const tel = interv.telephone ? interv.telephone.replace(/\s/g, '') : '';
+        const waLink = tel ? 'https://wa.me/212' + tel.replace(/^0/, '') : '';
+        return '<div class="eco-card">' +
+            '<div class="eco-card-header"><div><div class="eco-name">' + interv.nom + '</div>' +
+            (interv.entreprise ? '<div class="eco-entreprise">🏢 ' + interv.entreprise + '</div>' : '') + '</div>' +
+            '<span class="eco-metier">' + (METIER_LABELS[interv.corps_metier] || interv.corps_metier) + '</span></div>' +
+            (pi.role ? '<div class="eco-role">→ ' + pi.role + '</div>' : '') +
+            '<div class="eco-contact">' +
+            (interv.telephone ? '<a href="tel:' + tel + '">📞 ' + interv.telephone + '</a>' : '') +
+            (interv.email ? '<a href="mailto:' + interv.email + '">📧 Email</a>' : '') +
+            (waLink ? '<a class="eco-wa" href="' + waLink + '" target="_blank">💬 WhatsApp</a>' : '') +
+            '</div>' +
+            '<div style="margin-top:8px;text-align:right"><button class="eco-remove" onclick="removeIntervenant(' + pi.id + ')">✕ Retirer</button></div>' +
+            '</div>';
+    }).join('');
+}
+
+function openEcoModal() {
+    // Remplir le select avec les intervenants pas encore liés
+    const linkedIds = projetIntervenants.map(pi => pi.intervenant_id);
+    const available = allIntervenants.filter(i => !linkedIds.includes(i.id));
+    document.getElementById('eco-select').innerHTML = '<option value="">— Choisir un intervenant existant —</option>' +
+        available.map(i => '<option value="' + i.id + '">' + i.nom + ' (' + (METIER_LABELS[i.corps_metier] || i.corps_metier) + ')' + '</option>').join('');
+    document.getElementById('eco-role').value = '';
+    document.getElementById('eco-new-nom').value = '';
+    document.getElementById('eco-new-metier').value = '';
+    document.getElementById('eco-new-tel').value = '';
+    document.getElementById('eco-new-email').value = '';
+    document.getElementById('eco-modal').style.display = 'flex';
+}
+function closeEcoModal() { document.getElementById('eco-modal').style.display = 'none'; }
+
+async function addIntervenant() {
+    const existingId = document.getElementById('eco-select').value;
+    const role = document.getElementById('eco-role').value.trim() || null;
+    let intervId = existingId ? parseInt(existingId) : null;
+
+    // Si pas d'existant sélectionné, créer un nouveau
+    if (!intervId) {
+        const nom = document.getElementById('eco-new-nom').value.trim();
+        const metier = document.getElementById('eco-new-metier').value;
+        if (!nom || !metier) { showNotification('Choisissez un intervenant ou remplissez nom + métier', 'error'); return; }
+        try {
+            const { data: newI, error } = await db.from('atlas_intervenants').insert([{
+                nom: nom, corps_metier: metier,
+                telephone: document.getElementById('eco-new-tel').value.trim() || null,
+                email: document.getElementById('eco-new-email').value.trim() || null
+            }]).select().single();
+            if (error) throw error;
+            intervId = newI.id;
+        } catch (err) { showNotification('Erreur création: ' + err.message, 'error'); return; }
+    }
+
+    // Créer le lien
+    try {
+        const { error } = await db.from('atlas_projet_intervenants').insert([{
+            project_id: parseInt(projectId), intervenant_id: intervId, role: role
+        }]);
+        if (error) throw error;
+        showNotification('Intervenant ajouté au projet ✓');
+        closeEcoModal();
+        // Recharger les intervenants
+        const [aiRes, piRes] = await Promise.all([
+            db.from('atlas_intervenants').select('*').eq('actif', true).order('nom'),
+            db.from('atlas_projet_intervenants').select('*').eq('project_id', projectId)
+        ]);
+        allIntervenants = aiRes.data || [];
+        projetIntervenants = piRes.data || [];
+        renderEcosysteme();
+    } catch (err) { showNotification('Erreur: ' + err.message, 'error'); }
+}
+
+async function removeIntervenant(piId) {
+    if (!confirm('Retirer cet intervenant du projet ?')) return;
+    try {
+        await db.from('atlas_projet_intervenants').delete().eq('id', piId);
+        projetIntervenants = projetIntervenants.filter(pi => pi.id !== piId);
+        renderEcosysteme();
+        showNotification('Intervenant retiré');
+    } catch (err) { showNotification('Erreur', 'error'); }
 }
 
 loadProject();
