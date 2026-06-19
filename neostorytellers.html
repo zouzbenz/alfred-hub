@@ -1,545 +1,232 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Néo Storytellers</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>Daily Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>(function(){try{var t=localStorage.getItem('neo-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
     <meta name="theme-color" content="#0d0d0d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <style>
         :root {
-            --bg-color: #0d0d0d;
-            --card-bg: #161616;
-            --accent-color: #e63946;
-            --text-main: #ffffff;
-            --text-dim: #a0a0a0;
-            --border-color: #2a2a2a;
-            --success: #2ecc71;
-            --warning: #f39c12;
-            --danger: #e74c3c;
+            --accent-color: #e63946; /* fallback, surchargé par CONFIG */
+            --accent-grad: linear-gradient(120deg, var(--accent-color), color-mix(in srgb, var(--accent-color), #ffffff 28%));
+            --accent-soft: color-mix(in srgb, var(--accent-color) 16%, transparent);
+            --accent-tint: color-mix(in srgb, var(--accent-color) 9%, transparent);
         }
-
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
+        :root[data-theme="dark"] {
+            --bg: #0b0d11; --bg2: #0f1218;
+            --card: rgba(20, 24, 31, 0.7); --card2: rgba(30, 36, 45, 0.5);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #ffffff; --text-secondary: #9aa6b8; --dim: #5b6675;
+            --green: #10b981; --red: #f43f5e; --orange: #f59e0b; --blue: #3b82f6;
+            --shadow: rgba(0, 0, 0, 0.35); --glass-blur: blur(16px);
+            /* alias compat */
+            --bg-color: var(--bg); --card-bg: var(--bg2); --border-color: var(--border);
+            --text-main: var(--text); --text-dim: var(--text-secondary);
+            --success: var(--green); --warning: var(--orange); --danger: var(--red); --info: var(--blue);
         }
-
+        :root[data-theme="light"] {
+            --bg: #f8f7f2; --bg2: #ffffff;
+            --card: rgba(255, 255, 255, 0.85); --card2: rgba(243, 242, 236, 0.7);
+            --border: rgba(0, 0, 0, 0.07);
+            --text: #111827; --text-secondary: #4b5563; --dim: #6b7280;
+            --green: #059669; --red: #e11d48; --orange: #ea580c; --blue: #2563eb;
+            --shadow: rgba(165, 163, 150, 0.18); --glass-blur: blur(16px);
+            --bg-color: var(--bg); --card-bg: var(--bg2); --border-color: var(--border);
+            --text-main: var(--text); --text-dim: var(--text-secondary);
+            --success: var(--green); --warning: var(--orange); --danger: var(--red); --info: var(--blue);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: var(--bg-color); }
-        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
         body, html {
-            margin: 0; 
-            padding: 0; 
-            min-height: 100%; 
-            width: 100%;
-            background-color: var(--bg-color); 
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
+            margin: 0; padding: 0; min-height: 100%; width: 100%;
+            background: radial-gradient(900px 500px at 85% -10%, var(--accent-tint), transparent 60%), var(--bg);
+            color: var(--text); font-family: 'Inter', -apple-system, sans-serif;
+            letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; transition: background .4s, color .4s;
         }
-
-        .main-wrapper {
-            min-height: 100vh; 
-            padding: 20px;
-            display: flex; 
-            flex-direction: column; 
-            align-items: center;
-        }
-
-        .dashboard {
-            width: 100%; 
-            max-width: 1200px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            background: var(--card-bg); 
-            padding: 20px; 
-            border-radius: 20px;
-            border: 1px solid var(--border-color);
-        }
+        .main-wrapper { min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .dashboard { width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 18px; background: transparent; }
 
         /* Header */
-        .header {
-            display: flex; 
-            flex-direction: column;
-            gap: 10px;
-            border-bottom: 2px solid var(--accent-color); 
-            padding-bottom: 15px;
-        }
+        .header { border-bottom: 1px solid var(--border); padding-bottom: 18px; }
+        .header-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; }
+        .header h1 { margin: 4px 0 0; font-size: 1.7rem; font-weight: 800; }
+        .agency { color: var(--accent-color); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.18em; font-weight: 700; }
+        .back-hub { text-decoration: none; color: var(--text-secondary); font-size: 0.78rem; display: inline-block; margin-bottom: 6px; padding: 4px 0; transition: .2s; }
+        .back-hub:hover { color: var(--accent-color); }
+        .header-right { display: flex; align-items: flex-start; gap: 14px; }
+        .time-display { text-align: right; }
+        #clock { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+        #top-date { color: var(--text-secondary); font-size: 0.8rem; }
+        .theme-toggle { background: var(--card); border: 1px solid var(--border); color: var(--text); width: 40px; height: 40px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: .2s; box-shadow: 0 4px 10px var(--shadow); flex-shrink: 0; }
+        .theme-toggle:hover { transform: scale(1.05); }
+        .theme-toggle i { width: 18px; height: 18px; }
+        :root[data-theme="dark"] .theme-toggle .sun-icon { display: none; }
+        :root[data-theme="light"] .theme-toggle .moon-icon { display: none; }
 
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            flex-wrap: wrap;
-            gap: 10px;
+        /* Plan du jour banner */
+        .plan-banner {
+            display: flex; align-items: center; gap: 26px; flex-wrap: wrap;
+            background: var(--accent-grad); border-radius: 20px; padding: 20px 26px;
+            box-shadow: 0 16px 36px color-mix(in srgb, var(--accent-color) 32%, transparent);
         }
+        .plan-banner .plan-item { display: flex; flex-direction: column; gap: 2px; }
+        .plan-banner .plan-value { font-size: 1.5rem; font-weight: 800; color: #fff; }
+        .plan-banner .plan-label { font-size: 0.68rem; color: rgba(255, 255, 255, 0.82); text-transform: uppercase; letter-spacing: 0.1em; }
 
-        .header h1 { 
-            margin: 0; 
-            font-size: 1.5rem; 
-            font-weight: 800; 
+        /* Toolbar */
+        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .toolbar input.search {
+            flex: 1; min-width: 160px; background: var(--card2); border: 1px solid var(--border);
+            color: var(--text); padding: 11px 14px; border-radius: 12px; font-size: 0.9rem; font-family: inherit;
         }
-        
-        .agency { 
-            color: var(--accent-color); 
-            font-size: 0.8rem; 
-            text-transform: uppercase; 
-            letter-spacing: 2px; 
-            font-weight: 600; 
-        }
-        
-        .back-hub { 
-            text-decoration: none; 
-            color: var(--accent-color); 
-            font-size: 0.75rem; 
-            display: inline-block;
-            margin-bottom: 5px;
-            padding: 5px 0;
-        }
-
-        .time-display {
-            text-align: right;
-        }
-
-        #clock { 
-            font-size: 1.5rem; 
-            font-weight: 700; 
-        }
-        
-        #top-date { 
-            color: var(--text-dim); 
-            font-size: 0.8rem; 
-        }
+        .toolbar input.search:focus { outline: none; border-color: var(--accent-color); }
+        .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+        .chip { padding: 8px 14px; background: var(--card2); border: 1px solid var(--border); border-radius: 20px; color: var(--text-secondary); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: .2s; }
+        .chip:hover { color: var(--text); }
+        .chip.active { background: var(--accent-grad); border-color: transparent; color: #fff; }
 
         /* Sections */
-        .section { 
-            background: rgba(255, 255, 255, 0.02); 
-            padding: 15px; 
-            border-radius: 12px; 
-            border: 1px solid var(--border-color); 
-        }
-        
-        .section h3 { 
-            margin: 0 0 15px 0; 
-            font-size: 0.85rem; 
-            color: var(--accent-color); 
-            text-transform: uppercase; 
-            letter-spacing: 1px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .section h3 .counter {
-            background: var(--accent-color);
-            color: white;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-        }
-
-        .section h3 .counter.complete {
-            background: var(--success);
-        }
+        .section { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 10px 30px var(--shadow); backdrop-filter: var(--glass-blur); }
+        .section h3 { margin: 0 0 16px 0; font-size: 0.8rem; color: var(--accent-color); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; display: flex; align-items: center; justify-content: space-between; }
+        .section h3 .counter { background: var(--accent-soft); color: var(--accent-color); padding: 3px 11px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+        .section h3 .counter.complete { background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
 
         /* Progress bar */
-        .progress-container {
-            margin-bottom: 15px;
-        }
-
-        .progress-bar {
-            height: 6px;
-            background: var(--border-color);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--success);
-            transition: width 0.3s ease;
-        }
-
-        .progress-text {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            margin-top: 5px;
-            text-align: right;
-        }
+        .progress-container { margin-bottom: 16px; }
+        .progress-bar { height: 7px; background: var(--card2); border-radius: 6px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green), #34d399); border-radius: 6px; transition: width 0.4s ease; }
+        .progress-text { font-size: 0.74rem; color: var(--text-secondary); margin-top: 6px; text-align: right; }
 
         /* Tasks */
-        .task-item { 
-            display: flex; 
-            align-items: center; 
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 0.9rem; 
-            gap: 10px;
-        }
-
-        .task-item:last-child {
-            border-bottom: none;
-        }
-        
-        .checkbox { 
-            width: 22px; 
-            height: 22px; 
-            border: 2px solid var(--border-color); 
-            border-radius: 6px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 14px; 
-            flex-shrink: 0;
-            transition: 0.2s;
-            cursor: pointer;
-        }
-        
-        .task-item.done .checkbox { 
-            background: var(--success); 
-            border-color: var(--success); 
-            color: white; 
-        }
-        
+        .task-item { display: flex; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; gap: 12px; }
+        .task-item:last-child { border-bottom: none; }
+        .checkbox { width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; transition: 0.2s; cursor: pointer; }
+        .task-item.done .checkbox { background: var(--green); border-color: var(--green); color: white; }
         .task-item.done .checkbox::after { content: "✓"; }
-        .task-item.done .task-text { 
-            text-decoration: line-through; 
-            color: var(--text-dim); 
-        }
+        .task-item.done .task-text { text-decoration: line-through; color: var(--text-secondary); }
+        .task-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+        .task-text { word-break: break-word; }
+        .task-badges { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .badge { font-size: 0.68rem; padding: 2px 8px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+        .prio-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .badge.project { background: color-mix(in srgb, var(--blue) 18%, transparent); color: var(--blue); }
+        .badge.duration { background: var(--card2); color: var(--text-secondary); }
+        .badge.recurrence { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
+        .badge.wa { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
+        .task-date { font-size: 0.7rem; color: var(--text-secondary); background: var(--card2); padding: 3px 9px; border-radius: 9px; white-space: nowrap; }
+        .task-actions { display: flex; gap: 2px; flex-shrink: 0; }
+        .task-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 6px; font-size: 0.85rem; border-radius: 7px; transition: 0.2s; }
+        .task-btn:hover { background: var(--card2); }
+        .task-btn.edit:hover { color: var(--blue); }
+        .task-btn.postpone:hover { color: var(--orange); }
+        .task-btn.delete:hover { color: var(--red); }
 
-        .task-text {
-            flex: 1;
-        }
-
-        .task-date {
-            font-size: 0.7rem;
-            color: var(--text-dim);
-            background: rgba(255,255,255,0.05);
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-
-        .task-actions {
-            display: flex;
-            gap: 5px;
-        }
-
-        .task-btn {
-            background: none;
-            border: none;
-            color: var(--text-dim);
-            cursor: pointer;
-            padding: 5px;
-            font-size: 0.85rem;
-            border-radius: 4px;
-            transition: 0.2s;
-        }
-
-        .task-btn:hover {
-            background: rgba(255,255,255,0.1);
-        }
-
-        .task-btn.postpone:hover {
-            color: var(--warning);
-        }
-
-        .task-btn.delete:hover {
-            color: var(--danger);
-        }
-
-        /* Overdue tasks */
-        .section.overdue {
-            border-color: var(--danger);
-            background: rgba(231, 76, 60, 0.05);
-        }
-
-        .section.overdue h3 {
-            color: var(--danger);
-        }
-
-        .task-item.overdue .task-date {
-            background: rgba(231, 76, 60, 0.2);
-            color: var(--danger);
-        }
-
-        /* Postponed tasks */
-        .section.postponed {
-            border-color: var(--warning);
-            background: rgba(243, 156, 18, 0.05);
-        }
-
-        .section.postponed h3 {
-            color: var(--warning);
-        }
-
-        .task-item.postponed .task-date {
-            background: rgba(243, 156, 18, 0.2);
-            color: var(--warning);
-        }
+        .section.overdue { border-color: color-mix(in srgb, var(--red) 45%, var(--border)); background: color-mix(in srgb, var(--red) 7%, var(--card)); }
+        .section.overdue h3 { color: var(--red); }
+        .section.overdue h3 .counter { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
+        .task-item.overdue .task-date { background: color-mix(in srgb, var(--red) 20%, transparent); color: var(--red); }
+        .section.postponed { border-color: color-mix(in srgb, var(--orange) 45%, var(--border)); background: color-mix(in srgb, var(--orange) 7%, var(--card)); }
+        .section.postponed h3 { color: var(--orange); }
+        .section.postponed h3 .counter { background: color-mix(in srgb, var(--orange) 18%, transparent); color: var(--orange); }
+        .task-item.postponed .task-date { background: color-mix(in srgb, var(--orange) 20%, transparent); color: var(--orange); }
 
         /* Input row */
-        .input-row {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        .input-row input {
-            flex: 1;
-            min-width: 120px;
-            background: #111; 
-            border: 1px solid var(--border-color); 
-            color: white; 
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-        }
-
-        .input-row input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
-
-        .input-row button {
-            background: var(--accent-color); 
-            border: none; 
-            color: white; 
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: 0.2s;
-        }
-
-        .input-row button:active {
-            transform: scale(0.95);
-        }
+        .input-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+        .input-row input, .input-row select { background: var(--card2); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 11px; font-size: 0.9rem; font-family: inherit; }
+        .input-row input[type=text] { flex: 1; min-width: 120px; }
+        .input-row input:focus, .input-row select:focus { outline: none; border-color: var(--accent-color); }
+        .input-row button { background: var(--accent-grad); border: none; color: white; padding: 12px 20px; border-radius: 11px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: 0.2s; }
+        .input-row button:hover { transform: translateY(-1px); }
+        .input-row button:active { transform: scale(0.96); }
 
         /* Calendar */
-        .calendar-grid { 
-            display: grid; 
-            grid-template-columns: repeat(7, 1fr); 
-            text-align: center; 
-            font-size: 0.8rem;
-            gap: 2px;
-        }
-        
-        .day-name { 
-            font-weight: bold; 
-            color: var(--text-dim); 
-            padding: 8px 0;
-        }
-        
-        .day { 
-            padding: 10px 5px;
-            cursor: pointer; 
-            border-radius: 8px; 
-            transition: 0.2s; 
-            position: relative; 
-        }
-        
-        .day:hover, .day:active { 
-            background: rgba(255, 255, 255, 0.1); 
-        }
-        
-        .day.today { 
-            color: var(--accent-color); 
-            font-weight: bold; 
-            background: rgba(230, 57, 70, 0.15); 
-        }
-
-        .day.selected {
-            background: rgba(255, 255, 255, 0.15);
-        }
-        
-        .day.has-event::after { 
-            content: ''; 
-            position: absolute; 
-            bottom: 3px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            width: 5px; 
-            height: 5px; 
-            background: var(--accent-color); 
-            border-radius: 50%; 
-        }
-
-        #event-details {
-            margin-top: 15px; 
-            padding: 12px;
-            border-left: 3px solid var(--accent-color);
-            background: rgba(255, 255, 255, 0.02); 
-            font-size: 0.85rem;
-            border-radius: 0 8px 8px 0;
-        }
-
-        .event-list-item { 
-            padding: 8px 0;
-            display: flex; 
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .event-list-item:last-child {
-            border-bottom: none;
-        }
-        
-        .event-list-item span::before { 
-            content: "•"; 
-            color: var(--accent-color); 
-            margin-right: 10px;
-            font-weight: bold;
-        }
+        .calendar-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .calendar-head button { background: var(--card2); border: 1px solid var(--border); color: var(--text); width: 36px; height: 36px; border-radius: 10px; cursor: pointer; font-size: 1rem; transition: .2s; }
+        .calendar-head button:hover { border-color: var(--accent-color); }
+        .calendar-head .cal-month { font-weight: 700; text-transform: capitalize; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 0.8rem; gap: 3px; }
+        .day-name { font-weight: 700; color: var(--dim); padding: 8px 0; }
+        .day { padding: 8px 5px 12px; cursor: pointer; border-radius: 10px; transition: 0.2s; position: relative; min-height: 38px; }
+        .day:hover, .day:active { background: var(--card2); }
+        .day.today { color: var(--accent-color); font-weight: 800; background: var(--accent-soft); }
+        .day.selected { background: var(--accent-grad); color: #fff; }
+        .day .dots { position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); display: flex; gap: 3px; }
+        .day .dots .d { width: 5px; height: 5px; border-radius: 50%; }
+        .day .dots .d.event { background: var(--accent-color); }
+        .day .dots .d.task { background: var(--blue); }
+        .day.selected .dots .d { background: #fff !important; }
+        #event-details { margin-top: 16px; padding: 14px; border-left: 3px solid var(--accent-color); background: var(--card2); font-size: 0.85rem; border-radius: 0 12px 12px 0; }
+        .detail-day-tasks { margin-top: 8px; }
+        .event-list-item { padding: 9px 0; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+        .event-list-item:last-child { border-bottom: none; }
+        .event-list-item span.ev::before { content: "•"; color: var(--accent-color); margin-right: 10px; font-weight: bold; }
+        .event-list-item span.tk::before { content: "▸"; color: var(--blue); margin-right: 10px; }
 
         /* Projects */
-        .project-item { 
-            padding: 12px 0; 
-            border-bottom: 1px solid var(--border-color); 
-            display: flex; 
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap; 
-            gap: 5px; 
-        }
+        .project-item { padding: 13px 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 7px; }
+        .project-item:last-child { border-bottom: none; }
+        .project-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .project-name { font-weight: 600; }
+        .project-status { font-size: 0.78rem; color: var(--text-secondary); background: var(--card2); padding: 4px 11px; border-radius: 20px; }
+        .project-mini-bar { height: 6px; background: var(--card2); border-radius: 4px; overflow: hidden; }
+        .project-mini-fill { height: 100%; background: linear-gradient(90deg, var(--blue), #60a5fa); border-radius: 4px; }
+        .project-meta { font-size: 0.72rem; color: var(--text-secondary); }
+        .delete-btn { background: none; border: none; color: var(--dim); cursor: pointer; padding: 5px; font-size: 0.9rem; border-radius: 6px; transition: .2s; }
+        .delete-btn:hover { color: var(--red); background: var(--card2); }
 
-        .project-item:last-child {
-            border-bottom: none;
-        }
+        /* Collapsible */
+        .section-header { cursor: pointer; user-select: none; }
+        .section-header::after { content: '▼'; font-size: 0.65rem; margin-left: 10px; transition: transform 0.2s; }
+        .section.collapsed .section-header::after { transform: rotate(-90deg); }
+        .section.collapsed .section-content { display: none; }
 
-        .project-name {
-            font-weight: 600;
-        }
-        
-        .project-status { 
-            font-size: 0.8rem; 
-            color: var(--text-dim);
-            background: rgba(255,255,255,0.05);
-            padding: 4px 10px;
-            border-radius: 20px;
-        }
-
-        .delete-btn {
-            background: none;
-            border: none;
-            color: var(--text-dim);
-            cursor: pointer;
-            padding: 5px;
-            font-size: 0.9rem;
-        }
-
-        .delete-btn:hover {
-            color: var(--accent-color);
-        }
-
-        /* Collapsible sections */
-        .section-header {
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .section-header::after {
-            content: '▼';
-            font-size: 0.7rem;
-            margin-left: 10px;
-            transition: transform 0.2s;
-        }
-
-        .section.collapsed .section-header::after {
-            transform: rotate(-90deg);
-        }
-
-        .section.collapsed .section-content {
-            display: none;
-        }
-
-        /* Grid layouts */
-        .two-col-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-        }
+        .two-col-grid { display: grid; grid-template-columns: 1fr; gap: 18px; }
 
         @media (min-width: 600px) {
-            .main-wrapper {
-                padding: 30px;
-            }
-
-            .dashboard {
-                padding: 30px;
-                gap: 20px;
-            }
-
+            .main-wrapper { padding: 30px; }
+            .dashboard { gap: 20px; }
             .header h1 { font-size: 2rem; }
             #clock { font-size: 2rem; }
-
-            .two-col-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 20px;
-            }
+            .two-col-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
         }
-
         @media (min-width: 900px) {
-            .dashboard {
-                padding: 40px;
-            }
-
-            .header h1 { font-size: 2.5rem; }
+            .header h1 { font-size: 2.4rem; }
         }
 
         /* Sync indicator */
-        .sync-status {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 100;
-        }
+        .sync-status { position: fixed; bottom: 20px; right: 20px; background: var(--card); border: 1px solid var(--border); padding: 9px 16px; border-radius: 20px; font-size: 0.75rem; display: flex; align-items: center; gap: 8px; z-index: 100; box-shadow: 0 8px 24px var(--shadow); backdrop-filter: var(--glass-blur); }
+        .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+        .sync-dot.offline { background: var(--red); }
+        .sync-dot.syncing { background: var(--accent-color); animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .loading { text-align: center; padding: 20px; color: var(--text-secondary); }
+        .empty-state { color: var(--text-secondary); padding: 12px 0; font-size: 0.85rem; }
 
-        .sync-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success);
-        }
-
-        .sync-dot.offline {
-            background: #e74c3c;
-        }
-
-        .sync-dot.syncing {
-            background: var(--accent-color);
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: var(--text-dim);
-        }
-
-        .empty-state {
-            color: var(--text-dim);
-            padding: 10px 0;
-            font-size: 0.85rem;
-        }
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 22px; padding: 24px; width: 100%; max-width: 440px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45); }
+        .modal h3 { margin: 0 0 18px; font-size: 1.1rem; }
+        .modal label { display: block; font-size: 0.74rem; color: var(--text-secondary); margin: 13px 0 6px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+        .modal input, .modal select, .modal textarea { width: 100%; background: var(--card2); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 11px; font-size: 0.9rem; font-family: inherit; }
+        .modal input:focus, .modal select:focus, .modal textarea:focus { outline: none; border-color: var(--accent-color); }
+        .modal textarea { resize: vertical; min-height: 64px; }
+        .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .modal-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 22px; }
+        .modal-actions .right { display: flex; gap: 10px; }
+        .btn { border: none; border-radius: 11px; padding: 11px 18px; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: .2s; font-family: inherit; }
+        .btn:hover { transform: translateY(-1px); }
+        .btn-primary { background: var(--accent-grad); color: #fff; }
+        .btn-ghost { background: var(--card2); border: 1px solid var(--border); color: var(--text); }
+        .btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
     </style>
 </head>
 <body>
@@ -549,80 +236,96 @@
             <div class="header">
                 <div class="header-top">
                     <div>
-                        <a href="./index.html" class="back-hub">← Retour au Hub</a>
-                        <div class="agency">Néo Storytellers</div>
-                        <h1>Zouhair Benazzouz</h1>
+                        <a href="#" class="back-hub" id="hub-link">← Retour au Hub</a>
+                        <div class="agency" id="brand-agency">Agence</div>
+                        <h1 id="brand-user">Utilisateur</h1>
                     </div>
-                    <div class="time-display">
-                        <div id="clock">00:00:00</div>
-                        <div id="top-date">...</div>
+                    <div class="header-right">
+                        <button class="theme-toggle" id="theme-toggle-btn" title="Changer le mode">
+                            <i data-lucide="sun" class="sun-icon"></i>
+                            <i data-lucide="moon" class="moon-icon"></i>
+                        </button>
+                        <div class="time-display">
+                            <div id="clock">00:00:00</div>
+                            <div id="top-date">...</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 1. TÂCHES EN RETARD -->
+            <!-- PLAN DU JOUR -->
+            <div class="plan-banner" id="plan-banner">
+                <div class="plan-item"><span class="plan-value" id="plan-count">0</span><span class="plan-label">Tâches aujourd'hui</span></div>
+                <div class="plan-item"><span class="plan-value" id="plan-duration">—</span><span class="plan-label">Durée estimée</span></div>
+                <div class="plan-item"><span class="plan-value" id="plan-done">0%</span><span class="plan-label">Complété</span></div>
+            </div>
+
+            <!-- TOOLBAR -->
+            <div class="toolbar">
+                <input type="text" class="search" id="search-input" placeholder="🔍 Rechercher une tâche...">
+                <div class="chips" id="prio-filter">
+                    <div class="chip active" data-prio="all">Toutes</div>
+                    <div class="chip" data-prio="haute">🔴 Haute</div>
+                    <div class="chip" data-prio="moyenne">🟡 Moyenne</div>
+                    <div class="chip" data-prio="basse">🔵 Basse</div>
+                </div>
+            </div>
+
+            <!-- TÂCHES EN RETARD -->
             <div class="section overdue" id="overdue-section" style="display: none;">
-                <h3>
-                    <span>⚠️ TÂCHES EN RETARD</span>
-                    <span class="counter" id="overdue-counter">0</span>
-                </h3>
+                <h3><span>⚠️ TÂCHES EN RETARD</span><span class="counter" id="overdue-counter">0</span></h3>
                 <div id="overdue-list"></div>
             </div>
 
-            <!-- 2. TÂCHES DU JOUR -->
+            <!-- TÂCHES DU JOUR -->
             <div class="section">
-                <h3>
-                    <span>📋 TÂCHES DU JOUR</span>
-                    <span class="counter" id="today-counter">0/0</span>
-                </h3>
+                <h3><span>📋 TÂCHES DU JOUR</span><span class="counter" id="today-counter">0/0</span></h3>
                 <div class="progress-container">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="today-progress" style="width: 0%"></div>
-                    </div>
+                    <div class="progress-bar"><div class="progress-fill" id="today-progress" style="width: 0%"></div></div>
                     <div class="progress-text" id="today-progress-text">0% complété</div>
                 </div>
                 <div id="today-task-list"></div>
                 <div class="input-row">
-                    <input type="text" id="new-task" placeholder="Nouvelle tâche pour aujourd'hui...">
+                    <input type="text" id="new-task" placeholder="Nouvelle tâche...">
+                    <select id="new-task-prio">
+                        <option value="haute">🔴 Haute</option>
+                        <option value="moyenne" selected>🟡 Moyenne</option>
+                        <option value="basse">🔵 Basse</option>
+                    </select>
+                    <input type="date" id="new-task-date">
                     <button onclick="addTask()">+</button>
                 </div>
             </div>
 
-            <!-- 3. TÂCHES REPORTÉES (date future) -->
+            <!-- TÂCHES À VENIR (date future) -->
             <div class="section postponed" id="postponed-section" style="display: none;">
-                <h3>
-                    <span>📅 TÂCHES REPORTÉES</span>
-                    <span class="counter" id="postponed-counter">0</span>
-                </h3>
+                <h3><span>📅 TÂCHES PLANIFIÉES</span><span class="counter" id="postponed-counter">0</span></h3>
                 <div id="postponed-list"></div>
             </div>
 
-            <!-- 4. CALENDRIER -->
+            <!-- CALENDRIER -->
             <div class="section">
-                <h3>📅 CALENDRIER</h3>
+                <div class="calendar-head">
+                    <button id="cal-prev">‹</button>
+                    <span class="cal-month" id="cal-month">—</span>
+                    <button id="cal-next">›</button>
+                </div>
                 <div class="calendar-grid">
-                    <div class="day-name">L</div>
-                    <div class="day-name">M</div>
-                    <div class="day-name">M</div>
-                    <div class="day-name">J</div>
-                    <div class="day-name">V</div>
-                    <div class="day-name">S</div>
-                    <div class="day-name">D</div>
+                    <div class="day-name">L</div><div class="day-name">M</div><div class="day-name">M</div>
+                    <div class="day-name">J</div><div class="day-name">V</div><div class="day-name">S</div><div class="day-name">D</div>
                 </div>
                 <div class="calendar-grid" id="calendar-days"></div>
-                <div id="event-details">
-                    <div id="event-text">Cliquez sur une date</div>
-                </div>
+                <div id="event-details"><div id="event-text">Cliquez sur une date</div></div>
                 <div class="input-row" id="event-input-container" style="display: none;">
                     <input type="text" id="event-input" placeholder="Ajouter un événement...">
                     <button onclick="saveEvent()">+</button>
                 </div>
             </div>
 
-            <!-- 5. PROJETS EN COURS & À VENIR (côte à côte) -->
+            <!-- PROJETS & À VENIR -->
             <div class="two-col-grid">
                 <div class="section">
-                    <h3>🎬 PROJETS EN COURS</h3>
+                    <h3>🎬 PROJETS</h3>
                     <div id="projects-list"><div class="loading">Chargement...</div></div>
                     <div class="input-row">
                         <input type="text" id="new-project-name" placeholder="Projet...">
@@ -630,7 +333,6 @@
                         <button onclick="addProject()">+</button>
                     </div>
                 </div>
-
                 <div class="section">
                     <h3>📆 À VENIR</h3>
                     <div id="upcoming-list"><div class="loading">Chargement...</div></div>
@@ -642,22 +344,55 @@
                 </div>
             </div>
 
-            <!-- 6. HISTORIQUE TÂCHES (semaine & mois côte à côte) -->
+            <!-- HISTORIQUE -->
             <div class="two-col-grid">
                 <div class="section">
-                    <h3 class="section-header" onclick="toggleSection(this)">
-                        <span>📅 CETTE SEMAINE</span>
-                        <span class="counter" id="week-counter">0</span>
-                    </h3>
+                    <h3 class="section-header" onclick="toggleSection(this)"><span>📅 CETTE SEMAINE</span><span class="counter" id="week-counter">0</span></h3>
                     <div class="section-content" id="week-task-list"></div>
                 </div>
-
                 <div class="section">
-                    <h3 class="section-header" onclick="toggleSection(this)">
-                        <span>📆 CE MOIS</span>
-                        <span class="counter" id="month-counter">0</span>
-                    </h3>
+                    <h3 class="section-header" onclick="toggleSection(this)"><span>📆 CE MOIS</span><span class="counter" id="month-counter">0</span></h3>
                     <div class="section-content" id="month-task-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ÉDITION TÂCHE -->
+    <div class="modal-overlay" id="task-modal">
+        <div class="modal">
+            <h3>Modifier la tâche</h3>
+            <input type="hidden" id="m-id">
+            <label>Tâche</label>
+            <input type="text" id="m-text">
+            <div class="modal-grid">
+                <div><label>Date</label><input type="date" id="m-date"></div>
+                <div><label>Priorité</label>
+                    <select id="m-prio">
+                        <option value="haute">🔴 Haute</option>
+                        <option value="moyenne">🟡 Moyenne</option>
+                        <option value="basse">🔵 Basse</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-grid">
+                <div><label>Projet</label><select id="m-project"></select></div>
+                <div><label>Durée (min)</label><input type="number" id="m-duration" min="0" step="5" placeholder="ex: 30"></div>
+            </div>
+            <label>Récurrence</label>
+            <select id="m-recurrence">
+                <option value="">Aucune</option>
+                <option value="quotidien">Tous les jours</option>
+                <option value="hebdo">Toutes les semaines</option>
+                <option value="mensuel">Tous les mois</option>
+            </select>
+            <label>Notes</label>
+            <textarea id="m-notes" placeholder="Optionnel"></textarea>
+            <div class="modal-actions">
+                <button class="btn btn-danger" onclick="deleteTaskFromModal()">Supprimer</button>
+                <div class="right">
+                    <button class="btn btn-ghost" onclick="closeTaskModal()">Annuler</button>
+                    <button class="btn btn-primary" onclick="saveTaskModal()">Enregistrer</button>
                 </div>
             </div>
         </div>
@@ -669,229 +404,219 @@
     </div>
 
     <script>
-        // ===== SUPABASE CONFIG =====
-        const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
-        
-        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // ============================================================
+        // CONFIG — à personnaliser (pour la revente : un acheteur change ça)
+        // ============================================================
+        const CONFIG = {
+            appName: 'Néo Storytellers',     // nom de l'agence / app
+            userName: 'Zouhair Benazzouz',   // nom affiché
+            hubLink: './index.html',         // lien "retour au hub" (ou null pour le cacher)
+            accentColor: '#e63946',          // couleur d'accent de la marque
+            // Connexion Supabase (à repointer vers la base du client lors d'une revente)
+            supabaseUrl: 'https://wxhlstificzqovfcumop.supabase.co',
+            supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ'
+        };
+
+        // Application de la marque
+        document.documentElement.style.setProperty('--accent-color', CONFIG.accentColor);
+        document.getElementById('brand-agency').textContent = CONFIG.appName;
+        document.getElementById('brand-user').textContent = CONFIG.userName;
+        document.title = CONFIG.appName;
+        const hubLinkEl = document.getElementById('hub-link');
+        if (CONFIG.hubLink) { hubLinkEl.href = CONFIG.hubLink; } else { hubLinkEl.style.display = 'none'; }
+
+        const db = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
+
+        // ===== PRIORITÉS =====
+        const PRIORITIES = {
+            haute:   { label: 'Haute',   color: '#e74c3c', order: 0 },
+            moyenne: { label: 'Moyenne', color: '#f39c12', order: 1 },
+            basse:   { label: 'Basse',   color: '#3b82f6', order: 2 }
+        };
+        function prio(p) { return PRIORITIES[p] || PRIORITIES.moyenne; }
 
         // ===== DATE HELPERS =====
-        function getToday() {
-            return new Date().toISOString().split('T')[0];
-        }
-
-        function getWeekAgo() {
-            const date = new Date();
-            date.setDate(date.getDate() - 7);
-            return date.toISOString().split('T')[0];
-        }
-
-        function getMonthAgo() {
-            const date = new Date();
-            date.setDate(date.getDate() - 30);
-            return date.toISOString().split('T')[0];
-        }
-
+        function getToday() { return new Date().toISOString().split('T')[0]; }
+        function shiftDate(dateStr, days) { const d = new Date(dateStr); d.setDate(d.getDate() + days); return d.toISOString().split('T')[0]; }
+        function getWeekAgo() { return shiftDate(getToday(), -7); }
+        function getMonthAgo() { return shiftDate(getToday(), -30); }
         function formatDate(dateStr) {
-            const date = new Date(dateStr);
-            const today = new Date();
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            
             if (dateStr === getToday()) return "Aujourd'hui";
-            if (dateStr === tomorrow.toISOString().split('T')[0]) return "Demain";
-            if (dateStr === yesterday.toISOString().split('T')[0]) return "Hier";
-            
-            return date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+            if (dateStr === shiftDate(getToday(), 1)) return "Demain";
+            if (dateStr === shiftDate(getToday(), -1)) return "Hier";
+            return new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+        }
+        function formatDuration(min) {
+            if (!min) return null;
+            const h = Math.floor(min / 60), m = min % 60;
+            if (h && m) return `${h}h${String(m).padStart(2, '0')}`;
+            if (h) return `${h}h`;
+            return `${m}min`;
+        }
+        function nextOccurrence(dateStr, recurrence) {
+            if (recurrence === 'quotidien') return shiftDate(dateStr, 1);
+            if (recurrence === 'hebdo') return shiftDate(dateStr, 7);
+            if (recurrence === 'mensuel') { const d = new Date(dateStr); d.setMonth(d.getMonth() + 1); return d.toISOString().split('T')[0]; }
+            return null;
         }
 
         // ===== DATA =====
         let selectedDateStr = "";
-        let events = [];
-        let tasks = [];
-        let projects = [];
-        let upcoming = [];
+        let calDate = new Date();   // mois affiché dans le calendrier
+        let events = [], tasks = [], projects = [], upcoming = [];
+        let searchQuery = '', prioFilter = 'all';
 
         // ===== SYNC STATUS =====
         function updateSyncStatus(status) {
             const dot = document.getElementById('sync-dot');
             const text = document.getElementById('sync-text');
-            
-            if (status === 'syncing') {
-                dot.className = 'sync-dot syncing';
-                text.textContent = 'Sync...';
-            } else if (status === 'synced') {
-                dot.className = 'sync-dot';
-                text.textContent = 'Synced ✓';
-            } else if (status === 'offline') {
-                dot.className = 'sync-dot offline';
-                text.textContent = 'Offline';
-            } else if (status === 'error') {
-                dot.className = 'sync-dot offline';
-                text.textContent = 'Erreur';
-            }
+            if (status === 'syncing') { dot.className = 'sync-dot syncing'; text.textContent = 'Sync...'; }
+            else if (status === 'synced') { dot.className = 'sync-dot'; text.textContent = 'Synced ✓'; }
+            else if (status === 'offline') { dot.className = 'sync-dot offline'; text.textContent = 'Offline'; }
+            else if (status === 'error') { dot.className = 'sync-dot offline'; text.textContent = 'Erreur'; }
         }
+        function toggleSection(header) { header.closest('.section').classList.toggle('collapsed'); }
 
-        // ===== TOGGLE SECTION =====
-        function toggleSection(header) {
-            header.closest('.section').classList.toggle('collapsed');
+        // ===== FILTRES =====
+        function matchFilters(t) {
+            if (prioFilter !== 'all' && (t.priority || 'moyenne') !== prioFilter) return false;
+            if (searchQuery && !(t.text || '').toLowerCase().includes(searchQuery)) return false;
+            return true;
+        }
+        function sortByPriority(arr) {
+            return [...arr].sort((a, b) => prio(a.priority).order - prio(b.priority).order);
         }
 
         // ===== TASKS =====
         async function loadTasks() {
             updateSyncStatus('syncing');
-            const { data, error } = await db
-                .from('tasks')
-                .select('*')
-                .order('created_at', { ascending: false });
-            
-            if (error) {
-                console.error('Error loading tasks:', error);
-                updateSyncStatus('error');
-                return;
-            }
+            const { data, error } = await db.from('tasks').select('*').order('created_at', { ascending: false });
+            if (error) { console.error(error); updateSyncStatus('error'); return; }
             tasks = data || [];
             renderAllTasks();
             updateSyncStatus('synced');
         }
 
         function renderAllTasks() {
-            const today = getToday();
-            const weekAgo = getWeekAgo();
-            const monthAgo = getMonthAgo();
+            const today = getToday(), weekAgo = getWeekAgo(), monthAgo = getMonthAgo();
+            const visible = tasks.filter(matchFilters);
 
-            // Séparer les tâches
-            const overdueTasks = tasks.filter(t => !t.done && t.due_date < today);
-            const todayTasks = tasks.filter(t => t.due_date === today);
-            const postponedTasks = tasks.filter(t => t.due_date > today); // Date future
-            const weekTasks = tasks.filter(t => t.due_date < today && t.due_date >= weekAgo);
-            const monthTasks = tasks.filter(t => t.due_date < weekAgo && t.due_date >= monthAgo);
+            const overdueTasks = sortByPriority(visible.filter(t => !t.done && t.due_date < today));
+            const todayTasks = sortByPriority(visible.filter(t => t.due_date === today));
+            const postponedTasks = sortByPriority(visible.filter(t => t.due_date > today));
+            const weekTasks = visible.filter(t => t.due_date < today && t.due_date >= weekAgo);
+            const monthTasks = visible.filter(t => t.due_date < weekAgo && t.due_date >= monthAgo);
 
-            // Render chaque section
             renderOverdueTasks(overdueTasks);
             renderTodayTasks(todayTasks);
             renderPostponedTasks(postponedTasks);
             renderWeekTasks(weekTasks);
             renderMonthTasks(monthTasks);
+            renderPlanBanner();
+            initCalendar(); // pour rafraîchir les pastilles de tâches
         }
 
-        function renderOverdueTasks(overdueTasks) {
+        function renderPlanBanner() {
+            const today = getToday();
+            const todayTasks = tasks.filter(t => t.due_date === today);
+            const done = todayTasks.filter(t => t.done).length;
+            const totalMin = todayTasks.filter(t => !t.done).reduce((s, t) => s + (parseInt(t.duration_min) || 0), 0);
+            document.getElementById('plan-count').textContent = todayTasks.length;
+            document.getElementById('plan-duration').textContent = totalMin ? '~' + formatDuration(totalMin) : '—';
+            document.getElementById('plan-done').textContent = (todayTasks.length ? Math.round(done / todayTasks.length * 100) : 0) + '%';
+        }
+
+        function renderOverdueTasks(list) {
             const section = document.getElementById('overdue-section');
-            const container = document.getElementById('overdue-list');
-            const counter = document.getElementById('overdue-counter');
-
-            if (overdueTasks.length === 0) {
-                section.style.display = 'none';
-                return;
-            }
-
+            if (!list.length) { section.style.display = 'none'; return; }
             section.style.display = 'block';
-            counter.textContent = overdueTasks.length;
-            container.innerHTML = overdueTasks.map(t => renderTaskItem(t, 'overdue')).join('');
+            document.getElementById('overdue-counter').textContent = list.length;
+            document.getElementById('overdue-list').innerHTML = list.map(t => renderTaskItem(t, 'overdue')).join('');
         }
-
-        function renderTodayTasks(todayTasks) {
-            const container = document.getElementById('today-task-list');
+        function renderTodayTasks(list) {
             const counter = document.getElementById('today-counter');
             const progress = document.getElementById('today-progress');
             const progressText = document.getElementById('today-progress-text');
-
-            const done = todayTasks.filter(t => t.done).length;
-            const total = todayTasks.length;
+            const done = list.filter(t => t.done).length, total = list.length;
             const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-
             counter.textContent = `${done}/${total}`;
             counter.className = 'counter' + (done === total && total > 0 ? ' complete' : '');
             progress.style.width = `${percent}%`;
             progressText.textContent = `${percent}% complété`;
-
-            if (todayTasks.length === 0) {
-                container.innerHTML = '<div class="empty-state">Aucune tâche pour aujourd\'hui. Ajoutez-en une !</div>';
-                return;
-            }
-
-            container.innerHTML = todayTasks.map(t => renderTaskItem(t, 'today')).join('');
+            document.getElementById('today-task-list').innerHTML = list.length
+                ? list.map(t => renderTaskItem(t, 'today')).join('')
+                : '<div class="empty-state">Aucune tâche pour aujourd\'hui. Ajoutez-en une !</div>';
         }
-
-        function renderPostponedTasks(postponedTasks) {
+        function renderPostponedTasks(list) {
             const section = document.getElementById('postponed-section');
-            const container = document.getElementById('postponed-list');
-            const counter = document.getElementById('postponed-counter');
-
-            if (postponedTasks.length === 0) {
-                section.style.display = 'none';
-                return;
-            }
-
+            if (!list.length) { section.style.display = 'none'; return; }
             section.style.display = 'block';
-            counter.textContent = postponedTasks.length;
-            container.innerHTML = postponedTasks.map(t => renderTaskItem(t, 'postponed')).join('');
+            document.getElementById('postponed-counter').textContent = list.length;
+            document.getElementById('postponed-list').innerHTML = list.map(t => renderTaskItem(t, 'postponed')).join('');
+        }
+        function renderWeekTasks(list) {
+            document.getElementById('week-counter').textContent = `${list.filter(t => t.done).length}/${list.length}`;
+            document.getElementById('week-task-list').innerHTML = list.length
+                ? list.map(t => renderTaskItem(t, 'history')).join('') : '<div class="empty-state">Aucune tâche cette semaine</div>';
+        }
+        function renderMonthTasks(list) {
+            document.getElementById('month-counter').textContent = `${list.filter(t => t.done).length}/${list.length}`;
+            document.getElementById('month-task-list').innerHTML = list.length
+                ? list.map(t => renderTaskItem(t, 'history')).join('') : '<div class="empty-state">Aucune tâche ce mois</div>';
         }
 
-        function renderWeekTasks(weekTasks) {
-            const container = document.getElementById('week-task-list');
-            const counter = document.getElementById('week-counter');
-
-            const done = weekTasks.filter(t => t.done).length;
-            counter.textContent = `${done}/${weekTasks.length}`;
-
-            if (weekTasks.length === 0) {
-                container.innerHTML = '<div class="empty-state">Aucune tâche cette semaine</div>';
-                return;
-            }
-
-            container.innerHTML = weekTasks.map(t => renderTaskItem(t, 'history')).join('');
-        }
-
-        function renderMonthTasks(monthTasks) {
-            const container = document.getElementById('month-task-list');
-            const counter = document.getElementById('month-counter');
-
-            const done = monthTasks.filter(t => t.done).length;
-            counter.textContent = `${done}/${monthTasks.length}`;
-
-            if (monthTasks.length === 0) {
-                container.innerHTML = '<div class="empty-state">Aucune tâche ce mois</div>';
-                return;
-            }
-
-            container.innerHTML = monthTasks.map(t => renderTaskItem(t, 'history')).join('');
-        }
+        function projectName(id) { const p = projects.find(p => p.id === id); return p ? p.name : null; }
 
         function renderTaskItem(task, type = 'today') {
             const showDate = type !== 'today';
             const showPostpone = !task.done && (type === 'today' || type === 'overdue');
             const cssClass = type === 'overdue' ? 'overdue' : (type === 'postponed' ? 'postponed' : '');
-            
+            const p = prio(task.priority);
+            const pName = task.project_id ? projectName(task.project_id) : null;
+            const dur = formatDuration(parseInt(task.duration_min));
+            const fromWA = task.entry_method === 'whatsapp';
+
+            const badges = [];
+            badges.push(`<span class="prio-dot" style="background:${p.color}" title="Priorité ${p.label}"></span>`);
+            if (pName) badges.push(`<span class="badge project">🎬 ${pName}</span>`);
+            if (dur) badges.push(`<span class="badge duration">⏱ ${dur}</span>`);
+            if (task.recurrence) badges.push(`<span class="badge recurrence">🔁</span>`);
+            if (fromWA) badges.push(`<span class="badge wa">📱</span>`);
+
             return `
                 <div class="task-item ${task.done ? 'done' : ''} ${cssClass}">
                     <div class="checkbox" onclick="toggleTask(${task.id})"></div>
-                    <span class="task-text">${task.text}</span>
+                    <div class="task-main">
+                        <span class="task-text">${task.text}</span>
+                        <div class="task-badges">${badges.join('')}</div>
+                    </div>
                     ${showDate ? `<span class="task-date">${formatDate(task.due_date)}</span>` : ''}
                     <div class="task-actions">
+                        <button class="task-btn edit" onclick="openTaskModal(${task.id})" title="Modifier">✎</button>
                         ${showPostpone ? `<button class="task-btn postpone" onclick="postponeTask(${task.id})" title="Reporter à demain">↷</button>` : ''}
                         <button class="task-btn delete" onclick="deleteTask(${task.id})" title="Supprimer">×</button>
                     </div>
-                </div>
-            `;
+                </div>`;
         }
 
         async function toggleTask(id) {
             const task = tasks.find(t => t.id === id);
             if (!task) return;
-            
+            const willBeDone = !task.done;
             updateSyncStatus('syncing');
-            const { error } = await db
-                .from('tasks')
-                .update({ done: !task.done })
-                .eq('id', id);
-            
-            if (error) {
-                console.error('Error updating task:', error);
-                updateSyncStatus('error');
-                return;
+            const { error } = await db.from('tasks').update({ done: willBeDone }).eq('id', id);
+            if (error) { console.error(error); updateSyncStatus('error'); return; }
+
+            // Récurrence : si on coche une tâche récurrente, on crée la prochaine occurrence
+            if (willBeDone && task.recurrence) {
+                const nextDate = nextOccurrence(task.due_date || getToday(), task.recurrence);
+                if (nextDate) {
+                    await db.from('tasks').insert([{
+                        text: task.text, done: false, due_date: nextDate,
+                        priority: task.priority, project_id: task.project_id,
+                        duration_min: task.duration_min, recurrence: task.recurrence
+                    }]);
+                }
             }
             await loadTasks();
         }
@@ -899,297 +624,226 @@
         async function addTask() {
             const input = document.getElementById('new-task');
             if (!input.value.trim()) return;
-            
+            const priority = document.getElementById('new-task-prio').value;
+            const dateVal = document.getElementById('new-task-date').value || getToday();
             updateSyncStatus('syncing');
-            const { error } = await db
-                .from('tasks')
-                .insert([{ 
-                    text: input.value.trim(), 
-                    done: false,
-                    due_date: getToday()
-                }]);
-            
-            if (error) {
-                console.error('Error adding task:', error);
-                updateSyncStatus('error');
-                return;
-            }
+            const { error } = await db.from('tasks').insert([{
+                text: input.value.trim(), done: false, due_date: dateVal, priority
+            }]);
+            if (error) { console.error(error); updateSyncStatus('error'); return; }
             input.value = '';
+            document.getElementById('new-task-date').value = getToday();
             await loadTasks();
         }
 
         async function postponeTask(id) {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().split('T')[0];
-            
             updateSyncStatus('syncing');
-            const { error } = await db
-                .from('tasks')
-                .update({ due_date: tomorrowStr })
-                .eq('id', id);
-            
-            if (error) {
-                console.error('Error postponing task:', error);
-                updateSyncStatus('error');
-                return;
-            }
+            const { error } = await db.from('tasks').update({ due_date: shiftDate(getToday(), 1) }).eq('id', id);
+            if (error) { console.error(error); updateSyncStatus('error'); return; }
             await loadTasks();
         }
 
         async function deleteTask(id) {
             updateSyncStatus('syncing');
-            const { error } = await db
-                .from('tasks')
-                .delete()
-                .eq('id', id);
-            
-            if (error) {
-                console.error('Error deleting task:', error);
-                updateSyncStatus('error');
-                return;
-            }
+            const { error } = await db.from('tasks').delete().eq('id', id);
+            if (error) { console.error(error); updateSyncStatus('error'); return; }
             await loadTasks();
         }
 
-        // ===== EVENTS =====
+        // ===== MODAL TÂCHE =====
+        function openTaskModal(id) {
+            const t = tasks.find(t => t.id === id);
+            if (!t) return;
+            document.getElementById('m-id').value = t.id;
+            document.getElementById('m-text').value = t.text || '';
+            document.getElementById('m-date').value = t.due_date || getToday();
+            document.getElementById('m-prio').value = t.priority || 'moyenne';
+            document.getElementById('m-duration').value = t.duration_min || '';
+            document.getElementById('m-recurrence').value = t.recurrence || '';
+            document.getElementById('m-notes').value = t.notes || '';
+            const sel = document.getElementById('m-project');
+            sel.innerHTML = '<option value="">— Aucun —</option>' + projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            sel.value = t.project_id || '';
+            document.getElementById('task-modal').classList.add('open');
+        }
+        function closeTaskModal() { document.getElementById('task-modal').classList.remove('open'); }
+
+        async function saveTaskModal() {
+            const id = document.getElementById('m-id').value;
+            const data = {
+                text: document.getElementById('m-text').value.trim(),
+                due_date: document.getElementById('m-date').value || getToday(),
+                priority: document.getElementById('m-prio').value,
+                project_id: document.getElementById('m-project').value || null,
+                duration_min: document.getElementById('m-duration').value ? parseInt(document.getElementById('m-duration').value) : null,
+                recurrence: document.getElementById('m-recurrence').value || null,
+                notes: document.getElementById('m-notes').value.trim() || null
+            };
+            if (!data.text) return;
+            updateSyncStatus('syncing');
+            const { error } = await db.from('tasks').update(data).eq('id', id);
+            if (error) { console.error(error); updateSyncStatus('error'); return; }
+            closeTaskModal();
+            await loadTasks();
+        }
+        async function deleteTaskFromModal() {
+            const id = document.getElementById('m-id').value;
+            closeTaskModal();
+            await deleteTask(id);
+        }
+        document.getElementById('task-modal').addEventListener('click', e => { if (e.target.id === 'task-modal') closeTaskModal(); });
+
+        // ===== EVENTS + CALENDRIER =====
         async function loadEvents() {
-            const { data, error } = await db
-                .from('events')
-                .select('*');
-            
-            if (error) {
-                console.error('Error loading events:', error);
-                return;
-            }
+            const { data, error } = await db.from('events').select('*');
+            if (error) { console.error(error); return; }
             events = data || [];
             initCalendar();
         }
 
         function initCalendar() {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth();
-            const today = now.getDate();
+            const year = calDate.getFullYear(), month = calDate.getMonth();
+            const todayStr = getToday();
             const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
             const daysInMonth = new Date(year, month + 1, 0).getDate();
+            document.getElementById('cal-month').textContent = calDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
             const grid = document.getElementById('calendar-days');
             grid.innerHTML = '';
-            
-            for (let i = 0; i < firstDay; i++) {
-                grid.innerHTML += '<div></div>';
-            }
-            
+            for (let i = 0; i < firstDay; i++) grid.innerHTML += '<div></div>';
             for (let i = 1; i <= daysInMonth; i++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                const isToday = i === today;
                 const hasEvent = events.some(e => e.date === dateStr);
-                const isSelected = dateStr === selectedDateStr;
-                
+                const hasTask = tasks.some(t => t.due_date === dateStr);
+                const dots = (hasEvent ? '<span class="d event"></span>' : '') + (hasTask ? '<span class="d task"></span>' : '');
                 const dayDiv = document.createElement('div');
-                dayDiv.className = `day ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''} ${isSelected ? 'selected' : ''}`;
-                dayDiv.textContent = i;
+                dayDiv.className = `day ${dateStr === todayStr ? 'today' : ''} ${dateStr === selectedDateStr ? 'selected' : ''}`;
+                dayDiv.innerHTML = `${i}<div class="dots">${dots}</div>`;
                 dayDiv.onclick = () => selectDate(dateStr);
                 grid.appendChild(dayDiv);
             }
         }
-
         function selectDate(dateStr) {
             selectedDateStr = dateStr;
             initCalendar();
-            renderEvents(dateStr);
+            renderDayDetails(dateStr);
             document.getElementById('event-input-container').style.display = 'flex';
         }
-
-        function renderEvents(dateStr) {
+        function renderDayDetails(dateStr) {
             const container = document.getElementById('event-text');
             const dayEvents = events.filter(e => e.date === dateStr);
-            
-            if (dayEvents.length > 0) {
-                container.innerHTML = dayEvents.map(ev => 
-                    `<div class="event-list-item">
-                        <span>${ev.title}</span>
-                        <button class="delete-btn" onclick="deleteEvent(${ev.id})">×</button>
-                    </div>`
-                ).join('');
+            const dayTasks = tasks.filter(t => t.due_date === dateStr);
+            let html = `<div style="font-weight:600;margin-bottom:8px">${formatDate(dateStr)}</div>`;
+            if (!dayEvents.length && !dayTasks.length) {
+                html += '<div style="color:var(--text-dim)">Rien de prévu</div>';
             } else {
-                container.innerHTML = '<div style="color: var(--text-dim);">Rien de prévu</div>';
+                html += dayEvents.map(ev => `<div class="event-list-item"><span class="ev">${ev.title}</span><button class="delete-btn" onclick="deleteEvent(${ev.id})">×</button></div>`).join('');
+                html += dayTasks.map(t => `<div class="event-list-item"><span class="tk" style="${t.done ? 'text-decoration:line-through;color:var(--text-dim)' : ''}">${t.text}</span></div>`).join('');
             }
+            container.innerHTML = html;
         }
-
         async function saveEvent() {
             const input = document.getElementById('event-input');
             if (!selectedDateStr || !input.value.trim()) return;
-            
             updateSyncStatus('syncing');
-            const { error } = await db
-                .from('events')
-                .insert([{ date: selectedDateStr, title: input.value.trim() }]);
-            
-            if (error) {
-                console.error('Error adding event:', error);
-                updateSyncStatus('error');
-                return;
-            }
+            const { error } = await db.from('events').insert([{ date: selectedDateStr, title: input.value.trim() }]);
+            if (error) { console.error(error); updateSyncStatus('error'); return; }
             input.value = '';
             await loadEvents();
-            renderEvents(selectedDateStr);
+            renderDayDetails(selectedDateStr);
             updateSyncStatus('synced');
         }
-
         async function deleteEvent(id) {
             updateSyncStatus('syncing');
-            const { error } = await db
-                .from('events')
-                .delete()
-                .eq('id', id);
-            
-            if (error) {
-                console.error('Error deleting event:', error);
-                updateSyncStatus('error');
-                return;
-            }
+            const { error } = await db.from('events').delete().eq('id', id);
+            if (error) { console.error(error); updateSyncStatus('error'); return; }
             await loadEvents();
-            renderEvents(selectedDateStr);
+            renderDayDetails(selectedDateStr);
             updateSyncStatus('synced');
         }
+        document.getElementById('cal-prev').addEventListener('click', () => { calDate = new Date(calDate.getFullYear(), calDate.getMonth() - 1, 1); initCalendar(); });
+        document.getElementById('cal-next').addEventListener('click', () => { calDate = new Date(calDate.getFullYear(), calDate.getMonth() + 1, 1); initCalendar(); });
 
         // ===== PROJECTS =====
         async function loadProjects() {
-            const { data, error } = await db
-                .from('projects')
-                .select('*')
-                .order('created_at', { ascending: false });
-            
-            if (error) {
-                console.error('Error loading projects:', error);
-                return;
-            }
+            const { data, error } = await db.from('projects').select('*').order('created_at', { ascending: false });
+            if (error) { console.error(error); return; }
             projects = data || [];
             renderProjects();
         }
-
         function renderProjects() {
             const container = document.getElementById('projects-list');
-            if (projects.length === 0) {
-                container.innerHTML = '<div class="empty-state">Aucun projet</div>';
-                return;
-            }
-            container.innerHTML = projects.map(p => `
+            if (!projects.length) { container.innerHTML = '<div class="empty-state">Aucun projet</div>'; return; }
+            container.innerHTML = projects.map(p => {
+                const linked = tasks.filter(t => t.project_id === p.id);
+                const done = linked.filter(t => t.done).length;
+                const pct = linked.length ? Math.round(done / linked.length * 100) : 0;
+                return `
                 <div class="project-item">
-                    <span class="project-name">${p.name}</span>
-                    <span class="project-status">${p.status}</span>
-                    <button class="delete-btn" onclick="deleteProject(${p.id})">×</button>
-                </div>
-            `).join('');
+                    <div class="project-row">
+                        <span class="project-name">${p.name}</span>
+                        <div style="display:flex;align-items:center;gap:6px">
+                            <span class="project-status">${p.status || ''}</span>
+                            <button class="delete-btn" onclick="deleteProject(${p.id})">×</button>
+                        </div>
+                    </div>
+                    ${linked.length ? `<div class="project-mini-bar"><div class="project-mini-fill" style="width:${pct}%"></div></div>
+                    <div class="project-meta">${done}/${linked.length} tâches • ${pct}%</div>` : ''}
+                </div>`;
+            }).join('');
         }
-
         async function addProject() {
             const name = document.getElementById('new-project-name');
             const status = document.getElementById('new-project-status');
             if (!name.value.trim()) return;
-            
             updateSyncStatus('syncing');
-            const { error } = await db
-                .from('projects')
-                .insert([{ 
-                    name: name.value.trim(), 
-                    status: status.value.trim() || 'En cours'
-                }]);
-            
-            if (error) {
-                console.error('Error adding project:', error);
-                updateSyncStatus('error');
-                return;
-            }
-            name.value = '';
-            status.value = '';
+            const { error } = await db.from('projects').insert([{ name: name.value.trim(), status: status.value.trim() || 'En cours' }]);
+            if (error) { console.error(error); updateSyncStatus('error'); return; }
+            name.value = ''; status.value = '';
             await loadProjects();
             updateSyncStatus('synced');
         }
-
         async function deleteProject(id) {
             updateSyncStatus('syncing');
-            const { error } = await db
-                .from('projects')
-                .delete()
-                .eq('id', id);
-            
-            if (error) {
-                console.error('Error deleting project:', error);
-                updateSyncStatus('error');
-                return;
-            }
-            await loadProjects();
+            const { error } = await db.from('projects').delete().eq('id', id);
+            if (error) { console.error(error); updateSyncStatus('error'); return; }
+            await loadProjects(); await loadTasks();
             updateSyncStatus('synced');
         }
 
         // ===== UPCOMING =====
         async function loadUpcoming() {
-            const { data, error } = await db
-                .from('upcoming')
-                .select('*')
-                .order('created_at', { ascending: false });
-            
-            if (error) {
-                console.error('Error loading upcoming:', error);
-                return;
-            }
+            const { data, error } = await db.from('upcoming').select('*').order('created_at', { ascending: false });
+            if (error) { console.error(error); return; }
             upcoming = data || [];
             renderUpcoming();
         }
-
         function renderUpcoming() {
             const container = document.getElementById('upcoming-list');
-            if (upcoming.length === 0) {
-                container.innerHTML = '<div class="empty-state">Rien à venir</div>';
-                return;
-            }
+            if (!upcoming.length) { container.innerHTML = '<div class="empty-state">Rien à venir</div>'; return; }
             container.innerHTML = upcoming.map(u => `
-                <div class="project-item">
+                <div class="project-item"><div class="project-row">
                     <span class="project-name">${u.name}</span>
-                    <span class="project-status">${u.date}</span>
-                    <button class="delete-btn" onclick="deleteUpcoming(${u.id})">×</button>
-                </div>
-            `).join('');
+                    <div style="display:flex;align-items:center;gap:6px">
+                        <span class="project-status">${u.date}</span>
+                        <button class="delete-btn" onclick="deleteUpcoming(${u.id})">×</button>
+                    </div>
+                </div></div>`).join('');
         }
-
         async function addUpcoming() {
             const name = document.getElementById('new-upcoming-name');
             const date = document.getElementById('new-upcoming-date');
             if (!name.value.trim()) return;
-            
             updateSyncStatus('syncing');
-            const { error } = await db
-                .from('upcoming')
-                .insert([{ 
-                    name: name.value.trim(), 
-                    date: date.value.trim() || 'À définir'
-                }]);
-            
-            if (error) {
-                console.error('Error adding upcoming:', error);
-                updateSyncStatus('error');
-                return;
-            }
-            name.value = '';
-            date.value = '';
+            const { error } = await db.from('upcoming').insert([{ name: name.value.trim(), date: date.value.trim() || 'À définir' }]);
+            if (error) { console.error(error); updateSyncStatus('error'); return; }
+            name.value = ''; date.value = '';
             await loadUpcoming();
             updateSyncStatus('synced');
         }
-
         async function deleteUpcoming(id) {
             updateSyncStatus('syncing');
-            const { error } = await db
-                .from('upcoming')
-                .delete()
-                .eq('id', id);
-            
-            if (error) {
-                console.error('Error deleting upcoming:', error);
-                updateSyncStatus('error');
-                return;
-            }
+            const { error } = await db.from('upcoming').delete().eq('id', id);
+            if (error) { console.error(error); updateSyncStatus('error'); return; }
             await loadUpcoming();
             updateSyncStatus('synced');
         }
@@ -1198,63 +852,57 @@
         function updateTime() {
             const now = new Date();
             document.getElementById('clock').textContent = now.toLocaleTimeString('fr-FR');
-            document.getElementById('top-date').textContent = now.toLocaleDateString('fr-FR', { 
-                weekday: 'long', 
-                day: 'numeric', 
-                month: 'long' 
-            });
+            document.getElementById('top-date').textContent = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
         }
+
+        // ===== TOOLBAR (recherche + filtre priorité) =====
+        document.getElementById('search-input').addEventListener('input', e => { searchQuery = e.target.value.trim().toLowerCase(); renderAllTasks(); });
+        document.querySelectorAll('#prio-filter .chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('#prio-filter .chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                prioFilter = chip.dataset.prio;
+                renderAllTasks();
+            });
+        });
 
         // ===== REAL-TIME SYNC =====
         function setupRealtimeSync() {
-            db.channel('public:tasks')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => loadTasks())
-                .subscribe();
-
-            db.channel('public:events')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
-                    loadEvents();
-                    if (selectedDateStr) renderEvents(selectedDateStr);
-                })
-                .subscribe();
-
-            db.channel('public:projects')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => loadProjects())
-                .subscribe();
-
-            db.channel('public:upcoming')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'upcoming' }, () => loadUpcoming())
-                .subscribe();
+            db.channel('public:tasks').on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => loadTasks()).subscribe();
+            db.channel('public:events').on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => { loadEvents(); if (selectedDateStr) renderDayDetails(selectedDateStr); }).subscribe();
+            db.channel('public:projects').on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => loadProjects()).subscribe();
+            db.channel('public:upcoming').on('postgres_changes', { event: '*', schema: 'public', table: 'upcoming' }, () => loadUpcoming()).subscribe();
         }
 
         // ===== INIT =====
         async function init() {
+            document.getElementById('new-task-date').value = getToday();
             updateTime();
             setInterval(updateTime, 1000);
-            
-            // Load all data
-            await Promise.all([
-                loadTasks(),
-                loadEvents(),
-                loadProjects(),
-                loadUpcoming()
-            ]);
-            
-            // Setup real-time sync
+            await Promise.all([loadTasks(), loadEvents(), loadProjects(), loadUpcoming()]);
             setupRealtimeSync();
         }
-
         init();
 
-        // Enter key support
+        // Enter key
         document.getElementById('new-task').addEventListener('keypress', e => { if (e.key === 'Enter') addTask(); });
         document.getElementById('event-input').addEventListener('keypress', e => { if (e.key === 'Enter') saveEvent(); });
         document.getElementById('new-project-name').addEventListener('keypress', e => { if (e.key === 'Enter') addProject(); });
         document.getElementById('new-upcoming-name').addEventListener('keypress', e => { if (e.key === 'Enter') addUpcoming(); });
 
-        // Online/offline detection
         window.addEventListener('online', () => { updateSyncStatus('synced'); init(); });
         window.addEventListener('offline', () => updateSyncStatus('offline'));
+    </script>
+    <script>
+        lucide.createIcons();
+        (function(){
+            var btn = document.getElementById('theme-toggle-btn');
+            if(btn) btn.addEventListener('click', function(){
+                var cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', cur);
+                try { localStorage.setItem('neo-theme', cur); } catch(e){}
+            });
+        })();
     </script>
 </body>
 </html>
