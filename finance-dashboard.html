@@ -125,6 +125,39 @@
 
         .reports-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-bottom: 22px; }
         .chart-wrap { position: relative; height: 290px; margin-top: 8px; }
+        /* Donut : canvas + légende HTML maison (responsive) */
+        .donut-flex { display: flex; align-items: center; gap: 16px; height: 100%; }
+        .donut-canvas { position: relative; flex: 0 0 52%; height: 100%; min-width: 0; }
+        .donut-legend { flex: 1; align-self: stretch; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
+        .lg-item { display: flex; align-items: center; gap: 8px; font-size: .82rem; color: var(--text-secondary); }
+        .lg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .lg-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lg-val { margin-left: auto; font-weight: 600; color: var(--text); font-size: .78rem; white-space: nowrap; }
+        @media(max-width: 767px) {
+            #cat-chart-wrap.chart-wrap { height: auto; }
+            .donut-flex { flex-direction: column; gap: 14px; height: auto; }
+            .donut-canvas { flex: none; width: 100%; height: 230px; }
+            .donut-legend { flex-direction: row; flex-wrap: wrap; gap: 8px 16px; overflow: visible; align-self: auto; }
+            .lg-val { display: none; }
+        }
+        /* Dettes & Créances */
+        .dettes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .dette-stat { background: var(--card2); border: 1px solid var(--border); border-radius: 16px; padding: 16px 18px; }
+        .dette-stat .lbl { font-size: .78rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+        .dette-stat .val { font-size: 1.4rem; font-weight: 800; }
+        .dette-stat.due .val { color: var(--red); }
+        .dette-stat.owed .val { color: var(--green); }
+        .dette-list { margin-top: 14px; }
+        .dette-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+        .dette-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .dette-who { font-size: .9rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .dette-meta { font-size: .74rem; color: var(--dim); margin-top: 2px; }
+        .dette-amt { font-weight: 700; white-space: nowrap; }
+        .dette-amt.due { color: var(--red); }
+        .dette-amt.owed { color: var(--green); }
+        .dette-tag { padding: 2px 7px; border-radius: 6px; font-size: .66rem; font-weight: 700; text-transform: uppercase; }
+        .dette-tag.due { background: rgba(244,63,94,.15); color: #fb7185; }
+        .dette-tag.owed { background: rgba(16,185,129,.15); color: #34d399; }
         .chart-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 290px; color: var(--dim); font-size: .9rem; font-weight: 500; gap: 8px; }
 
         /* Bas de page : 3 colonnes */
@@ -290,6 +323,18 @@
             </div>
         </div>
 
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title"><i data-lucide="handshake"></i> Dettes & Créances</h2>
+                <a href="./finance-backoffice.html" class="section-link">Gérer <i data-lucide="arrow-right" style="width:13px;"></i></a>
+            </div>
+            <div class="dettes-grid">
+                <div class="dette-stat due"><div class="lbl"><i data-lucide="arrow-up-right" style="width:14px;"></i> Je dois</div><div class="val" id="total-due">0 MAD</div></div>
+                <div class="dette-stat owed"><div class="lbl"><i data-lucide="arrow-down-left" style="width:14px;"></i> On me doit</div><div class="val" id="total-owed">0 MAD</div></div>
+            </div>
+            <div class="dette-list" id="dette-list"></div>
+        </div>
+
         <div class="bottom-grid">
             <div class="section">
                 <div class="section-header">
@@ -334,7 +379,7 @@
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // ===== État =====
-        let transactions = [], budgets = [], scheduled = [], scheduledPayments = [], categories = [];
+        let transactions = [], budgets = [], scheduled = [], scheduledPayments = [], categories = [], emprunts = [], paiements = [];
         let catMap = {};
         let filterType = 'all', filterMode = 'all';
         let viewDate = new Date();
@@ -371,18 +416,22 @@
         // ===== Chargement =====
         async function loadData() {
             try {
-                const [tRes, bRes, sRes, spRes, cRes] = await Promise.all([
+                const [tRes, bRes, sRes, spRes, cRes, eRes, pRes] = await Promise.all([
                     db.from('finance_transactions').select('*').order('date_transaction', { ascending: false }),
                     db.from('finance_budgets').select('*'),
                     db.from('finance_scheduled').select('*').eq('active', true),
                     db.from('finance_scheduled_payments').select('*').eq('mois_annee', monthKey(viewDate)),
-                    db.from('finance_categories').select('*').order('ordre', { ascending: true })
+                    db.from('finance_categories').select('*').order('ordre', { ascending: true }),
+                    db.from('finance_emprunts').select('*').order('date_emprunt', { ascending: false }),
+                    db.from('finance_emprunt_paiements').select('*')
                 ]);
                 transactions = tRes.data || [];
                 budgets = bRes.data || [];
                 scheduled = sRes.data || [];
                 scheduledPayments = spRes.data || [];
                 categories = cRes.data || [];
+                emprunts = eRes.data || [];
+                paiements = pRes.data || [];
                 catMap = {};
                 categories.forEach(c => { catMap[c.key] = { icon: c.icon, color: c.color, label: c.label, groupe: c.groupe }; });
                 render();
@@ -418,7 +467,7 @@
         let catChart = null;
         function renderCategoryChart() {
             const wrap = document.getElementById('cat-chart-wrap');
-            const depenses = monthTx().filter(t => t.type === 'depense');
+            const depenses = monthTx().filter(t => t.type === 'depense' && t.categorie !== 'remboursement_emprunt' && !t.emprunt_id);
             const byCat = {};
             depenses.forEach(t => { byCat[t.categorie] = (byCat[t.categorie] || 0) + parseFloat(t.montant); });
             const entries = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
@@ -427,18 +476,24 @@
                 wrap.innerHTML = '<div class="chart-empty"><i data-lucide="pie-chart"></i> Aucune dépense ce mois-ci</div>';
                 lucide.createIcons(); return;
             }
-            wrap.innerHTML = '<canvas id="cat-chart"></canvas>';
-            const labels = entries.map(([k]) => `${getCat(k).icon} ${getCat(k).label}`);
-            const data = entries.map(([, v]) => v);
             const colors = entries.map((_, idx) => donutPalette[idx % donutPalette.length]);
+            const data = entries.map(([, v]) => v);
             const isLight = htmlEl.getAttribute('data-theme') === 'light';
+
+            // Légende HTML maison : propre sur mobile (en dessous) comme sur desktop (à droite)
+            const legendHtml = entries.map(([k], idx) => {
+                const c = getCat(k);
+                return `<div class="lg-item"><span class="lg-dot" style="background:${colors[idx]}"></span><span class="lg-label">${c.icon} ${c.label}</span><span class="lg-val">${formatMoney(entries[idx][1])}</span></div>`;
+            }).join('');
+            wrap.innerHTML = `<div class="donut-flex"><div class="donut-canvas"><canvas id="cat-chart"></canvas></div><div class="donut-legend">${legendHtml}</div></div>`;
+
             catChart = new Chart(document.getElementById('cat-chart'), {
                 type: 'doughnut',
-                data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: isLight ? '#ffffff' : '#0b0d11', borderWidth: 3, hoverOffset: 6 }] },
+                data: { labels: entries.map(([k]) => `${getCat(k).icon} ${getCat(k).label}`), datasets: [{ data, backgroundColor: colors, borderColor: isLight ? '#ffffff' : '#0b0d11', borderWidth: 3, hoverOffset: 6 }] },
                 options: {
                     responsive: true, maintainAspectRatio: false, cutout: '68%',
                     plugins: {
-                        legend: { position: 'right', labels: { color: isLight ? '#374151' : '#9aa6b8', font: { family: 'Inter', size: 12, weight: 500 }, boxWidth: 10, padding: 11, usePointStyle: true, pointStyle: 'circle' } },
+                        legend: { display: false },
                         tooltip: { callbacks: { label: c => ` ${formatMoney(c.parsed)} MAD` } }
                     }
                 }
@@ -590,6 +645,35 @@
             lucide.createIcons();
         }
 
+        // ===== Dettes & Créances (non liées au mois : visibles tant que non soldées) =====
+        function renderDettes() {
+            const enCours = emprunts.map(e => {
+                const remb = paiements.filter(p => p.emprunt_id === e.id).reduce((s, p) => s + parseFloat(p.montant), 0);
+                return { ...e, reste: parseFloat(e.montant) - remb };
+            }).filter(e => e.statut !== 'solde' && e.reste > 0);
+
+            let due = 0, owed = 0;
+            enCours.forEach(e => { if (e.sens === 'emprunte') due += e.reste; else owed += e.reste; });
+            document.getElementById('total-due').textContent = formatMoney(due) + ' MAD';
+            document.getElementById('total-owed').textContent = formatMoney(owed) + ' MAD';
+
+            const list = document.getElementById('dette-list');
+            if (!enCours.length) { list.innerHTML = '<div class="empty-state" style="padding:22px;">Aucune dette ni créance en cours 🎉</div>'; return; }
+            enCours.sort((a, b) => b.reste - a.reste);
+            list.innerHTML = enCours.map(e => {
+                const isDue = e.sens === 'emprunte';
+                const dateStr = new Date(e.date_emprunt).toLocaleDateString('fr-FR');
+                const ech = e.date_echeance ? ' • échéance ' + new Date(e.date_echeance).toLocaleDateString('fr-FR') : '';
+                return `<div class="dette-row">
+                    <div>
+                        <div class="dette-who">${isDue ? '⬆️' : '⬇️'} ${e.contrepartie} <span class="dette-tag ${isDue ? 'due' : 'owed'}">${isDue ? 'je dois' : 'on me doit'}</span></div>
+                        <div class="dette-meta">depuis le ${dateStr}${ech}</div>
+                    </div>
+                    <div class="dette-amt ${isDue ? 'due' : 'owed'}">${formatMoney(e.reste)} MAD</div>
+                </div>`;
+            }).join('');
+        }
+
         function render() {
             renderMonthLabel();
             calcSolde();
@@ -598,6 +682,7 @@
             renderBudgets();
             renderScheduled();
             renderTransactions();
+            renderDettes();
             lucide.createIcons();
         }
 
@@ -614,6 +699,13 @@
                 if (filter === 'mode') filterMode = value;
                 render();
             });
+        });
+
+        // Re-render des graphiques au changement de largeur (bascule légende mobile/desktop)
+        let _resizeTimer = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(_resizeTimer);
+            _resizeTimer = setTimeout(() => { if (transactions.length > 0) { renderCategoryChart(); renderTrendChart(); } }, 250);
         });
 
         lucide.createIcons();
