@@ -6,25 +6,23 @@
     <title>Daily Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>(function(){try{var t=localStorage.getItem('neo-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
     <meta name="theme-color" content="#0d0d0d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <style>
-        :root {
-            --accent-color: #e63946; /* fallback, surchargé par CONFIG */
-            --accent-grad: linear-gradient(120deg, var(--accent-color), color-mix(in srgb, var(--accent-color), #ffffff 28%));
-            --accent-soft: color-mix(in srgb, var(--accent-color) 16%, transparent);
-            --accent-tint: color-mix(in srgb, var(--accent-color) 9%, transparent);
-        }
         :root[data-theme="dark"] {
             --bg: #0b0d11; --bg2: #0f1218;
             --card: rgba(20, 24, 31, 0.7); --card2: rgba(30, 36, 45, 0.5);
             --border: rgba(255, 255, 255, 0.08);
             --text: #ffffff; --text-secondary: #9aa6b8; --dim: #5b6675;
             --green: #10b981; --red: #f43f5e; --orange: #f59e0b; --blue: #3b82f6;
+            --accent-color: #a78bfa;
+            --accent-grad: linear-gradient(120deg, #4f46e5 0%, #7c3aed 45%, #c084fc 100%);
+            --accent-soft: color-mix(in srgb, #7c3aed 18%, transparent);
+            --accent-tint: color-mix(in srgb, #7c3aed 10%, transparent);
             --shadow: rgba(0, 0, 0, 0.35); --glass-blur: blur(16px);
-            /* alias compat */
             --bg-color: var(--bg); --card-bg: var(--bg2); --border-color: var(--border);
             --text-main: var(--text); --text-dim: var(--text-secondary);
             --success: var(--green); --warning: var(--orange); --danger: var(--red); --info: var(--blue);
@@ -35,6 +33,10 @@
             --border: rgba(0, 0, 0, 0.07);
             --text: #111827; --text-secondary: #4b5563; --dim: #6b7280;
             --green: #059669; --red: #e11d48; --orange: #ea580c; --blue: #2563eb;
+            --accent-color: #7c3aed;
+            --accent-grad: linear-gradient(120deg, #6366f1 0%, #8b5cf6 45%, #d946ef 100%);
+            --accent-soft: color-mix(in srgb, #8b5cf6 15%, transparent);
+            --accent-tint: color-mix(in srgb, #8b5cf6 9%, transparent);
             --shadow: rgba(165, 163, 150, 0.18); --glass-blur: blur(16px);
             --bg-color: var(--bg); --card-bg: var(--bg2); --border-color: var(--border);
             --text-main: var(--text); --text-dim: var(--text-secondary);
@@ -47,46 +49,59 @@
 
         body, html {
             margin: 0; padding: 0; min-height: 100%; width: 100%;
-            background: radial-gradient(900px 500px at 85% -10%, var(--accent-tint), transparent 60%), var(--bg);
+            background: radial-gradient(1000px 600px at 85% -10%, var(--accent-tint), transparent 55%), var(--bg);
             color: var(--text); font-family: 'Inter', -apple-system, sans-serif;
             letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; transition: background .4s, color .4s;
         }
         .main-wrapper { min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .dashboard { width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 18px; background: transparent; }
 
-        /* Header */
-        .header { border-bottom: 1px solid var(--border); padding-bottom: 18px; }
+        /* Top bar */
+        .header { padding-bottom: 4px; }
         .header-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; }
-        .header h1 { margin: 4px 0 0; font-size: 1.7rem; font-weight: 800; }
-        .agency { color: var(--accent-color); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.18em; font-weight: 700; }
+        .agency { color: var(--accent-color); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.18em; font-weight: 700; }
         .back-hub { text-decoration: none; color: var(--text-secondary); font-size: 0.78rem; display: inline-block; margin-bottom: 6px; padding: 4px 0; transition: .2s; }
         .back-hub:hover { color: var(--accent-color); }
-        .header-right { display: flex; align-items: flex-start; gap: 14px; }
+        .header-right { display: flex; align-items: center; gap: 12px; }
         .time-display { text-align: right; }
-        #clock { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-        #top-date { color: var(--text-secondary); font-size: 0.8rem; }
+        #clock { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+        #top-date { color: var(--text-secondary); font-size: 0.72rem; }
         .theme-toggle { background: var(--card); border: 1px solid var(--border); color: var(--text); width: 40px; height: 40px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: .2s; box-shadow: 0 4px 10px var(--shadow); flex-shrink: 0; }
         .theme-toggle:hover { transform: scale(1.05); }
         .theme-toggle i { width: 18px; height: 18px; }
         :root[data-theme="dark"] .theme-toggle .sun-icon { display: none; }
         :root[data-theme="light"] .theme-toggle .moon-icon { display: none; }
 
-        /* Plan du jour banner */
-        .plan-banner {
-            display: flex; align-items: center; gap: 26px; flex-wrap: wrap;
-            background: var(--accent-grad); border-radius: 20px; padding: 20px 26px;
-            box-shadow: 0 16px 36px color-mix(in srgb, var(--accent-color) 32%, transparent);
-        }
-        .plan-banner .plan-item { display: flex; flex-direction: column; gap: 2px; }
-        .plan-banner .plan-value { font-size: 1.5rem; font-weight: 800; color: #fff; }
-        .plan-banner .plan-label { font-size: 0.68rem; color: rgba(255, 255, 255, 0.82); text-transform: uppercase; letter-spacing: 0.1em; }
+        /* HERO */
+        .hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 28px 32px; box-shadow: 0 12px 34px var(--shadow); backdrop-filter: var(--glass-blur); transition: background .4s; }
+        .hero-left { flex: 1; min-width: 220px; }
+        .hero-greeting { font-size: 1.9rem; font-weight: 800; margin: 0; }
+        .hero-sub { color: var(--text-secondary); margin-top: 10px; font-size: 1rem; }
+        .hero-summary { margin-top: 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-secondary); background: var(--card2); padding: 7px 14px; border-radius: 20px; }
+        .hero-ring { position: relative; width: 132px; height: 132px; flex-shrink: 0; }
+        .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .ring-track { fill: none; stroke: var(--card2); stroke-width: 11; }
+        .ring-fill { fill: none; stroke: url(#ringGrad); stroke-width: 11; stroke-linecap: round; transition: stroke-dashoffset .7s cubic-bezier(.4,0,.2,1); }
+        .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+        #hero-ring-pct { font-size: 1.7rem; font-weight: 800; }
+        .ring-sub { font-size: 0.62rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; }
+        .hero.celebrate { background: var(--accent-grad); border-color: transparent; }
+        .hero.celebrate .hero-greeting, .hero.celebrate #hero-ring-pct { color: #fff; }
+        .hero.celebrate .hero-sub { color: rgba(255,255,255,0.9); }
+        .hero.celebrate .ring-sub { color: rgba(255,255,255,0.75); }
+        .hero.celebrate .hero-summary { color: #fff; background: rgba(255,255,255,0.18); }
+        .hero.celebrate .ring-track { stroke: rgba(255,255,255,0.28); }
+
+        /* MOMENTUM */
+        .momentum { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+        .mom-card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 17px 18px; box-shadow: 0 8px 22px var(--shadow); backdrop-filter: var(--glass-blur); }
+        .mom-icon { width: 36px; height: 36px; border-radius: 11px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; font-size: 1.05rem; }
+        .mom-val { font-size: 1.7rem; font-weight: 800; line-height: 1; }
+        .mom-label { font-size: 0.7rem; color: var(--text-secondary); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
 
         /* Toolbar */
         .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-        .toolbar input.search {
-            flex: 1; min-width: 160px; background: var(--card2); border: 1px solid var(--border);
-            color: var(--text); padding: 11px 14px; border-radius: 12px; font-size: 0.9rem; font-family: inherit;
-        }
+        .toolbar input.search { flex: 1; min-width: 160px; background: var(--card2); border: 1px solid var(--border); color: var(--text); padding: 11px 14px; border-radius: 12px; font-size: 0.9rem; font-family: inherit; }
         .toolbar input.search:focus { outline: none; border-color: var(--accent-color); }
         .chips { display: flex; gap: 6px; flex-wrap: wrap; }
         .chip { padding: 8px 14px; background: var(--card2); border: 1px solid var(--border); border-radius: 20px; color: var(--text-secondary); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: .2s; }
@@ -98,6 +113,14 @@
         .section h3 { margin: 0 0 16px 0; font-size: 0.8rem; color: var(--accent-color); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; display: flex; align-items: center; justify-content: space-between; }
         .section h3 .counter { background: var(--accent-soft); color: var(--accent-color); padding: 3px 11px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
         .section h3 .counter.complete { background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
+
+        /* Évolution */
+        .evo-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
+        .evo-head h3 { margin: 0; }
+        .evo-toggle { display: flex; gap: 6px; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 4px; }
+        .evo-toggle button { padding: 7px 14px; border: none; background: transparent; color: var(--text-secondary); border-radius: 9px; font-weight: 600; font-size: 0.8rem; cursor: pointer; font-family: inherit; transition: .2s; }
+        .evo-toggle button.active { background: var(--accent-grad); color: #fff; }
+        .evo-wrap { position: relative; height: 250px; margin-top: 16px; }
 
         /* Progress bar */
         .progress-container { margin-bottom: 16px; }
@@ -190,15 +213,15 @@
 
         .two-col-grid { display: grid; grid-template-columns: 1fr; gap: 18px; }
 
+        @media (max-width: 640px) {
+            .momentum { grid-template-columns: repeat(2, 1fr); }
+            .hero { padding: 22px 22px; }
+            .hero-greeting { font-size: 1.55rem; }
+        }
         @media (min-width: 600px) {
             .main-wrapper { padding: 30px; }
             .dashboard { gap: 20px; }
-            .header h1 { font-size: 2rem; }
-            #clock { font-size: 2rem; }
             .two-col-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
-        }
-        @media (min-width: 900px) {
-            .header h1 { font-size: 2.4rem; }
         }
 
         /* Sync indicator */
@@ -238,7 +261,6 @@
                     <div>
                         <a href="#" class="back-hub" id="hub-link">← Retour au Hub</a>
                         <div class="agency" id="brand-agency">Agence</div>
-                        <h1 id="brand-user">Utilisateur</h1>
                     </div>
                     <div class="header-right">
                         <button class="theme-toggle" id="theme-toggle-btn" title="Changer le mode">
@@ -253,11 +275,31 @@
                 </div>
             </div>
 
-            <!-- PLAN DU JOUR -->
-            <div class="plan-banner" id="plan-banner">
-                <div class="plan-item"><span class="plan-value" id="plan-count">0</span><span class="plan-label">Tâches aujourd'hui</span></div>
-                <div class="plan-item"><span class="plan-value" id="plan-duration">—</span><span class="plan-label">Durée estimée</span></div>
-                <div class="plan-item"><span class="plan-value" id="plan-done">0%</span><span class="plan-label">Complété</span></div>
+            <!-- HERO -->
+            <div class="hero" id="hero">
+                <div class="hero-left">
+                    <h1 class="hero-greeting" id="hero-greeting">Bonjour</h1>
+                    <div class="hero-sub" id="hero-sub">Prêt à avancer ?</div>
+                    <div class="hero-summary" id="hero-summary">—</div>
+                </div>
+                <div class="hero-ring">
+                    <svg class="ring" viewBox="0 0 120 120">
+                        <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#4f46e5"/><stop offset="50%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c084fc"/>
+                        </linearGradient></defs>
+                        <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+                        <circle id="ring-fill" class="ring-fill" cx="60" cy="60" r="52"></circle>
+                    </svg>
+                    <div class="ring-center"><span id="hero-ring-pct">0%</span><span class="ring-sub">aujourd'hui</span></div>
+                </div>
+            </div>
+
+            <!-- MOMENTUM -->
+            <div class="momentum">
+                <div class="mom-card"><div class="mom-icon" style="background:color-mix(in srgb,var(--orange) 18%,transparent);color:var(--orange)">🔥</div><div class="mom-val" id="mom-streak">0</div><div class="mom-label">Série (<span id="mom-streak-label">jours</span>)</div></div>
+                <div class="mom-card"><div class="mom-icon" style="background:var(--accent-soft);color:var(--accent-color)">✅</div><div class="mom-val" id="mom-today">0/0</div><div class="mom-label">Aujourd'hui</div></div>
+                <div class="mom-card"><div class="mom-icon" style="background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)">📈</div><div class="mom-val" id="mom-week">0</div><div class="mom-label">7 derniers jours</div></div>
+                <div class="mom-card"><div class="mom-icon" style="background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--blue)">🗓️</div><div class="mom-val" id="mom-month">0</div><div class="mom-label">30 derniers jours</div></div>
             </div>
 
             <!-- TOOLBAR -->
@@ -301,6 +343,19 @@
             <div class="section postponed" id="postponed-section" style="display: none;">
                 <h3><span>📅 TÂCHES PLANIFIÉES</span><span class="counter" id="postponed-counter">0</span></h3>
                 <div id="postponed-list"></div>
+            </div>
+
+            <!-- ÉVOLUTION -->
+            <div class="section">
+                <div class="evo-head">
+                    <h3>📈 ÉVOLUTION</h3>
+                    <div class="evo-toggle">
+                        <button class="active" onclick="setEvoPeriod('daily', this)">Quotidien</button>
+                        <button onclick="setEvoPeriod('weekly', this)">Hebdo</button>
+                        <button onclick="setEvoPeriod('monthly', this)">Mensuel</button>
+                    </div>
+                </div>
+                <div class="evo-wrap"><canvas id="evo-chart"></canvas></div>
             </div>
 
             <!-- CALENDRIER -->
@@ -411,16 +466,15 @@
             appName: 'Néo Storytellers',     // nom de l'agence / app
             userName: 'Zouhair Benazzouz',   // nom affiché
             hubLink: './index.html',         // lien "retour au hub" (ou null pour le cacher)
-            accentColor: '#e63946',          // couleur d'accent de la marque
+            accentColor: '',                 // vide = palette finance par défaut (acheteur peut mettre sa couleur)
             // Connexion Supabase (à repointer vers la base du client lors d'une revente)
             supabaseUrl: 'https://wxhlstificzqovfcumop.supabase.co',
             supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ'
         };
 
-        // Application de la marque
-        document.documentElement.style.setProperty('--accent-color', CONFIG.accentColor);
-        document.getElementById('brand-agency').textContent = CONFIG.appName;
-        document.getElementById('brand-user').textContent = CONFIG.userName;
+        // Application de la marque (accent optionnel : par défaut = palette finance du CSS)
+        if (CONFIG.accentColor) document.documentElement.style.setProperty('--accent-color', CONFIG.accentColor);
+        var _ag = document.getElementById('brand-agency'); if (_ag) _ag.textContent = CONFIG.appName;
         document.title = CONFIG.appName;
         const hubLinkEl = document.getElementById('hub-link');
         if (CONFIG.hubLink) { hubLinkEl.href = CONFIG.hubLink; } else { hubLinkEl.style.display = 'none'; }
@@ -512,18 +566,156 @@
             renderPostponedTasks(postponedTasks);
             renderWeekTasks(weekTasks);
             renderMonthTasks(monthTasks);
-            renderPlanBanner();
+            renderHero();
+            renderMomentum();
+            renderEvolution();
             initCalendar(); // pour rafraîchir les pastilles de tâches
         }
 
-        function renderPlanBanner() {
+        function renderHero() {
             const today = getToday();
             const todayTasks = tasks.filter(t => t.due_date === today);
             const done = todayTasks.filter(t => t.done).length;
+            const total = todayTasks.length;
+            const pct = total ? Math.round(done / total * 100) : 0;
+            const h = new Date().getHours();
+            const greet = h < 12 ? "Bonjour" : (h < 18 ? "Bon après-midi" : "Bonsoir");
+            const firstName = (CONFIG.userName || "").split(" ")[0] || "";
+            document.getElementById("hero-greeting").textContent = greet + (firstName ? ", " + firstName : "");
+            let sub;
+            if (total === 0) sub = "Rien de prévu aujourd'hui. Pose une première intention ✨";
+            else if (done === total) sub = "Journée bouclée. Savoure ça 🎉";
+            else if (pct >= 60) sub = "Plus que " + (total - done) + " — tu y es presque 💪";
+            else sub = PHRASES[new Date().getDate() % PHRASES.length];
+            document.getElementById("hero-sub").textContent = sub;
+            setRing(pct);
+            document.getElementById("hero-ring-pct").textContent = pct + "%";
             const totalMin = todayTasks.filter(t => !t.done).reduce((s, t) => s + (parseInt(t.duration_min) || 0), 0);
-            document.getElementById('plan-count').textContent = todayTasks.length;
-            document.getElementById('plan-duration').textContent = totalMin ? '~' + formatDuration(totalMin) : '—';
-            document.getElementById('plan-done').textContent = (todayTasks.length ? Math.round(done / todayTasks.length * 100) : 0) + '%';
+            document.getElementById("hero-summary").textContent = total
+                ? (done + "/" + total + " tâches" + (totalMin ? " • ~" + formatDuration(totalMin) + " restant" : ""))
+                : "Aucune tâche aujourd'hui";
+            document.getElementById("hero").classList.toggle("celebrate", total > 0 && done === total);
+        }
+        const PHRASES = [
+            "Une tâche à la fois, et la journée se déroule.",
+            "Le progrès, pas la perfection.",
+            "Commence petit. L'élan fera le reste.",
+            "Chaque case cochée compte.",
+            "Avance à ton rythme, mais avance.",
+            "Aujourd'hui est une bonne page à écrire."
+        ];
+        function setRing(pct) {
+            const c = document.getElementById("ring-fill");
+            if (!c) return;
+            const r = c.r.baseVal.value;
+            const circ = 2 * Math.PI * r;
+            c.style.strokeDasharray = circ;
+            c.style.strokeDashoffset = circ * (1 - pct / 100);
+        }
+
+        // ===== MOMENTUM (série + compteurs basés sur completed_at) =====
+        function completionsByDay() {
+            const map = {};
+            tasks.forEach(t => {
+                if (t.done && t.completed_at) {
+                    const d = String(t.completed_at).split("T")[0];
+                    map[d] = (map[d] || 0) + 1;
+                }
+            });
+            return map;
+        }
+        function computeStreak() {
+            const map = completionsByDay();
+            let streak = 0;
+            let cursor = getToday();
+            if (!map[cursor]) cursor = shiftDate(cursor, -1); // grâce : aujourd'hui pas encore commencé
+            while (map[cursor]) { streak++; cursor = shiftDate(cursor, -1); }
+            return streak;
+        }
+        function countCompletedSince(fromStr) {
+            const map = completionsByDay();
+            const today = getToday();
+            let n = 0;
+            Object.keys(map).forEach(d => { if (d >= fromStr && d <= today) n += map[d]; });
+            return n;
+        }
+        function renderMomentum() {
+            const streak = computeStreak();
+            document.getElementById("mom-streak").textContent = streak;
+            const lbl = document.getElementById("mom-streak-label");
+            if (lbl) lbl.textContent = streak <= 1 ? "jour" : "jours";
+            const today = getToday();
+            const todayTasks = tasks.filter(t => t.due_date === today);
+            document.getElementById("mom-today").textContent = todayTasks.filter(t => t.done).length + "/" + todayTasks.length;
+            document.getElementById("mom-week").textContent = countCompletedSince(shiftDate(today, -6));
+            document.getElementById("mom-month").textContent = countCompletedSince(shiftDate(today, -29));
+        }
+
+        // ===== ÉVOLUTION (graphique Chart.js) =====
+        let evoChart = null, evoPeriod = "daily";
+        function setEvoPeriod(p, btn) {
+            evoPeriod = p;
+            document.querySelectorAll(".evo-toggle button").forEach(b => b.classList.remove("active"));
+            if (btn) btn.classList.add("active");
+            renderEvolution();
+        }
+        function evoBuckets() {
+            const map = completionsByDay();
+            const labels = [], values = [];
+            const today = new Date();
+            if (evoPeriod === "daily") {
+                for (let i = 13; i >= 0; i--) {
+                    const d = new Date(today); d.setDate(d.getDate() - i);
+                    const k = d.toISOString().split("T")[0];
+                    labels.push(d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }));
+                    values.push(map[k] || 0);
+                }
+            } else if (evoPeriod === "weekly") {
+                for (let w = 7; w >= 0; w--) {
+                    let sum = 0, startLabel = "";
+                    for (let dd = 0; dd < 7; dd++) {
+                        const d = new Date(today); d.setDate(d.getDate() - (w * 7) - dd);
+                        const k = d.toISOString().split("T")[0];
+                        sum += map[k] || 0;
+                        if (dd === 6) startLabel = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+                    }
+                    labels.push(startLabel);
+                    values.push(sum);
+                }
+            } else {
+                for (let m = 5; m >= 0; m--) {
+                    const d = new Date(today.getFullYear(), today.getMonth() - m, 1);
+                    const y = d.getFullYear(), mo = d.getMonth();
+                    let sum = 0;
+                    Object.keys(map).forEach(k => { const dt = new Date(k); if (dt.getFullYear() === y && dt.getMonth() === mo) sum += map[k]; });
+                    labels.push(d.toLocaleDateString("fr-FR", { month: "short" }));
+                    values.push(sum);
+                }
+            }
+            return { labels, values };
+        }
+        function renderEvolution() {
+            const canvas = document.getElementById("evo-chart");
+            if (!canvas || !window.Chart) return;
+            const b = evoBuckets();
+            const isLight = document.documentElement.getAttribute("data-theme") === "light";
+            const ctx = canvas.getContext("2d");
+            const grad = ctx.createLinearGradient(0, 0, 0, 240);
+            grad.addColorStop(0, "#7c3aed");
+            grad.addColorStop(1, isLight ? "rgba(124,58,237,0.30)" : "rgba(124,58,237,0.12)");
+            if (evoChart) evoChart.destroy();
+            evoChart = new Chart(canvas, {
+                type: "bar",
+                data: { labels: b.labels, datasets: [{ data: b.values, backgroundColor: grad, borderRadius: 8, maxBarThickness: 40 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => " " + c.parsed.y + " tâche" + (c.parsed.y > 1 ? "s" : "") } } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: isLight ? "#6b7280" : "#5b6675", font: { family: "Inter", size: 11 }, maxRotation: 0, autoSkip: true } },
+                        y: { beginAtZero: true, grid: { color: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)" }, ticks: { precision: 0, color: isLight ? "#6b7280" : "#5b6675", font: { family: "Inter", size: 11 } } }
+                    }
+                }
+            });
         }
 
         function renderOverdueTasks(list) {
@@ -604,7 +796,7 @@
             if (!task) return;
             const willBeDone = !task.done;
             updateSyncStatus('syncing');
-            const { error } = await db.from('tasks').update({ done: willBeDone }).eq('id', id);
+            const { error } = await db.from('tasks').update({ done: willBeDone, completed_at: willBeDone ? new Date().toISOString() : null }).eq('id', id);
             if (error) { console.error(error); updateSyncStatus('error'); return; }
 
             // Récurrence : si on coche une tâche récurrente, on crée la prochaine occurrence
@@ -901,6 +1093,7 @@
                 var cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
                 document.documentElement.setAttribute('data-theme', cur);
                 try { localStorage.setItem('neo-theme', cur); } catch(e){}
+                if (typeof renderEvolution === 'function') renderEvolution();
             });
         })();
     </script>
