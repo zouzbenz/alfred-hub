@@ -3,141 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Insta Immo - Nos Biens</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>Nos biens à Casablanca — Insta Immo</title>
+    <meta name="description" content="Appartements, villas et biens d'exception à Casablanca : Anfa, Ain Diab, CFC, Bourgogne, Bouskoura. Insta Immo, votre spécialiste immobilier.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Insta Immo">
+    <meta property="og:title" content="Nos biens à Casablanca — Insta Immo">
+    <meta property="og:description" content="Appartements, villas et biens d'exception à Casablanca. Découvrez notre sélection.">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./immo-core.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <style>
-        :root{--bg:#fff;--card:#f8f9fa;--border:#e0e0e0;--text:#1a1a1a;--dim:#666;--accent:#FFC107;}
-        *{box-sizing:border-box;margin:0;padding:0;}
-        body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;}
-        .container{max-width:1200px;margin:0 auto;padding:20px;}
-        .header{text-align:center;padding:40px 0;border-bottom:1px solid var(--border);margin-bottom:30px;}
-        .header h1{font-size:2.5rem;font-weight:800;margin-bottom:10px;}
-        .header h1 span{color:var(--accent);}
-        .header p{color:var(--dim);font-size:1.1rem;}
-        .filters{display:flex;gap:10px;margin-bottom:30px;flex-wrap:wrap;justify-content:center;}
-        .filter-btn{padding:10px 20px;background:var(--card);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:.9rem;transition:.2s;}
-        .filter-btn:hover,.filter-btn.active{background:var(--accent);border-color:var(--accent);color:#000;}
-        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;}
-        .card{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:.3s;}
-        .card:hover{box-shadow:0 10px 30px rgba(0,0,0,.1);transform:translateY(-4px);}
-        .card-img{height:200px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:4rem;color:var(--dim);}
-        .card-body{padding:20px;}
-        .card-ref{display:inline-block;background:var(--accent);color:#000;padding:4px 10px;border-radius:6px;font-size:.75rem;font-weight:700;margin-bottom:10px;}
-        .card-title{font-size:1.2rem;font-weight:700;margin-bottom:8px;}
-        .card-location{color:var(--dim);font-size:.9rem;margin-bottom:15px;display:flex;align-items:center;gap:6px;}
-        .card-features{display:flex;gap:15px;margin-bottom:15px;flex-wrap:wrap;}
-        .card-feature{display:flex;align-items:center;gap:4px;font-size:.85rem;color:var(--dim);}
-        .card-price{font-size:1.4rem;font-weight:800;color:var(--accent);}
-        .card-footer{display:flex;justify-content:space-between;align-items:center;padding-top:15px;border-top:1px solid var(--border);margin-top:15px;}
-        .card-tags{display:flex;gap:6px;}
-        .tag{padding:4px 8px;background:var(--card);border-radius:5px;font-size:.7rem;font-weight:600;}
-        .btn-voir{padding:10px 20px;background:var(--text);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;text-decoration:none;font-size:.85rem;}
-        .btn-voir:hover{background:var(--accent);color:#000;}
-        .empty{text-align:center;padding:60px;color:var(--dim);}
-        .footer{text-align:center;padding:40px;color:var(--dim);font-size:.85rem;border-top:1px solid var(--border);margin-top:40px;}
-        .footer a{color:var(--accent);text-decoration:none;}
-        @media(max-width:500px){.header h1{font-size:1.8rem;}.grid{grid-template-columns:1fr;}}
+        .hero-head{text-align:center;padding:34px 0 30px}
+        .hero-head h1{font-size:clamp(1.7rem,4.5vw,2.5rem);font-weight:800}
+        .hero-head h1 span{background:var(--accent);padding:0 10px;border-radius:10px}
+        .hero-head p{color:var(--dim);font-size:1.05rem;margin-top:10px}
+        .filters{display:flex;gap:8px;margin:26px 0 30px;flex-wrap:wrap;justify-content:center}
+        .filter-btn{padding:9px 18px;background:var(--card);border:1.5px solid var(--border);border-radius:999px;
+          cursor:pointer;font-size:.88rem;font-weight:600;transition:.15s;color:var(--text)}
+        .filter-btn:hover{border-color:var(--accent)}
+        .filter-btn.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+        .count-line{text-align:center;color:var(--dim);font-size:.88rem;margin-bottom:22px}
+        .skeleton-card{height:330px}
     </style>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1>🏠 Insta <span>Immo</span></h1>
-            <p>Découvrez nos biens exclusifs à Casablanca</p>
+    <div class="container" style="max-width:1150px">
+        <header class="brand-header" style="border-bottom:none;margin-bottom:0">
+            <a class="brand" href="./immo-biens.html">
+                <span class="brand-mark" aria-hidden="true">🏠</span>
+                <span>Insta Immo<small>Casablanca</small></span>
+            </a>
+            <a href="https://wa.me/212687842466" class="btn btn-primary" style="min-height:40px;padding:9px 18px;font-size:.86rem" rel="noopener">💬 Nous contacter</a>
         </header>
-        
-        <div class="filters">
-            <button class="filter-btn active" data-zone="all">Tous</button>
-            <button class="filter-btn" data-zone="anfa">Anfa</button>
-            <button class="filter-btn" data-zone="ain_diab">Ain Diab</button>
-            <button class="filter-btn" data-zone="cfc">CFC</button>
-            <button class="filter-btn" data-zone="bourgogne">Bourgogne</button>
-            <button class="filter-btn" data-zone="bouskoura">Bouskoura</button>
+
+        <div class="hero-head">
+            <h1>Trouvez votre bien <span>d'exception</span></h1>
+            <p>Notre sélection exclusive à Casablanca — Anfa, Ain Diab, CFC, Bourgogne, Bouskoura</p>
         </div>
-        
-        <div class="grid" id="biens-grid"></div>
-        
-        <footer class="footer">
-            <p>📞 +212 687 842 466 • <a href="https://wa.me/212687842466">WhatsApp</a></p>
-            <p style="margin-top:10px;">© 2026 Insta Immo - Zouhair Benazzouz</p>
+
+        <div class="filters" id="filters" role="group" aria-label="Filtrer par zone"></div>
+        <p class="count-line" id="count-line"></p>
+
+        <main id="biens-grid" class="biens-grid" aria-live="polite">
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+        </main>
+
+        <footer class="site-footer">
+            <p>📞 <a href="tel:+212687842466" style="text-decoration:none"><strong>+212 687 842 466</strong></a> · <a href="https://wa.me/212687842466" rel="noopener">WhatsApp</a></p>
+            <p style="margin-top:6px">© 2026 <strong>Insta Immo</strong> — Zouhair Benazzouz</p>
         </footer>
     </div>
-    
-    <script>
-const SUPABASE_URL='https://wxhlstificzqovfcumop.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const TYPE_LABELS={studio:'Studio',appartement:'Appartement',villa:'Villa',terrain:'Terrain',local_commercial:'Local commercial',bureau:'Bureau'};
-const ZONE_LABELS={anfa:'Anfa',ain_diab:'Ain Diab',cfc:'CFC',bourgogne:'Bourgogne',bouskoura:'Bouskoura'};
-let biens=[],currentZone='all';
 
-async function loadBiens(){
-    // D'abord charger tous les biens pour debug
-    const{data,error}=await db.from('immo_biens').select('*').order('created_at',{ascending:false});
-    console.log('Tous les biens:',data);
-    console.log('Erreur:',error);
-    if(error){
-        document.getElementById('biens-grid').innerHTML='<div class="empty">Erreur de chargement: '+error.message+'</div>';
-        return;
+    <script src="./immo-core.js"></script>
+    <script>
+let biens = [], heroPhotos = {}, currentZone = 'all';
+
+async function loadBiens() {
+    try {
+        /* RLS : la clé anon ne voit que les biens publiés */
+        const { data, error } = await db.from('immo_biens').select('*')
+            .eq('publie', true).eq('statut', 'disponible')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        biens = data || [];
+
+        /* Photos hero pour les vignettes */
+        if (biens.length) {
+            const { data: photos } = await db.from('immo_bien_photos')
+                .select('bien_id,storage_path,ordre').eq('section', 'hero')
+                .in('bien_id', biens.map(b => b.id)).order('ordre');
+            (photos || []).forEach(p => { if (!heroPhotos[p.bien_id]) heroPhotos[p.bien_id] = p.storage_path; });
+        }
+
+        renderFilters();
+        render();
+    } catch (err) {
+        console.error(err);
+        document.getElementById('biens-grid').innerHTML =
+            '<div class="state state-error" style="grid-column:1/-1"><p><strong>Chargement impossible</strong></p><p class="state-detail">Vérifiez votre connexion puis actualisez la page.</p></div>';
     }
-    // Filtrer côté client pour plus de flexibilité
-    biens=(data||[]).filter(b=>b.publie===true && b.statut==='disponible');
-    console.log('Biens filtrés (publie=true, statut=disponible):',biens);
-    // Si aucun bien filtré mais des biens existent, montrer tous les disponibles
-    if(!biens.length && data?.length){
-        biens=data.filter(b=>b.statut==='disponible');
-        console.log('Fallback - biens disponibles:',biens);
-    }
-    render();
 }
 
-function formatMoney(n){return new Intl.NumberFormat('fr-MA').format(n||0);}
+function renderFilters() {
+    /* Zones réellement présentes dans le catalogue + zones de référence */
+    const zones = [...new Set(biens.map(b => b.zone))];
+    const el = document.getElementById('filters');
+    el.innerHTML = `<button class="filter-btn active" data-zone="all">Tous les biens</button>` +
+        zones.map(z => `<button class="filter-btn" data-zone="${escAttr(z)}">${esc(ZONE_LABELS[z] || z)}</button>`).join('');
+    el.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', () => {
+        el.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentZone = btn.dataset.zone;
+        render();
+    }));
+}
 
-function render(){
-    const grid=document.getElementById('biens-grid');
-    const filtered=currentZone==='all'?biens:biens.filter(b=>b.zone===currentZone);
-    
-    if(!filtered.length){
-        grid.innerHTML='<div class="empty">Aucun bien disponible dans cette zone</div>';
+function render() {
+    const grid = document.getElementById('biens-grid');
+    const filtered = currentZone === 'all' ? biens : biens.filter(b => b.zone === currentZone);
+
+    document.getElementById('count-line').textContent = filtered.length
+        ? `${filtered.length} bien${filtered.length > 1 ? 's' : ''} disponible${filtered.length > 1 ? 's' : ''}`
+        : '';
+
+    if (!filtered.length) {
+        grid.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:56px 20px">
+            Aucun bien disponible ${currentZone !== 'all' ? 'dans cette zone' : ''} pour le moment.<br>
+            <a href="${AGENCE.whatsapp}" rel="noopener" style="font-weight:700">Confiez-nous votre recherche →</a></div>`;
         return;
     }
-    
-    grid.innerHTML=filtered.map(b=>`
-        <div class="card">
-            <div class="card-img">🏠</div>
-            <div class="card-body">
-                <span class="card-ref">${b.reference}</span>
-                <h3 class="card-title">${b.titre}</h3>
-                <p class="card-location">📍 ${ZONE_LABELS[b.zone]||b.zone}${b.quartier?' - '+b.quartier:''}</p>
-                <div class="card-features">
-                    ${b.surface_m2?`<span class="card-feature">📐 ${b.surface_m2} m²</span>`:''}
-                    ${b.chambres?`<span class="card-feature">🛏️ ${b.chambres} ch.</span>`:''}
-                    ${b.sdb?`<span class="card-feature">🚿 ${b.sdb} SDB</span>`:''}
-                    ${b.etage!==null?`<span class="card-feature">🏢 ${b.etage}ème</span>`:''}
-                </div>
-                <div class="card-price">${formatMoney(b.prix)} MAD</div>
-                <div class="card-footer">
-                    <div class="card-tags">
-                        <span class="tag">${TYPE_LABELS[b.type_bien]}</span>
-                        ${b.ascenseur?'<span class="tag">Ascenseur</span>':''}
-                        ${b.parking>0?'<span class="tag">Parking</span>':''}
-                    </div>
-                    <a href="./immo-bien.html?ref=${b.reference}" class="btn-voir">Voir →</a>
+
+    grid.innerHTML = filtered.map(b => {
+        const img = heroPhotos[b.id];
+        return `
+        <a class="bien-card" href="./immo-bien.html?ref=${encodeURIComponent(b.reference)}">
+            <div class="bien-img">${img
+                ? `<img src="${escAttr(photoUrl(img))}" alt="${escAttr(b.titre)}" loading="lazy">`
+                : '<span aria-hidden="true">🏠</span>'}</div>
+            <div class="bien-body">
+                <span class="ref-plate">${esc(b.reference)}</span>
+                <div class="bien-title">${esc(b.titre)}</div>
+                <div class="bien-location">📍 ${esc(ZONE_LABELS[b.zone] || b.zone)}${b.quartier ? ' · ' + esc(b.quartier) : ''}</div>
+                <div class="bien-price">${formatMoney(b.prix)} <small>MAD${b.negociable ? ' · négociable' : ''}</small></div>
+                <div class="bien-features">
+                    <span>🏠 ${esc(TYPE_LABELS[b.type_bien] || b.type_bien)}</span>
+                    ${b.surface_m2 ? `<span>📐 ${esc(b.surface_m2)} m²</span>` : ''}
+                    ${b.chambres ? `<span>🛏️ ${esc(b.chambres)} ch.</span>` : ''}
                 </div>
             </div>
-        </div>
-    `).join('');
+        </a>`;
+    }).join('');
 }
-
-document.querySelectorAll('.filter-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-        document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        currentZone=btn.dataset.zone;
-        render();
-    });
-});
 
 loadBiens();
     </script>

@@ -2,505 +2,339 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Insta Immo - Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Insta Immo</title>
+    <meta name="robots" content="noindex">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./immo-core.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <style>
-        :root { 
-            --bg:#ffffff; --card:#f8f9fa; --card2:#f0f0f0; --border:#e0e0e0; 
-            --text:#1a1a1a; --dim:#666; --accent:#FFC107; --accent2:#FFD54F;
-            --green:#10b981; --red:#ef4444; --orange:#f59e0b; --blue:#3b82f6;
-        }
-        * { box-sizing:border-box; margin:0; padding:0; }
-        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
-        
-        .container { max-width:1400px; margin:0 auto; padding:15px; }
-        
-        /* Header */
-        .header { display:flex; justify-content:space-between; align-items:center; padding:15px 0; margin-bottom:20px; flex-wrap:wrap; gap:15px; }
-        .header h1 { font-size:1.6rem; font-weight:800; display:flex; align-items:center; gap:10px; }
-        .header h1 span { color:var(--accent); }
-        .header-links { display:flex; gap:10px; }
-        .header-link { padding:10px 16px; background:var(--card); border:1px solid var(--border); border-radius:10px; color:var(--dim); text-decoration:none; font-size:.85rem; transition:.2s; }
-        .header-link:hover { border-color:var(--accent); color:var(--text); }
-        .header-link.active { background:var(--accent); border-color:var(--accent); color:#000; font-weight:600; }
-        
-        /* KPIs principales */
-        .kpis-main { display:grid; grid-template-columns:repeat(4, 1fr); gap:15px; margin-bottom:20px; }
-        .kpi-main { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; text-align:center; }
-        .kpi-main.highlight { background:linear-gradient(135deg, var(--accent), var(--accent2)); border:none; }
-        .kpi-main.highlight .kpi-value, .kpi-main.highlight .kpi-label { color:#000; }
-        .kpi-icon { font-size:1.8rem; margin-bottom:10px; }
-        .kpi-value { font-size:1.8rem; font-weight:800; margin-bottom:4px; }
-        .kpi-value.green { color:var(--green); }
-        .kpi-value.red { color:var(--red); }
-        .kpi-label { font-size:.8rem; color:var(--dim); }
-        
-        /* Grid layout */
-        .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
-        
-        /* Section */
-        .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:20px; }
-        .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
-        .section-title { font-size:1rem; font-weight:700; display:flex; align-items:center; gap:8px; }
-        .section-link { font-size:.8rem; color:var(--accent); text-decoration:none; font-weight:600; }
-        
-        /* Listes */
-        .list-item { display:flex; align-items:center; gap:12px; padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; margin-bottom:8px; }
-        .list-item:last-child { margin-bottom:0; }
-        .list-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
-        .list-icon.bien { background:rgba(255,193,7,.15); }
-        .list-icon.client { background:rgba(59,130,246,.15); }
-        .list-icon.visite { background:rgba(16,185,129,.15); }
-        .list-icon.offre { background:rgba(239,68,68,.15); }
-        .list-info { flex:1; min-width:0; }
-        .list-title { font-size:.9rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .list-meta { font-size:.75rem; color:var(--dim); }
-        .list-badge { padding:4px 10px; border-radius:6px; font-size:.7rem; font-weight:600; }
-        .badge-green { background:rgba(16,185,129,.15); color:var(--green); }
-        .badge-orange { background:rgba(245,158,11,.15); color:var(--orange); }
-        .badge-red { background:rgba(239,68,68,.15); color:var(--red); }
-        .badge-blue { background:rgba(59,130,246,.15); color:var(--blue); }
-        .badge-yellow { background:rgba(255,193,7,.2); color:#b38600; }
-        
-        /* Matchings */
-        .matching-item { display:flex; align-items:center; gap:12px; padding:15px; background:var(--bg); border:1px solid var(--border); border-radius:10px; margin-bottom:10px; }
-        .matching-score { width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.9rem; flex-shrink:0; }
-        .matching-score.high { background:var(--green); color:#fff; }
-        .matching-score.medium { background:var(--orange); color:#fff; }
-        .matching-score.low { background:var(--dim); color:#fff; }
-        .matching-info { flex:1; }
-        .matching-client { font-size:.85rem; font-weight:600; margin-bottom:4px; }
-        .matching-bien { font-size:.8rem; color:var(--dim); }
-        .matching-arrow { font-size:1.2rem; color:var(--accent); margin:0 10px; }
-        
-        /* CA Card */
-        .ca-card { background:linear-gradient(135deg, #1a1a1a, #333); border-radius:16px; padding:25px; color:#fff; }
-        .ca-row { display:flex; justify-content:space-between; margin-bottom:15px; }
-        .ca-item { text-align:center; }
-        .ca-value { font-size:1.5rem; font-weight:800; }
-        .ca-value.green { color:var(--green); }
-        .ca-value.orange { color:var(--orange); }
-        .ca-label { font-size:.75rem; opacity:.7; margin-top:4px; }
-        
-        /* Tâches */
-        .task-item { display:flex; align-items:center; gap:10px; padding:10px; background:var(--bg); border-radius:8px; margin-bottom:6px; }
-        .task-check { width:20px; height:20px; border:2px solid var(--border); border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.2s; flex-shrink:0; }
-        .task-check:hover { border-color:var(--accent); }
-        .task-check.done { background:var(--green); border-color:var(--green); }
-        .task-check.done::after { content:'✓'; color:#fff; font-size:.7rem; }
-        .task-text { flex:1; font-size:.85rem; }
-        .task-text.done { text-decoration:line-through; color:var(--dim); }
-        .task-tag { font-size:.65rem; padding:2px 6px; background:rgba(255,193,7,.2); color:#b38600; border-radius:4px; }
-        
-        /* Empty state */
-        .empty-state { text-align:center; padding:30px; color:var(--dim); font-size:.9rem; }
-        
-        /* Footer */
-        .footer { text-align:center; padding:20px; color:var(--dim); font-size:.8rem; }
-        .footer a { color:var(--accent); text-decoration:none; }
-        
-        /* Responsive */
-        @media(max-width:1000px) { .grid-2 { grid-template-columns:1fr; } }
-        @media(max-width:800px) { .kpis-main { grid-template-columns:repeat(2, 1fr); } }
-        @media(max-width:500px) { 
-            .kpis-main { grid-template-columns:1fr 1fr; gap:10px; }
-            .kpi-main { padding:15px; }
-            .kpi-value { font-size:1.4rem; }
-            .header h1 { font-size:1.3rem; }
-        }
+        .top-nav{display:flex;gap:6px;flex-wrap:wrap}
+        .nav-link{padding:8px 14px;border-radius:9px;text-decoration:none;font-size:.86rem;font-weight:600;color:var(--dim)}
+        .nav-link:hover{background:var(--card2);color:var(--text)}
+        .nav-link.active{background:var(--accent);color:var(--accent-ink)}
+        .kpis-main{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+        @media (max-width:800px){.kpis-main{grid-template-columns:repeat(2,1fr)}}
+        .kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center}
+        .kpi.highlight{background:var(--accent-soft);border-color:#f0dc9e}
+        .kpi-icon{font-size:1.4rem;margin-bottom:6px}
+        .kpi-value{font-size:1.7rem;font-weight:800;line-height:1.1}
+        .kpi-label{font-size:.78rem;color:var(--dim);margin-top:4px}
+        .ca-card{background:#161616;border-radius:var(--radius);padding:24px;color:#fff;margin-bottom:20px;
+          display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center}
+        @media (max-width:560px){.ca-card{grid-template-columns:1fr 1fr}}
+        .ca-value{font-size:1.4rem;font-weight:800}
+        .ca-value.green{color:#3ecf9a}.ca-value.orange{color:#ffb74a}
+        .ca-label{font-size:.74rem;opacity:.65;margin-top:4px}
+        .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+        @media (max-width:960px){.grid-2{grid-template-columns:1fr}}
+        .panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+        .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+        .panel-title{font-size:.98rem;font-weight:800;display:flex;align-items:center;gap:8px}
+        .panel-link{font-size:.8rem;color:#8a6d00;text-decoration:none;font-weight:700}
+        .item{display:flex;align-items:center;gap:12px;padding:12px;background:#fff;border:1px solid var(--border);
+          border-radius:var(--radius-sm);margin-bottom:8px}
+        .item:last-child{margin-bottom:0}
+        .item-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:1rem;flex-shrink:0}
+        .ic-visite{background:rgba(15,157,110,.13)}.ic-offre{background:rgba(224,67,61,.12)}
+        .ic-bien{background:rgba(255,193,7,.18)}
+        .item-main{flex:1;min-width:0}
+        .item-title{font-size:.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .item-meta{font-size:.74rem;color:var(--dim)}
+        .match-score{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;
+          font-weight:800;font-size:.82rem;flex-shrink:0;color:#fff}
+        .ms-high{background:var(--green)}.ms-medium{background:var(--orange)}
+        .task{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;
+          border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:7px}
+        .task-check{width:21px;height:21px;border:2px solid #cfd4da;border-radius:6px;cursor:pointer;
+          display:grid;place-items:center;transition:.15s;flex-shrink:0;background:#fff}
+        .task-check:hover{border-color:var(--accent)}
+        .task-check.done{background:var(--green);border-color:var(--green);color:#fff;font-size:.68rem}
+        .task-text{flex:1;font-size:.87rem}
+        .task-text.done{text-decoration:line-through;color:var(--dim)}
     </style>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1>🏠 Insta <span>Immo</span></h1>
-            <div class="header-links">
-                <a href="./" class="header-link">Hub</a>
-                <a href="./immo-dashboard.html" class="header-link active">Dashboard</a>
-                <a href="./immo-backoffice.html" class="header-link">Backoffice</a>
-                <a href="./immo-biens.html" class="header-link">Biens</a>
-            </div>
-        </header>
-        
-        <!-- KPIs principales -->
-        <div class="kpis-main">
-            <div class="kpi-main">
-                <div class="kpi-icon">🏠</div>
-                <div class="kpi-value" id="kpi-biens">0</div>
-                <div class="kpi-label">Biens disponibles</div>
-            </div>
-            <div class="kpi-main">
-                <div class="kpi-icon">👥</div>
-                <div class="kpi-value" id="kpi-clients">0</div>
-                <div class="kpi-label">Clients actifs</div>
-            </div>
-            <div class="kpi-main">
-                <div class="kpi-icon">📅</div>
-                <div class="kpi-value" id="kpi-visites">0</div>
-                <div class="kpi-label">Visites ce mois</div>
-            </div>
-            <div class="kpi-main highlight">
-                <div class="kpi-icon">🤝</div>
-                <div class="kpi-value" id="kpi-deals">0</div>
-                <div class="kpi-label">Deals en cours</div>
+    <div class="container" style="max-width:1150px">
+        <div id="login-screen">
+            <div class="login-wrap">
+                <form class="login-box" onsubmit="event.preventDefault();login();">
+                    <div class="login-icon" aria-hidden="true">📊</div>
+                    <h2>Dashboard agence</h2>
+                    <p class="login-sub">Réservé aux agents Insta Immo</p>
+                    <input type="email" id="login-email" class="input" placeholder="Email" autocomplete="username" style="margin-bottom:12px">
+                    <input type="password" id="login-pass" class="input" placeholder="Mot de passe" autocomplete="current-password" style="margin-bottom:14px">
+                    <button type="submit" class="btn btn-primary btn-block" id="login-btn">Connexion</button>
+                    <p class="login-error" id="login-error" role="alert"></p>
+                </form>
             </div>
         </div>
-        
-        <!-- CA -->
-        <div class="ca-card">
-            <div class="ca-row">
-                <div class="ca-item">
-                    <div class="ca-value green" id="ca-realise">0 MAD</div>
-                    <div class="ca-label">Commission encaissée</div>
-                </div>
-                <div class="ca-item">
-                    <div class="ca-value orange" id="ca-attente">0 MAD</div>
-                    <div class="ca-label">En attente</div>
-                </div>
-                <div class="ca-item">
-                    <div class="ca-value" id="taux-conversion">0%</div>
-                    <div class="ca-label">Taux conversion</div>
-                </div>
+
+        <div id="main-app" style="display:none">
+            <header class="brand-header">
+                <a class="brand" href="./immo-dashboard.html">
+                    <span class="brand-mark" aria-hidden="true">🏠</span>
+                    <span>Insta Immo<small id="hello-agent">Dashboard</small></span>
+                </a>
+                <nav class="top-nav" aria-label="Navigation">
+                    <a href="./" class="nav-link">Hub</a>
+                    <a href="./immo-dashboard.html" class="nav-link active">Dashboard</a>
+                    <a href="./immo-backoffice.html" class="nav-link">Backoffice</a>
+                    <a href="./immo-biens.html" class="nav-link">Vitrine</a>
+                    <a href="#" class="nav-link" onclick="logout();return false">Déconnexion</a>
+                </nav>
+            </header>
+
+            <div class="kpis-main">
+                <div class="kpi"><div class="kpi-icon">🏠</div><div class="kpi-value" id="kpi-biens">—</div><div class="kpi-label">Biens disponibles</div></div>
+                <div class="kpi"><div class="kpi-icon">👥</div><div class="kpi-value" id="kpi-clients">—</div><div class="kpi-label">Clients actifs</div></div>
+                <div class="kpi"><div class="kpi-icon">📅</div><div class="kpi-value" id="kpi-visites">—</div><div class="kpi-label">Visites ce mois</div></div>
+                <div class="kpi highlight"><div class="kpi-icon">🤝</div><div class="kpi-value" id="kpi-deals">—</div><div class="kpi-label">Deals en cours</div></div>
             </div>
-        </div>
-        
-        <div style="height:20px;"></div>
-        
-        <div class="grid-2">
-            <!-- Matchings suggérés -->
-            <div class="section">
-                <div class="section-header">
-                    <h2 class="section-title">💡 Matchings suggérés</h2>
-                </div>
-                <div id="matchings-list">
-                    <div class="empty-state">Chargement...</div>
-                </div>
+
+            <div class="ca-card">
+                <div><div class="ca-value green" id="ca-realise">—</div><div class="ca-label">Commission encaissée</div></div>
+                <div><div class="ca-value orange" id="ca-attente">—</div><div class="ca-label">En attente</div></div>
+                <div><div class="ca-value" id="taux-conversion">—</div><div class="ca-label">Taux de conversion</div></div>
             </div>
-            
-            <!-- Prochaines visites -->
-            <div class="section">
-                <div class="section-header">
-                    <h2 class="section-title">📅 Prochaines visites</h2>
-                    <a href="./immo-backoffice.html" class="section-link">Voir tout →</a>
-                </div>
-                <div id="visites-list">
-                    <div class="empty-state">Chargement...</div>
-                </div>
+
+            <div class="grid-2">
+                <section class="panel">
+                    <div class="panel-head"><h2 class="panel-title">💡 Matchings suggérés</h2></div>
+                    <div id="matchings-list"><div class="empty">Chargement…</div></div>
+                </section>
+                <section class="panel">
+                    <div class="panel-head"><h2 class="panel-title">📅 Prochaines visites</h2>
+                        <a href="./immo-backoffice.html" class="panel-link">Voir tout →</a></div>
+                    <div id="visites-list"><div class="empty">Chargement…</div></div>
+                </section>
             </div>
-        </div>
-        
-        <div class="grid-2">
-            <!-- Dernières offres -->
-            <div class="section">
-                <div class="section-header">
-                    <h2 class="section-title">💰 Dernières offres</h2>
-                </div>
-                <div id="offres-list">
-                    <div class="empty-state">Chargement...</div>
-                </div>
+
+            <div class="grid-2">
+                <section class="panel">
+                    <div class="panel-head"><h2 class="panel-title">💰 Dernières offres</h2></div>
+                    <div id="offres-list"><div class="empty">Chargement…</div></div>
+                </section>
+                <section class="panel">
+                    <div class="panel-head"><h2 class="panel-title">✅ Tâches</h2>
+                        <a href="./immo-backoffice.html" class="panel-link">Gérer →</a></div>
+                    <div id="tasks-list"><div class="empty">Chargement…</div></div>
+                </section>
             </div>
-            
-            <!-- Tâches Immo -->
-            <div class="section">
-                <div class="section-header">
-                    <h2 class="section-title">✅ Tâches</h2>
-                    <a href="./immo-backoffice.html" class="section-link">Gérer →</a>
-                </div>
-                <div id="tasks-list">
-                    <div class="empty-state">Chargement...</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Derniers biens -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">🏠 Derniers biens ajoutés</h2>
-                <a href="./immo-biens.html" class="section-link">Voir tout →</a>
-            </div>
-            <div id="biens-list">
-                <div class="empty-state">Chargement...</div>
-            </div>
-        </div>
-        
-        <div class="footer">
-            <a href="./">Alfred Hub</a> • <a href="./immo-backoffice.html">Backoffice</a>
+
+            <section class="panel" style="margin-bottom:20px">
+                <div class="panel-head"><h2 class="panel-title">🏠 Derniers biens ajoutés</h2>
+                    <a href="./immo-biens.html" class="panel-link">Vitrine →</a></div>
+                <div id="biens-list"><div class="empty">Chargement…</div></div>
+            </section>
+
+            <footer class="site-footer">
+                <p><a href="./">Alfred Hub</a> · <a href="./immo-backoffice.html">Backoffice</a></p>
+            </footer>
         </div>
     </div>
-    
+
+    <script src="./immo-core.js"></script>
     <script>
-const SUPABASE_URL = 'https://wxhlstificzqovfcumop.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4aGxzdGlmaWN6cW92ZmN1bW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcwOTAsImV4cCI6MjA4Njg0MzA5MH0.mt6v3SKPMhWpMw9PH7D8k3ubrR1kJNIFHw0aloLmQiQ';
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const TYPE_LABELS = {
-    studio: 'Studio', appartement: 'Appartement', villa: 'Villa',
-    terrain: 'Terrain', local_commercial: 'Local commercial', bureau: 'Bureau'
-};
-
-const ZONE_LABELS = {
-    anfa: 'Anfa', ain_diab: 'Ain Diab', cfc: 'CFC', bourgogne: 'Bourgogne', bouskoura: 'Bouskoura'
-};
-
-const INTERET_LABELS = {
-    tres_interesse: '🔥 Très intéressé', interesse: '👍 Intéressé', 
-    bof: '😐 Bof', pas_interesse: '👎 Pas intéressé'
-};
-
 let biens = [], clients = [], visites = [], offres = [], transactions = [], tasks = [];
-
 const today = new Date();
 const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-async function loadData() {
-    const [biensRes, clientsRes, visitesRes, offresRes, transRes, tasksRes] = await Promise.all([
-        db.from('immo_biens').select('*').order('created_at', { ascending: false }),
-        db.from('immo_clients').select('*').order('created_at', { ascending: false }),
-        db.from('immo_visites').select('*, immo_biens(reference, titre), immo_clients(nom, prenom)').order('date_visite', { ascending: true }),
-        db.from('immo_offres').select('*, immo_biens(reference, titre), immo_clients(nom, prenom)').order('date_offre', { ascending: false }),
-        db.from('immo_transactions').select('*'),
-        db.from('immo_tasks').select('*').eq('done', false).order('date_echeance', { ascending: true }).limit(5)
-    ]);
-    
-    biens = biensRes.data || [];
-    clients = clientsRes.data || [];
-    visites = visitesRes.data || [];
-    offres = offresRes.data || [];
-    transactions = transRes.data || [];
-    tasks = tasksRes.data || [];
-    
-    renderKPIs();
-    renderMatchings();
-    renderVisites();
-    renderOffres();
-    renderTasks();
-    renderBiens();
+/* ---- Auth (Supabase Auth, requis : le RLS bloque la lecture anonyme) ---- */
+async function login() {
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    const errEl = document.getElementById('login-error');
+    if (!email || !pass) { errEl.textContent = 'Remplissez les champs.'; return; }
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true; btn.textContent = 'Connexion…'; errEl.textContent = '';
+    try {
+        const { error } = await db.auth.signInWithPassword({ email, password: pass });
+        if (error) { errEl.textContent = 'Identifiants incorrects.'; return; }
+        showApp();
+    } catch (e) {
+        errEl.textContent = 'Connexion impossible. Réessayez.';
+    } finally {
+        btn.disabled = false; btn.textContent = 'Connexion';
+    }
 }
+async function logout() { await db.auth.signOut(); location.reload(); }
+async function showApp() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    const { data: { user } } = await db.auth.getUser();
+    if (user) {
+        const { data: profil } = await db.from('immo_users').select('prenom').eq('auth_id', user.id).maybeSingle();
+        if (profil) document.getElementById('hello-agent').textContent = 'Bonjour ' + profil.prenom;
+    }
+    loadData();
+}
+db.auth.getSession().then(({ data: { session } }) => { if (session) showApp(); });
 
-function formatMoney(n) {
+/* ---- Données ---- */
+function moneyShort(n) {
+    n = Number(n) || 0;
     if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
     if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
-    return new Intl.NumberFormat('fr-MA').format(n || 0);
+    return formatMoney(n);
 }
 
-function formatDate(d) {
-    return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-}
+async function loadData() {
+    const [r1, r2, r3, r4, r5, r6] = await Promise.all([
+        db.from('immo_biens').select('*').order('created_at', { ascending: false }),
+        db.from('immo_clients').select('*').order('created_at', { ascending: false }),
+        db.from('immo_visites').select('*, immo_biens(reference,titre), immo_clients(nom,prenom)').order('date_visite', { ascending: true }),
+        db.from('immo_offres').select('*, immo_biens(reference,titre), immo_clients(nom,prenom)').order('date_offre', { ascending: false }),
+        db.from('immo_transactions').select('*'),
+        db.from('immo_tasks').select('*').eq('done', false).order('created_at', { ascending: true }).limit(6)
+    ]);
+    const firstError = [r1, r2, r3, r4, r5, r6].find(r => r.error)?.error;
+    if (firstError) console.error('Chargement partiel :', firstError.message);
 
-function formatDateTime(d) {
-    return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    biens = r1.data || []; clients = r2.data || []; visites = r3.data || [];
+    offres = r4.data || []; transactions = r5.data || []; tasks = r6.data || [];
+
+    renderKPIs(); renderMatchings(); renderVisites(); renderOffres(); renderTasks(); renderBiens();
 }
 
 function renderKPIs() {
-    const biensDispos = biens.filter(b => b.statut === 'disponible').length;
-    const clientsActifs = clients.filter(c => ['nouveau', 'en_recherche', 'en_negociation'].includes(c.statut)).length;
-    const visitesMois = visites.filter(v => new Date(v.date_visite) >= startOfMonth).length;
-    const dealsEnCours = biens.filter(b => b.statut === 'en_negociation').length;
-    
-    document.getElementById('kpi-biens').textContent = biensDispos;
-    document.getElementById('kpi-clients').textContent = clientsActifs;
-    document.getElementById('kpi-visites').textContent = visitesMois;
-    document.getElementById('kpi-deals').textContent = dealsEnCours;
-    
-    // CA
-    const caRealise = transactions.reduce((s, t) => s + parseFloat(t.commission_recue || 0), 0);
-    const caAttente = transactions.filter(t => t.statut_paiement !== 'paye').reduce((s, t) => s + parseFloat(t.commission_prevue || 0) - parseFloat(t.commission_recue || 0), 0);
-    
-    document.getElementById('ca-realise').textContent = formatMoney(caRealise) + ' MAD';
-    document.getElementById('ca-attente').textContent = formatMoney(caAttente) + ' MAD';
-    
-    // Taux conversion
-    const totalClients = clients.length;
-    const clientsConclu = clients.filter(c => c.statut === 'conclu').length;
-    const taux = totalClients > 0 ? Math.round((clientsConclu / totalClients) * 100) : 0;
-    document.getElementById('taux-conversion').textContent = taux + '%';
+    document.getElementById('kpi-biens').textContent = biens.filter(b => b.statut === 'disponible').length;
+    document.getElementById('kpi-clients').textContent = clients.filter(c => ['nouveau', 'en_recherche', 'en_negociation'].includes(c.statut)).length;
+    document.getElementById('kpi-visites').textContent = visites.filter(v => new Date(v.date_visite) >= startOfMonth).length;
+    document.getElementById('kpi-deals').textContent = biens.filter(b => b.statut === 'en_negociation').length;
+
+    const caRealise = transactions.reduce((s, t) => s + (parseFloat(t.commission_recue) || 0), 0);
+    const caAttente = transactions.filter(t => t.statut_paiement !== 'paye')
+        .reduce((s, t) => s + (parseFloat(t.commission_prevue) || 0) - (parseFloat(t.commission_recue) || 0), 0);
+    document.getElementById('ca-realise').textContent = moneyShort(caRealise) + ' MAD';
+    document.getElementById('ca-attente').textContent = moneyShort(Math.max(0, caAttente)) + ' MAD';
+
+    const conclu = clients.filter(c => c.statut === 'conclu').length;
+    document.getElementById('taux-conversion').textContent =
+        (clients.length ? Math.round((conclu / clients.length) * 100) : 0) + '%';
 }
 
 function calculateMatching(client, bien) {
     let score = 0;
-    let eliminatoire = false;
-    
-    // Type de bien
-    if (client.types_souhaites && client.types_souhaites.includes(bien.type_bien)) score += 20;
-    else if (client.types_souhaites && client.types_souhaites.length > 0) return 0;
-    
-    // Zone
-    if (client.zones_souhaitees && client.zones_souhaitees.includes(bien.zone)) score += 20;
-    else if (client.zones_souhaitees && client.zones_souhaitees.length > 0) return 0;
-    
-    // Budget
+    if (client.types_souhaites?.length) {
+        if (client.types_souhaites.includes(bien.type_bien)) score += 20; else return 0;
+    }
+    if (client.zones_souhaitees?.length) {
+        if (client.zones_souhaitees.includes(bien.zone)) score += 20; else return 0;
+    }
     const prix = parseFloat(bien.prix);
-    const budgetMin = parseFloat(client.budget_min) || 0;
-    const budgetMax = parseFloat(client.budget_max) || Infinity;
-    if (prix >= budgetMin && prix <= budgetMax) score += 20;
-    else if (prix >= budgetMin * 0.85 && prix <= budgetMax * 1.15) score += 10;
+    const bMin = parseFloat(client.budget_min) || 0;
+    const bMax = parseFloat(client.budget_max) || Infinity;
+    if (prix >= bMin && prix <= bMax) score += 20;
+    else if (prix >= bMin * 0.85 && prix <= bMax * 1.15) score += 10;
     else return 0;
-    
-    // Surface
-    if (bien.surface_m2 >= (client.surface_min || 0)) score += 10;
-    
-    // Chambres
-    if (bien.chambres >= (client.chambres_min || 0)) score += 10;
-    
-    // Critères éliminatoires
+    if ((bien.surface_m2 || 0) >= (client.surface_min || 0)) score += 10;
+    if ((bien.chambres || 0) >= (client.chambres_min || 0)) score += 10;
     if (client.elim_rdc && bien.etage === 0) return 0;
     if (client.elim_pas_ascenseur && !bien.ascenseur) return 0;
-    if (client.elim_pas_garage && bien.parking === 0) return 0;
-    
-    // Critères obligatoires
+    if (client.elim_pas_garage && !(bien.parking > 0)) return 0;
     if (client.crit_ascenseur) score += bien.ascenseur ? 5 : -15;
     if (client.crit_parking) score += bien.parking > 0 ? 5 : -15;
     if (client.crit_terrasse) score += bien.terrasse_m2 > 0 ? 5 : -15;
-    
     return Math.max(0, Math.min(100, score));
 }
 
 function renderMatchings() {
-    const container = document.getElementById('matchings-list');
-    
-    const biensDispos = biens.filter(b => b.statut === 'disponible');
-    const clientsActifs = clients.filter(c => ['nouveau', 'en_recherche'].includes(c.statut));
-    
+    const el = document.getElementById('matchings-list');
+    const dispo = biens.filter(b => b.statut === 'disponible');
+    const actifs = clients.filter(c => ['nouveau', 'en_recherche'].includes(c.statut));
     const matchings = [];
-    clientsActifs.forEach(client => {
-        biensDispos.forEach(bien => {
-            const score = calculateMatching(client, bien);
-            if (score >= 60) {
-                matchings.push({ client, bien, score });
-            }
-        });
-    });
-    
-    matchings.sort((a, b) => b.score - a.score);
-    const topMatchings = matchings.slice(0, 5);
-    
-    if (!topMatchings.length) {
-        container.innerHTML = '<div class="empty-state">Aucun matching trouvé</div>';
-        return;
-    }
-    
-    container.innerHTML = topMatchings.map(m => {
-        const scoreClass = m.score >= 80 ? 'high' : m.score >= 60 ? 'medium' : 'low';
-        return `
-        <div class="matching-item">
-            <div class="matching-score ${scoreClass}">${m.score}%</div>
-            <div class="matching-info">
-                <div class="matching-client">👤 ${m.client.nom} ${m.client.prenom || ''}</div>
-                <div class="matching-bien">${m.bien.reference} • ${m.bien.titre}</div>
+    actifs.forEach(c => dispo.forEach(b => {
+        const s = calculateMatching(c, b);
+        if (s >= 60) matchings.push({ c, b, s });
+    }));
+    matchings.sort((a, b) => b.s - a.s);
+    if (!matchings.length) { el.innerHTML = '<div class="empty">Aucun matching ≥ 60 % pour le moment.</div>'; return; }
+    el.innerHTML = matchings.slice(0, 5).map(m => `
+        <div class="item">
+            <div class="match-score ${m.s >= 80 ? 'ms-high' : 'ms-medium'}">${m.s}%</div>
+            <div class="item-main">
+                <div class="item-title">👤 ${esc(m.c.nom)} ${esc(m.c.prenom || '')}</div>
+                <div class="item-meta">${esc(m.b.reference)} · ${esc(m.b.titre)}</div>
             </div>
-        </div>`;
-    }).join('');
+        </div>`).join('');
 }
 
 function renderVisites() {
-    const container = document.getElementById('visites-list');
-    
+    const el = document.getElementById('visites-list');
     const prochaines = visites.filter(v => new Date(v.date_visite) >= today).slice(0, 5);
-    
-    if (!prochaines.length) {
-        container.innerHTML = '<div class="empty-state">Aucune visite prévue</div>';
-        return;
-    }
-    
-    container.innerHTML = prochaines.map(v => {
-        const bien = v.immo_biens || {};
-        const client = v.immo_clients || {};
-        return `
-        <div class="list-item">
-            <div class="list-icon visite">📅</div>
-            <div class="list-info">
-                <div class="list-title">${bien.reference || '?'} - ${client.nom || 'Client'} ${client.prenom || ''}</div>
-                <div class="list-meta">${formatDateTime(v.date_visite)}</div>
+    if (!prochaines.length) { el.innerHTML = '<div class="empty">Aucune visite prévue.</div>'; return; }
+    el.innerHTML = prochaines.map(v => `
+        <div class="item">
+            <div class="item-icon ic-visite" aria-hidden="true">📅</div>
+            <div class="item-main">
+                <div class="item-title">${esc(v.immo_biens?.reference || '?')} · ${esc(v.immo_clients?.nom || 'Client')} ${esc(v.immo_clients?.prenom || '')}</div>
+                <div class="item-meta">${formatDateTime(v.date_visite)}</div>
             </div>
-            <span class="list-badge badge-blue">${v.type_visite.replace('_', ' ')}</span>
-        </div>`;
-    }).join('');
+            ${v.type_visite ? `<span class="badge badge-blue">${esc(String(v.type_visite).replace(/_/g, ' '))}</span>` : ''}
+        </div>`).join('');
 }
 
 function renderOffres() {
-    const container = document.getElementById('offres-list');
-    
-    const recentes = offres.slice(0, 5);
-    
-    if (!recentes.length) {
-        container.innerHTML = '<div class="empty-state">Aucune offre</div>';
-        return;
-    }
-    
-    container.innerHTML = recentes.map(o => {
-        const bien = o.immo_biens || {};
-        const client = o.immo_clients || {};
-        const badgeClass = o.statut === 'acceptee' ? 'badge-green' : o.statut === 'refusee' ? 'badge-red' : 'badge-orange';
+    const el = document.getElementById('offres-list');
+    if (!offres.length) { el.innerHTML = '<div class="empty">Aucune offre.</div>'; return; }
+    el.innerHTML = offres.slice(0, 5).map(o => {
+        const [label, color] = STATUT_OFFRE[o.statut] || ['En attente', 'orange'];
         return `
-        <div class="list-item">
-            <div class="list-icon offre">💰</div>
-            <div class="list-info">
-                <div class="list-title">${formatMoney(o.montant)} MAD - ${bien.reference || '?'}</div>
-                <div class="list-meta">${client.nom || 'Client'} • ${formatDate(o.date_offre)}</div>
+        <div class="item">
+            <div class="item-icon ic-offre" aria-hidden="true">💰</div>
+            <div class="item-main">
+                <div class="item-title">${moneyShort(o.montant)} MAD · ${esc(o.immo_biens?.reference || '?')}</div>
+                <div class="item-meta">${esc(o.immo_clients?.nom || 'Client')} · ${formatDate(o.date_offre)}</div>
             </div>
-            <span class="list-badge ${badgeClass}">${o.statut.replace('_', ' ')}</span>
+            <span class="badge badge-${color}">${esc(label)}</span>
         </div>`;
     }).join('');
 }
 
 function renderTasks() {
-    const container = document.getElementById('tasks-list');
-    
-    if (!tasks.length) {
-        container.innerHTML = '<div class="empty-state">Aucune tâche en attente</div>';
-        return;
-    }
-    
-    container.innerHTML = tasks.map(t => `
-        <div class="task-item">
-            <div class="task-check ${t.done ? 'done' : ''}" onclick="toggleTask(${t.id}, ${t.done})"></div>
-            <span class="task-text ${t.done ? 'done' : ''}">${t.titre}</span>
-            ${t.bien_id ? '<span class="task-tag">Bien</span>' : ''}
-            ${t.client_id ? '<span class="task-tag">Client</span>' : ''}
-        </div>
-    `).join('');
+    const el = document.getElementById('tasks-list');
+    if (!tasks.length) { el.innerHTML = '<div class="empty">Aucune tâche en attente. 👌</div>'; return; }
+    el.innerHTML = tasks.map(t => `
+        <div class="task">
+            <button class="task-check ${t.done ? 'done' : ''}" onclick="toggleTask(${t.id}, ${!!t.done})"
+                aria-label="${t.done ? 'Marquer à faire' : 'Marquer comme faite'}">${t.done ? '✓' : ''}</button>
+            <span class="task-text ${t.done ? 'done' : ''}">${esc(t.titre)}</span>
+            ${t.bien_id ? '<span class="badge">Bien</span>' : ''}
+            ${t.client_id ? '<span class="badge badge-blue">Client</span>' : ''}
+        </div>`).join('');
 }
 
 async function toggleTask(id, currentStatus) {
-    await db.from('immo_tasks').update({ 
+    const { error } = await db.from('immo_tasks').update({
         done: !currentStatus,
         completed_at: !currentStatus ? new Date().toISOString() : null
     }).eq('id', id);
+    if (error) console.error(error);
     await loadData();
 }
 
 function renderBiens() {
-    const container = document.getElementById('biens-list');
-    
-    const recents = biens.slice(0, 5);
-    
-    if (!recents.length) {
-        container.innerHTML = '<div class="empty-state">Aucun bien</div>';
-        return;
-    }
-    
-    container.innerHTML = '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:12px;">' + recents.map(b => {
-        const statutBadge = b.statut === 'disponible' ? 'badge-green' : b.statut === 'en_negociation' ? 'badge-orange' : 'badge-red';
-        return `
-        <div class="list-item" style="flex-direction:column; align-items:flex-start;">
-            <div style="display:flex; width:100%; align-items:center; gap:10px;">
-                <div class="list-icon bien">🏠</div>
-                <div class="list-info">
-                    <div class="list-title">${b.reference} - ${b.titre}</div>
-                    <div class="list-meta">${TYPE_LABELS[b.type_bien]} • ${ZONE_LABELS[b.zone]}</div>
+    const el = document.getElementById('biens-list');
+    if (!biens.length) { el.innerHTML = '<div class="empty">Aucun bien.</div>'; return; }
+    const statutBadge = { disponible: 'green', en_negociation: 'orange', vendu: 'red' };
+    el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px">' +
+        biens.slice(0, 6).map(b => `
+        <div class="item" style="flex-direction:column;align-items:stretch;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px">
+                <div class="item-icon ic-bien" aria-hidden="true">🏠</div>
+                <div class="item-main">
+                    <div class="item-title">${esc(b.reference)} · ${esc(b.titre)}</div>
+                    <div class="item-meta">${esc(TYPE_LABELS[b.type_bien] || b.type_bien)} · ${esc(ZONE_LABELS[b.zone] || b.zone)}</div>
                 </div>
             </div>
-            <div style="display:flex; justify-content:space-between; width:100%; margin-top:10px; align-items:center;">
-                <strong style="color:var(--accent);">${formatMoney(b.prix)} MAD</strong>
-                <span class="list-badge ${statutBadge}">${b.statut}</span>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <strong>${moneyShort(b.prix)} MAD</strong>
+                <span class="badge badge-${statutBadge[b.statut] || 'orange'}">${esc(String(b.statut || '').replace(/_/g, ' '))}</span>
             </div>
-        </div>`;
-    }).join('') + '</div>';
+        </div>`).join('') + '</div>';
 }
-
-loadData();
     </script>
 </body>
 </html>

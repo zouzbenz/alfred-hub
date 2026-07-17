@@ -88,9 +88,11 @@
         <div class="login-box">
             <h2>🏠 Insta Immo</h2>
             <p style="color:var(--dim);margin-bottom:20px;">Backoffice</p>
-            <input type="text" id="login-user" placeholder="Prénom">
-            <input type="password" id="login-pass" placeholder="Mot de passe">
-            <button onclick="login()">Connexion</button>
+            <form onsubmit="event.preventDefault();login();">
+                <input type="email" id="login-user" placeholder="Email" autocomplete="username">
+                <input type="password" id="login-pass" placeholder="Mot de passe" autocomplete="current-password">
+                <button type="submit" id="login-btn">Connexion</button>
+            </form>
             <div class="login-error" id="login-error"></div>
         </div>
     </div>
@@ -226,27 +228,46 @@ const PHOTO_SECTIONS=[
     {id:'garage',label:'🚗 Garage'}
 ];
 
-// ==================== AUTH ====================
+// ==================== AUTH (Supabase Auth : mots de passe hashés côté serveur) ====================
 async function login(){
-    const user=document.getElementById('login-user').value.toLowerCase().trim();
+    const email=document.getElementById('login-user').value.trim();
     const pass=document.getElementById('login-pass').value;
-    if(!user||!pass){document.getElementById('login-error').textContent='Remplissez les champs';return;}
-    const{data,error}=await db.from('immo_users').select('*').eq('actif',true);
-    if(error){document.getElementById('login-error').textContent='Erreur connexion';return;}
-    const found=(data||[]).find(u=>u.prenom.toLowerCase()===user&&u.password===pass);
-    if(found){currentUser=found;sessionStorage.setItem('immo-user',JSON.stringify(found));showApp();}
-    else{document.getElementById('login-error').textContent='Identifiants incorrects';}
+    const errEl=document.getElementById('login-error');
+    if(!email||!pass){errEl.textContent='Remplissez les champs';return;}
+    const btn=document.getElementById('login-btn');
+    btn.disabled=true;btn.textContent='Connexion…';errEl.textContent='';
+    try{
+        const{data,error}=await db.auth.signInWithPassword({email,password:pass});
+        if(error){errEl.textContent='Identifiants incorrects';return;}
+        await loadProfile(data.user);
+    }catch(e){
+        errEl.textContent='Connexion impossible. Réessayez.';
+    }finally{
+        btn.disabled=false;btn.textContent='Connexion';
+    }
 }
-function logout(){sessionStorage.removeItem('immo-user');location.reload();}
+async function loadProfile(authUser){
+    const{data:profil,error}=await db.from('immo_users')
+        .select('id,prenom,nom,email,role,actif').eq('auth_id',authUser.id).maybeSingle();
+    if(error||!profil||!profil.actif){
+        document.getElementById('login-error').textContent='Compte non autorisé. Contactez l\'administrateur.';
+        await db.auth.signOut();
+        return;
+    }
+    currentUser=profil;
+    showApp();
+}
+async function logout(){await db.auth.signOut();location.reload();}
 function showApp(){
     document.getElementById('login-screen').style.display='none';
     document.getElementById('main-app').style.display='block';
     document.getElementById('user-badge').textContent='👤 '+currentUser.prenom;
     loadAllData();
 }
-// Auto-login
-const saved=sessionStorage.getItem('immo-user');
-if(saved){currentUser=JSON.parse(saved);showApp();}
+// Restauration de session (token Supabase Auth, vérifié côté serveur)
+db.auth.getSession().then(({data:{session}})=>{
+    if(session?.user)loadProfile(session.user);
+});
 
 // ==================== TABS ====================
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
@@ -258,6 +279,11 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
 
 // ==================== UTILS ====================
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('visible');setTimeout(()=>t.classList.remove('visible'),2500);}
+async function copyVisiteLink(visiteId,encodedCode){
+    const url=new URL('./immo-visite.html?visite='+visiteId+'&code='+encodedCode,location.href).href;
+    try{await navigator.clipboard.writeText(url);showToast('Lien de signature copié !');}
+    catch(e){prompt('Copiez ce lien :',url);}
+}
 function formatMoney(n){return new Intl.NumberFormat('fr-MA').format(n||0);}
 function formatDate(d){return d?new Date(d).toLocaleDateString('fr-FR'):'-';}
 function formatDateTime(d){return d?new Date(d).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'-';}
@@ -272,10 +298,16 @@ async function loadAllData(){
         db.from('immo_biens').select('*').order('created_at',{ascending:false}),
         db.from('immo_clients').select('*').order('created_at',{ascending:false}),
         db.from('immo_proprietaires').select('*').order('created_at',{ascending:false}),
-        db.from('immo_visites').select('*,immo_biens(reference,titre),immo_clients(nom,prenom)').order('date_visite',{ascending:false}),
+        db.from('immo_visites').select('*,immo_biens(reference,titre),immo_clients(nom,prenom,code_acces)').order('date_visite',{ascending:false}),
         db.from('immo_offres').select('*,immo_biens(reference,titre,prix),immo_clients(nom,prenom)').order('date_offre',{ascending:false}),
         db.from('immo_tasks').select('*').order('echeance',{ascending:true})
     ]);
+    
+    const firstError=[r1,r2,r3,r4,r5,r6].find(r=>r.error)?.error;
+    if(firstError){
+        console.error(firstError);
+        showToast('⚠️ Erreur de chargement : '+firstError.message);
+    }
     
     biens=r1.data||[];
     clients=r2.data||[];
@@ -394,7 +426,7 @@ function renderVisites(){
             <td>${client.nom||'-'} ${client.prenom||''}</td>
             <td>${v.type_visite||'-'}</td>
             <td>${intLabels[v.interet]||'-'}</td>
-            <td>${v.bon_signe?'<span class="tag tag-green">✅ Signé</span>':'<a href="./immo-visite.html?visite=${v.id}" target="_blank" class="btn btn-small btn-outline">Signer</a>'}</td>
+            <td>${v.bon_signe?'<span class="tag tag-green">✅ Signé</span>':(client.code_acces?`<a href="./immo-visite.html?visite=${v.id}&code=${encodeURIComponent(client.code_acces)}" target="_blank" class="btn btn-small btn-outline">Signer</a> <button class="btn btn-small btn-outline btn-icon" onclick="copyVisiteLink(${v.id},'${encodeURIComponent(client.code_acces)}')" title="Copier le lien à envoyer au client">🔗</button>`:'<span class="tag">Code client manquant</span>')}</td>
             <td class="actions-cell">
                 <button class="btn btn-small btn-outline btn-icon" onclick="genererBonVisitePDF(${v.id})" title="PDF">📄</button>
                 <button class="btn btn-small btn-outline btn-icon" onclick="editVisite(${v.id})">✏️</button>
