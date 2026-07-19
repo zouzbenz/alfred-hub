@@ -309,7 +309,7 @@ async function loadAllData(){
         db.from('immo_proprietaires').select('*').order('created_at',{ascending:false}),
         db.from('immo_visites').select('*,immo_biens(reference,titre),immo_clients(nom,prenom,code_acces)').order('date_visite',{ascending:false}),
         db.from('immo_offres').select('*,immo_biens(reference,titre,prix),immo_clients(nom,prenom)').order('date_offre',{ascending:false}),
-        db.from('immo_tasks').select('*').order('echeance',{ascending:true}),
+        db.from('immo_tasks').select('*').order('date_echeance',{ascending:true,nullsFirst:false}),
         db.from('immo_confreres').select('*').order('created_at',{ascending:false}),
         db.from('immo_confrere_echanges').select('*').order('date_echange',{ascending:false})
     ]);
@@ -487,7 +487,7 @@ function renderTasks(){
             <td><input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id},this.checked)" style="width:20px;height:20px;accent-color:var(--green);"></td>
             <td style="${t.done?'text-decoration:line-through;color:var(--dim);':''}">${t.titre}</td>
             <td>${linked}</td>
-            <td>${formatDate(t.echeance)}</td>
+            <td>${formatDate(t.date_echeance)}</td>
             <td><span class="tag ${prioColors[t.priorite]||'tag-blue'}">${t.priorite||'normale'}</span></td>
             <td class="actions-cell">
                 <button class="btn btn-small btn-outline btn-icon" onclick="editTask(${t.id})">✏️</button>
@@ -1066,7 +1066,7 @@ function openTaskModal(editData=null){
                 <div class="form-group"><label>Client</label><select id="task-client">${getClientOptions()}</select></div>
             </div>
             <div class="form-row">
-                <div class="form-group"><label>Échéance</label><input type="date" id="task-ech" value="${t.echeance||''}"></div>
+                <div class="form-group"><label>Échéance</label><input type="date" id="task-ech" value="${t.date_echeance||''}"></div>
                 <div class="form-group"><label>Priorité</label><select id="task-prio">
                     <option value="basse" ${t.priorite==='basse'?'selected':''}>Basse</option>
                     <option value="normale" ${t.priorite==='normale'||!t.priorite?'selected':''}>Normale</option>
@@ -1092,9 +1092,8 @@ async function saveTask(){
         bien_id:(document.getElementById('task-bien').value==='__externe__'?null:document.getElementById('task-bien').value)||null,
         bien_externe:document.getElementById('task-bien').value==='__externe__'?(document.getElementById('task-bien-externe').value.trim()||null):null,
         client_id:document.getElementById('task-client').value||null,
-        echeance:document.getElementById('task-ech').value||null,
-        priorite:document.getElementById('task-prio').value,
-        source:'immo'
+        date_echeance:document.getElementById('task-ech').value||null,
+        priorite:document.getElementById('task-prio').value
     };
     if(!data.titre){alert('Titre obligatoire');return;}
     try{
