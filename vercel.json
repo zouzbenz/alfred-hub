@@ -1,0 +1,13 @@
+{
+  "rewrites": [
+    {
+      "source": "/bien/:ref",
+      "destination": "/api/bien?ref=:ref"
+    },
+    {
+      "source": "/immo-bien.html",
+      "missing": [{ "type": "header", "key": "x-og-bypass" }],
+      "destination": "/api/bien"
+    }
+  ]
+}

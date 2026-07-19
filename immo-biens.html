@@ -3,33 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nos biens à Casablanca — Insta Immo</title>
-    <meta name="description" content="Appartements, villas et biens d'exception à Casablanca : Anfa, Ain Diab, CFC, Bourgogne, Bouskoura. Insta Immo, votre spécialiste immobilier.">
+    <title>Immobilier d'exception à Casablanca — Insta Immo</title>
+    <meta name="description" content="Appartements, villas et biens d'exception à Casablanca. Recherchez par quartier, budget et critères — Insta Immo, votre spécialiste immobilier.">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Insta Immo">
-    <meta property="og:title" content="Nos biens à Casablanca — Insta Immo">
-    <meta property="og:description" content="Appartements, villas et biens d'exception à Casablanca. Découvrez notre sélection.">
+    <meta property="og:title" content="Immobilier d'exception à Casablanca — Insta Immo">
+    <meta property="og:description" content="Recherchez parmi notre sélection exclusive de biens à Casablanca.">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./immo-core.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <style>
-        .hero-head{text-align:center;padding:34px 0 30px}
-        .hero-head h1{font-size:clamp(1.7rem,4.5vw,2.5rem);font-weight:800}
-        .hero-head h1 span{background:var(--accent);padding:0 10px;border-radius:10px}
-        .hero-head p{color:var(--dim);font-size:1.05rem;margin-top:10px}
-        .filters{display:flex;gap:8px;margin:26px 0 30px;flex-wrap:wrap;justify-content:center}
-        .filter-btn{padding:9px 18px;background:var(--card);border:1.5px solid var(--border);border-radius:999px;
-          cursor:pointer;font-size:.88rem;font-weight:600;transition:.15s;color:var(--text)}
-        .filter-btn:hover{border-color:var(--accent)}
-        .filter-btn.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-        .count-line{text-align:center;color:var(--dim);font-size:.88rem;margin-bottom:22px}
-        .skeleton-card{height:330px}
+        /* ---- Hero de recherche ---- */
+        .search-hero{background:linear-gradient(150deg,#161616 55%,#2b2410);border-radius:20px;
+          padding:clamp(28px,5vw,52px) clamp(20px,4vw,48px);color:#fff;margin-bottom:30px}
+        .search-hero h1{font-size:clamp(1.6rem,4vw,2.5rem);font-weight:800;line-height:1.15;max-width:22ch}
+        .search-hero h1 em{font-style:normal;color:var(--accent)}
+        .search-hero .sub{opacity:.72;margin:10px 0 26px;font-size:1rem;max-width:52ch}
+
+        .search-bar{display:grid;grid-template-columns:1.6fr 1fr 1fr auto;gap:10px;background:#fff;
+          border-radius:14px;padding:10px}
+        .search-bar .sb-field{display:flex;flex-direction:column;gap:2px;padding:6px 12px;border-right:1px solid var(--border)}
+        .search-bar .sb-field:nth-last-child(2){border-right:none}
+        .search-bar label{font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+        .search-bar input,.search-bar select{border:none;background:none;font-family:inherit;font-size:.95rem;
+          font-weight:600;color:var(--text);padding:2px 0;outline:none;width:100%}
+        .search-bar .btn{align-self:center}
+        @media (max-width:840px){
+          .search-bar{grid-template-columns:1fr 1fr}
+          .search-bar .sb-field{border-right:none;border-bottom:1px solid var(--border)}
+          .search-bar .sb-field:first-child{grid-column:1/-1}
+          .search-bar .btn{grid-column:1/-1;margin-top:4px}
+        }
+
+        /* ---- Filtres secondaires ---- */
+        .filters-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+        .filters-row select{padding:9px 13px;border:1.5px solid var(--border);border-radius:10px;
+          font-family:inherit;font-size:.86rem;font-weight:600;background:#fff;color:var(--text);cursor:pointer}
+        .filters-row select:focus{border-color:var(--accent);outline:none}
+        .chip-reset{background:none;border:none;color:var(--dim);font-size:.84rem;cursor:pointer;
+          text-decoration:underline;padding:6px}
+        .results-line{display:flex;justify-content:space-between;align-items:center;gap:10px;
+          margin:14px 0 20px;flex-wrap:wrap}
+        .results-count{font-weight:700;font-size:.95rem}
+        .results-count small{font-weight:500;color:var(--dim)}
+        .sort-wrap{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--dim)}
+
+        .skeleton-card{height:340px}
     </style>
 </head>
 <body>
     <div class="container" style="max-width:1150px">
-        <header class="brand-header" style="border-bottom:none;margin-bottom:0">
+        <header class="brand-header" style="border-bottom:none;margin-bottom:14px">
             <a class="brand" href="./immo-biens.html">
                 <span class="brand-mark" aria-hidden="true">🏠</span>
                 <span>Insta Immo<small>Casablanca</small></span>
@@ -37,13 +62,75 @@
             <a href="https://wa.me/212687842466" class="btn btn-primary" style="min-height:40px;padding:9px 18px;font-size:.86rem" rel="noopener">💬 Nous contacter</a>
         </header>
 
-        <div class="hero-head">
-            <h1>Trouvez votre bien <span>d'exception</span></h1>
-            <p>Notre sélection exclusive à Casablanca — Anfa, Ain Diab, CFC, Bourgogne, Bouskoura</p>
+        <!-- Hero avec recherche intégrée -->
+        <section class="search-hero">
+            <h1>La bonne adresse à Casablanca <em>existe.</em> Trouvons-la.</h1>
+            <p class="sub">Une sélection exclusive, visitée et validée par nos soins — pas un catalogue, un choix.</p>
+            <form class="search-bar" onsubmit="event.preventDefault();applyFilters();" role="search" aria-label="Rechercher un bien">
+                <div class="sb-field">
+                    <label for="f-q">Recherche</label>
+                    <input type="search" id="f-q" placeholder="Quartier, référence, mot-clé…">
+                </div>
+                <div class="sb-field">
+                    <label for="f-type">Type de bien</label>
+                    <select id="f-type"><option value="">Tous</option></select>
+                </div>
+                <div class="sb-field">
+                    <label for="f-budget">Budget max</label>
+                    <select id="f-budget">
+                        <option value="">Illimité</option>
+                        <option value="1000000">1 M MAD</option>
+                        <option value="2000000">2 M MAD</option>
+                        <option value="3000000">3 M MAD</option>
+                        <option value="5000000">5 M MAD</option>
+                        <option value="8000000">8 M MAD</option>
+                        <option value="12000000">12 M MAD</option>
+                        <option value="20000000">20 M MAD</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Rechercher</button>
+            </form>
+        </section>
+
+        <!-- Filtres secondaires -->
+        <div class="filters-row" role="group" aria-label="Affiner la recherche">
+            <select id="f-zone" onchange="applyFilters()"><option value="">Toutes les zones</option></select>
+            <select id="f-chambres" onchange="applyFilters()">
+                <option value="">Chambres : toutes</option>
+                <option value="1">1+ chambre</option>
+                <option value="2">2+ chambres</option>
+                <option value="3">3+ chambres</option>
+                <option value="4">4+ chambres</option>
+                <option value="5">5+ chambres</option>
+            </select>
+            <select id="f-sdb" onchange="applyFilters()">
+                <option value="">SDB : toutes</option>
+                <option value="1">1+ SDB</option>
+                <option value="2">2+ SDB</option>
+                <option value="3">3+ SDB</option>
+            </select>
+            <select id="f-extras" onchange="applyFilters()">
+                <option value="">Options</option>
+                <option value="parking">Avec parking</option>
+                <option value="terrasse">Avec terrasse</option>
+                <option value="ascenseur">Avec ascenseur</option>
+                <option value="piscine">Avec piscine</option>
+            </select>
+            <button class="chip-reset" onclick="resetFilters()">Réinitialiser</button>
         </div>
 
-        <div class="filters" id="filters" role="group" aria-label="Filtrer par zone"></div>
-        <p class="count-line" id="count-line"></p>
+        <div class="results-line">
+            <div class="results-count" id="results-count" aria-live="polite"></div>
+            <div class="sort-wrap">
+                Trier :
+                <select id="f-sort" onchange="applyFilters()" style="padding:7px 11px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-weight:600;font-size:.84rem">
+                    <option value="recent">Nouveautés</option>
+                    <option value="prix_asc">Prix croissant</option>
+                    <option value="prix_desc">Prix décroissant</option>
+                    <option value="surface_desc">Surface décroissante</option>
+                </select>
+            </div>
+        </div>
 
         <main id="biens-grid" class="biens-grid" aria-live="polite">
             <div class="skeleton skeleton-card"></div>
@@ -51,26 +138,32 @@
             <div class="skeleton skeleton-card"></div>
         </main>
 
+        <div class="contact-box">
+            <h3>Vous ne trouvez pas ? Confiez-nous votre recherche.</h3>
+            <p>Décrivez vos critères — nous chassons pour vous, y compris hors marché.</p>
+            <div class="contact-actions">
+                <a href="https://wa.me/212687842466?text=Bonjour%2C%20je%20cherche%20un%20bien%20%C3%A0%20Casablanca" class="btn btn-primary" rel="noopener">💬 Décrire ma recherche</a>
+                <a href="tel:+212687842466" class="btn btn-outline" style="border-color:rgba(255,255,255,.3);color:#fff">📞 +212 687 842 466</a>
+            </div>
+        </div>
+
         <footer class="site-footer">
-            <p>📞 <a href="tel:+212687842466" style="text-decoration:none"><strong>+212 687 842 466</strong></a> · <a href="https://wa.me/212687842466" rel="noopener">WhatsApp</a></p>
-            <p style="margin-top:6px">© 2026 <strong>Insta Immo</strong> — Zouhair Benazzouz</p>
+            <p>© 2026 <strong>Insta Immo</strong> — Zouhair Benazzouz · Spécialiste immobilier, Casablanca</p>
         </footer>
     </div>
 
     <script src="./immo-core.js"></script>
     <script>
-let biens = [], heroPhotos = {}, currentZone = 'all';
+let biens = [], heroPhotos = {};
 
 async function loadBiens() {
     try {
-        /* RLS : la clé anon ne voit que les biens publiés */
         const { data, error } = await db.from('immo_biens').select('*')
             .eq('publie', true).eq('statut', 'disponible')
             .order('created_at', { ascending: false });
         if (error) throw error;
         biens = data || [];
 
-        /* Photos hero pour les vignettes */
         if (biens.length) {
             const { data: photos } = await db.from('immo_bien_photos')
                 .select('bien_id,storage_path,ordre').eq('section', 'hero')
@@ -78,8 +171,8 @@ async function loadBiens() {
             (photos || []).forEach(p => { if (!heroPhotos[p.bien_id]) heroPhotos[p.bien_id] = p.storage_path; });
         }
 
-        renderFilters();
-        render();
+        buildFilterOptions();
+        applyFilters();
     } catch (err) {
         console.error(err);
         document.getElementById('biens-grid').innerHTML =
@@ -87,36 +180,80 @@ async function loadBiens() {
     }
 }
 
-function renderFilters() {
-    /* Zones réellement présentes dans le catalogue + zones de référence */
+function buildFilterOptions() {
+    /* Options construites depuis le catalogue réel : jamais de filtre mort */
+    const types = [...new Set(biens.map(b => b.type_bien))];
+    document.getElementById('f-type').innerHTML = '<option value="">Tous</option>' +
+        types.map(t => `<option value="${escAttr(t)}">${esc(TYPE_LABELS[t] || t)}</option>`).join('');
     const zones = [...new Set(biens.map(b => b.zone))];
-    const el = document.getElementById('filters');
-    el.innerHTML = `<button class="filter-btn active" data-zone="all">Tous les biens</button>` +
-        zones.map(z => `<button class="filter-btn" data-zone="${escAttr(z)}">${esc(ZONE_LABELS[z] || z)}</button>`).join('');
-    el.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', () => {
-        el.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentZone = btn.dataset.zone;
-        render();
-    }));
+    document.getElementById('f-zone').innerHTML = '<option value="">Toutes les zones</option>' +
+        zones.map(z => `<option value="${escAttr(z)}">${esc(ZONE_LABELS[z] || z)}</option>`).join('');
 }
 
-function render() {
+function getFilters() {
+    return {
+        q: document.getElementById('f-q').value.trim().toLowerCase(),
+        type: document.getElementById('f-type').value,
+        budget: parseFloat(document.getElementById('f-budget').value) || null,
+        zone: document.getElementById('f-zone').value,
+        chambres: parseInt(document.getElementById('f-chambres').value) || 0,
+        sdb: parseInt(document.getElementById('f-sdb').value) || 0,
+        extra: document.getElementById('f-extras').value,
+        sort: document.getElementById('f-sort').value
+    };
+}
+
+function resetFilters() {
+    ['f-q', 'f-type', 'f-budget', 'f-zone', 'f-chambres', 'f-sdb', 'f-extras'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-sort').value = 'recent';
+    applyFilters();
+}
+
+function applyFilters() {
+    const f = getFilters();
+    let list = biens.filter(b => {
+        if (f.q) {
+            const hay = [b.titre, b.reference, b.quartier, b.zone, ZONE_LABELS[b.zone], b.description]
+                .filter(Boolean).join(' ').toLowerCase();
+            if (!hay.includes(f.q)) return false;
+        }
+        if (f.type && b.type_bien !== f.type) return false;
+        if (f.zone && b.zone !== f.zone) return false;
+        if (f.budget && parseFloat(b.prix) > f.budget) return false;
+        if (f.chambres && (b.chambres || 0) < f.chambres) return false;
+        if (f.sdb && (b.sdb || 0) < f.sdb) return false;
+        if (f.extra === 'parking' && !(b.parking > 0)) return false;
+        if (f.extra === 'terrasse' && !(b.terrasse_m2 > 0 || b.balcon)) return false;
+        if (f.extra === 'ascenseur' && !b.ascenseur) return false;
+        if (f.extra === 'piscine' && !b.piscine) return false;
+        return true;
+    });
+
+    const sorts = {
+        recent: (a, b) => new Date(b.created_at) - new Date(a.created_at),
+        prix_asc: (a, b) => a.prix - b.prix,
+        prix_desc: (a, b) => b.prix - a.prix,
+        surface_desc: (a, b) => (b.surface_m2 || 0) - (a.surface_m2 || 0)
+    };
+    list.sort(sorts[f.sort] || sorts.recent);
+    render(list);
+}
+
+function render(list) {
     const grid = document.getElementById('biens-grid');
-    const filtered = currentZone === 'all' ? biens : biens.filter(b => b.zone === currentZone);
+    document.getElementById('results-count').innerHTML = list.length
+        ? `${list.length} bien${list.length > 1 ? 's' : ''} <small>· sélection exclusive</small>`
+        : 'Aucun résultat';
 
-    document.getElementById('count-line').textContent = filtered.length
-        ? `${filtered.length} bien${filtered.length > 1 ? 's' : ''} disponible${filtered.length > 1 ? 's' : ''}`
-        : '';
-
-    if (!filtered.length) {
+    if (!list.length) {
         grid.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:56px 20px">
-            Aucun bien disponible ${currentZone !== 'all' ? 'dans cette zone' : ''} pour le moment.<br>
-            <a href="${AGENCE.whatsapp}" rel="noopener" style="font-weight:700">Confiez-nous votre recherche →</a></div>`;
+            Aucun bien ne correspond à ces critères.<br>
+            <button class="chip-reset" onclick="resetFilters()" style="font-weight:700;margin-top:8px">Réinitialiser les filtres</button>
+            <span style="display:block;margin-top:10px">ou <a href="https://wa.me/212687842466" rel="noopener" style="font-weight:700">confiez-nous votre recherche →</a></span></div>`;
         return;
     }
 
-    grid.innerHTML = filtered.map(b => {
+    grid.innerHTML = list.map(b => {
         const img = heroPhotos[b.id];
         return `
         <a class="bien-card" href="./immo-bien.html?ref=${encodeURIComponent(b.reference)}">
@@ -129,9 +266,11 @@ function render() {
                 <div class="bien-location">📍 ${esc(ZONE_LABELS[b.zone] || b.zone)}${b.quartier ? ' · ' + esc(b.quartier) : ''}</div>
                 <div class="bien-price">${formatMoney(b.prix)} <small>MAD${b.negociable ? ' · négociable' : ''}</small></div>
                 <div class="bien-features">
-                    <span>🏠 ${esc(TYPE_LABELS[b.type_bien] || b.type_bien)}</span>
                     ${b.surface_m2 ? `<span>📐 ${esc(b.surface_m2)} m²</span>` : ''}
                     ${b.chambres ? `<span>🛏️ ${esc(b.chambres)} ch.</span>` : ''}
+                    ${b.sdb ? `<span>🚿 ${esc(b.sdb)} SDB</span>` : ''}
+                    ${b.parking > 0 ? `<span>🚗 ${esc(b.parking)} pkg</span>` : ''}
+                    ${b.terrasse_m2 > 0 ? `<span>☀️ Terrasse</span>` : (b.balcon ? '<span>☀️ Balcon</span>' : '')}
                 </div>
             </div>
         </a>`;

@@ -75,6 +75,12 @@
         .space-photo img{width:100%;height:100%;object-fit:cover;transition:transform .25s}
         .space-photo:hover img{transform:scale(1.05)}
         .space-desc{color:var(--dim);font-size:.9rem;line-height:1.7}
+        .space-ia{background:linear-gradient(135deg,#f6f2ff,#fdf7ff);border-color:#e2d5f8}
+        .ia-disclaimer{font-size:.8rem;color:#7a5ea8;background:rgba(255,255,255,.7);border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.6}
+        .tour-container{position:relative;padding-bottom:62%;height:0;border-radius:var(--radius);overflow:hidden;background:#0d0d0d}
+        .tour-container iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+        @media (max-width:640px){.tour-container{padding-bottom:130%}}
+        .tour-hint{text-align:center;color:var(--dim);font-size:.82rem;margin-top:10px}
 
         /* Barre CTA sticky mobile */
         .sticky-cta{position:fixed;left:0;right:0;bottom:0;z-index:50;background:#fff;
@@ -127,8 +133,9 @@
 
     <script src="./immo-core.js"></script>
     <script>
-const ref = new URLSearchParams(location.search).get('ref');
-let allPhotos = []; let lbIndex = 0;
+const _pathMatch = location.pathname.match(/\/bien\/([^\/?#]+)/);
+const ref = _pathMatch ? decodeURIComponent(_pathMatch[1]) : new URLSearchParams(location.search).get('ref');
+let allPhotos = []; let lbIndex = 0; let galleryScope = { start: 0, end: 0 }; let lbScope = { start: 0, end: 0 };
 
 async function loadBien() {
     if (!ref) { uiError('content', 'Référence manquante', 'Le lien utilisé est incomplet. Vérifiez qu\'il contient bien la référence du bien.'); return; }
@@ -157,13 +164,17 @@ async function loadBien() {
 }
 
 function render(bien, photos, sections) {
-    /* Photos : hero d'abord, puis le reste, pour la galerie et la lightbox */
-    const heroPhotos = photos.filter(p => p.section === 'hero');
-    const otherPhotos = photos.filter(p => p.section !== 'hero');
-    allPhotos = [...heroPhotos, ...otherPhotos].map(p => ({
+    /* Photos triées : ordre officiel des sections, puis ordre interne */
+    const sorted = sortPhotos(photos);
+    const heroPhotos = sorted.filter(p => p.section === 'hero');
+    const otherPhotos = sorted.filter(p => p.section !== 'hero');
+    /* La lightbox de la galerie principale navigue sur hero + tout, dans l'ordre */
+    allPhotos = sorted.map(p => ({
         url: photoUrl(p.storage_path),
-        caption: SECTION_LABELS[p.section] || p.section
+        caption: SECTION_LABELS[p.section] || p.section,
+        section: p.section
     }));
+    galleryScope = { start: 0, end: allPhotos.length };
 
     /* Galerie hero : jusqu'à 5 vignettes, la 5e affiche le compteur */
     let galleryHTML;
@@ -205,26 +216,31 @@ function render(bien, photos, sections) {
         bien.chambre_personnel && 'Chambre personnel'
     ].filter(Boolean).map(e => `<span class="badge badge-green">✓ ${esc(e)}</span>`).join('');
 
-    /* Sections d'espaces (photos par pièce) */
-    const bySection = {};
-    otherPhotos.forEach(p => { (bySection[p.section] ||= []).push(p); });
+    /* Sections d'espaces, dans l'ordre officiel ; la lightbox reste dans la section */
+    const bySection = new Map();
+    otherPhotos.forEach(p => { if (!bySection.has(p.section)) bySection.set(p.section, []); bySection.get(p.section).push(p); });
     let offset = heroPhotos.length;
-    const sectionsHTML = Object.entries(bySection).map(([sec, list]) => {
+    let sectionsHTML = '', iaHTML = '';
+    for (const [sec, list] of bySection) {
         const info = sections.find(s => s.section === sec);
+        const isIA = sec === 'refonte_ia';
         const html = `
-        <div class="space-section">
-            <div class="space-title">${esc(SECTION_LABELS[sec] || sec)}</div>
+        <div class="space-section ${isIA ? 'space-ia' : ''}">
+            <div class="space-title">${isIA ? '🤖 ' : ''}${esc(SECTION_LABELS[sec] || sec)}</div>
+            ${isIA ? '<p class="ia-disclaimer">Visualisations générées par intelligence artificielle pour vous aider à vous projeter — images non contractuelles, ne reflétant pas l\'état réel du bien.</p>' : ''}
             <div class="space-photos">
-                ${list.map((p, i) => `<button class="space-photo" onclick="openLightbox(${offset + i})" aria-label="Agrandir — ${escAttr(SECTION_LABELS[sec] || sec)}">
+                ${list.map((p, i) => `<button class="space-photo" onclick="openLightbox(${offset + i}, ${offset}, ${offset + list.length})" aria-label="Agrandir — ${escAttr(SECTION_LABELS[sec] || sec)}">
                     <img src="${escAttr(photoUrl(p.storage_path))}" alt="${escAttr((SECTION_LABELS[sec] || sec) + (p.description ? ' — ' + p.description : ''))}" loading="lazy"></button>`).join('')}
             </div>
             ${info?.description ? `<p class="space-desc">${escMultiline(info.description)}</p>` : ''}
         </div>`;
         offset += list.length;
-        return html;
-    }).join('');
+        if (isIA) iaHTML += html; else sectionsHTML += html;
+    }
 
     const ytId = getYouTubeId(bien.video_youtube);
+    const vt = (bien.visite_virtuelle || '').trim();
+    const tourUrl = vt ? (vt.startsWith('http') ? vt : (vt.startsWith('/') ? vt : '/' + vt)) : null;
     const waText = encodeURIComponent(`Bonjour, je suis intéressé(e) par le bien ${bien.reference} — ${bien.titre}`);
 
     document.getElementById('content').innerHTML = `
@@ -248,17 +264,17 @@ function render(bien, photos, sections) {
 
         ${galleryHTML}
 
+        <section class="section">
+            <h2 class="section-title">Caractéristiques</h2>
+            <div class="features-grid">${features || '<p class="empty">Caractéristiques à venir</p>'}</div>
+        </section>
+
         ${bien.description ? `
         <section class="section">
             <h2 class="section-title">Description</h2>
             <p class="description">${escMultiline(bien.description)}</p>
             ${bien.points_forts ? `<div class="points-forts"><strong>✨ Points forts</strong>${escMultiline(bien.points_forts)}</div>` : ''}
         </section>` : ''}
-
-        <section class="section">
-            <h2 class="section-title">Caractéristiques</h2>
-            <div class="features-grid">${features || '<p class="empty">Caractéristiques à venir</p>'}</div>
-        </section>
 
         ${ytId ? `
         <section class="section">
@@ -269,10 +285,26 @@ function render(bien, photos, sections) {
             </div>
         </section>` : ''}
 
+        ${tourUrl ? `
+        <section class="section">
+            <h2 class="section-title">Visite virtuelle 360°</h2>
+            <div class="tour-container">
+                <iframe src="${escAttr(tourUrl)}" title="Visite virtuelle — ${escAttr(bien.titre)}"
+                    allow="accelerometer; gyroscope; magnetometer; xr-spatial-tracking; fullscreen" allowfullscreen loading="lazy"></iframe>
+            </div>
+            <p class="tour-hint">🖱️ Cliquez-glissez pour explorer · plein écran recommandé</p>
+        </section>` : ''}
+
         ${sectionsHTML ? `
         <section class="section">
             <h2 class="section-title">Découvrir le bien</h2>
             ${sectionsHTML}
+        </section>` : ''}
+
+        ${iaHTML ? `
+        <section class="section">
+            <h2 class="section-title">Imaginez le potentiel</h2>
+            ${iaHTML}
         </section>` : ''}
 
         <div class="contact-box">
@@ -293,8 +325,9 @@ function render(bien, photos, sections) {
 }
 
 /* ---- Lightbox ---- */
-function openLightbox(i) {
+function openLightbox(i, scopeStart, scopeEnd) {
     lbIndex = i;
+    lbScope = (scopeStart !== undefined) ? { start: scopeStart, end: scopeEnd } : galleryScope;
     updateLightbox();
     document.getElementById('lightbox').classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -304,14 +337,16 @@ function closeLightbox() {
     document.body.style.overflow = '';
 }
 function lbNav(dir) {
-    lbIndex = (lbIndex + dir + allPhotos.length) % allPhotos.length;
+    const n = lbScope.end - lbScope.start;
+    lbIndex = lbScope.start + ((lbIndex - lbScope.start + dir + n) % n);
     updateLightbox();
 }
 function updateLightbox() {
     const p = allPhotos[lbIndex];
     if (!p) return;
     document.getElementById('lb-img').src = p.url;
-    document.getElementById('lb-caption').textContent = `${p.caption} — ${lbIndex + 1} / ${allPhotos.length}`;
+    const pos = lbIndex - lbScope.start + 1, total = lbScope.end - lbScope.start;
+    document.getElementById('lb-caption').textContent = `${p.caption} — ${pos} / ${total}`;
 }
 document.addEventListener('keydown', e => {
     if (!document.getElementById('lightbox').classList.contains('open')) return;

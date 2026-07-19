@@ -225,7 +225,8 @@ const PHOTO_SECTIONS=[
     {id:'sous_sol',label:'⬇️ Sous-sol'},
     {id:'jardin',label:'🌳 Jardin'},
     {id:'piscine',label:'🏊 Piscine'},
-    {id:'garage',label:'🚗 Garage'}
+    {id:'garage',label:'🚗 Garage'},
+    {id:'refonte_ia',label:'🤖 Refonte IA'}
 ];
 
 // ==================== AUTH (Supabase Auth : mots de passe hashés côté serveur) ====================
@@ -570,6 +571,7 @@ function openBienModal(editData=null){
                         <option value="vertical" ${b.video_format==='vertical'?'selected':''}>Vertical</option>
                     </select></div>
                 </div>
+                <div class="form-group"><label>Visite virtuelle 3DVista (URL ou /tours/REF/)</label><input type="text" id="bien-vtour" value="${b.visite_virtuelle||''}" placeholder="/tours/ANFA-001/ ou https://…"></div>
             </div>
             <div class="form-section"><div class="form-section-title">Business</div>
                 <div class="form-row-3">
@@ -643,6 +645,7 @@ async function saveBien(){
         description:document.getElementById('bien-desc').value||null,
         video_youtube:document.getElementById('bien-youtube').value||null,
         video_format:document.getElementById('bien-vformat').value,
+        visite_virtuelle:document.getElementById('bien-vtour').value.trim()||null,
         commission_pct:parseFloat(document.getElementById('bien-comm').value)||2,
         proprietaire_id:document.getElementById('bien-proprio').value||null,
         agent:document.getElementById('bien-agent').value,

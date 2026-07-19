@@ -67,8 +67,15 @@ const SECTION_LABELS = {
   hero: 'Photos principales', espaces_vie: 'Espaces de vie', chambres: 'Chambres', cuisine: 'Cuisine',
   sdb: 'Salles de bain', exterieurs: 'Extérieurs', annexes: 'Annexes', vues: 'Vues', immeuble: 'Immeuble',
   rdc: 'Rez-de-chaussée', etage_1: 'Étage 1', etage_2: 'Étage 2', sous_sol: 'Sous-sol',
-  jardin: 'Jardin', piscine: 'Piscine', garage: 'Garage'
+  jardin: 'Jardin', piscine: 'Piscine', garage: 'Garage',
+  refonte_ia: 'Projections IA'
 };
+/* Ordre d'affichage officiel des sections photos (album + lightbox) */
+const SECTION_ORDER = ['hero','espaces_vie','cuisine','chambres','sdb','rdc','etage_1','etage_2','sous_sol','terrasse','exterieurs','jardin','piscine','garage','annexes','vues','immeuble','refonte_ia'];
+function sectionRank(s){ const i = SECTION_ORDER.indexOf(s); return i === -1 ? 99 : i; }
+function sortPhotos(photos){
+  return [...photos].sort((a,b) => sectionRank(a.section) - sectionRank(b.section) || (a.ordre||0) - (b.ordre||0) || a.id - b.id);
+}
 
 /* ---- Divers ---- */
 function getYouTubeId(url) {
