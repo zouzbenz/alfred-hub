@@ -4,44 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Insta Immo - Backoffice</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        :root{--bg:#fff;--card:#f8f9fa;--card2:#f0f0f0;--border:#e0e0e0;--text:#1a1a1a;--dim:#666;--accent:#FFC107;--green:#10b981;--red:#ef4444;--orange:#f59e0b;--blue:#3b82f6;}
+        :root{--bg:#FAF7F1;--card:#F4EFE6;--card2:#EDE7DA;--border:#E8E2D6;--text:#141412;--dim:#8A8578;--accent:#E3A008;--accent-dark:#C98E06;--green:#3E7C5B;--red:#B4483F;--orange:#C07A1C;--blue:#3D5A80;--serif:'Fraunces',Georgia,serif;}
         *{box-sizing:border-box;margin:0;padding:0;}
         body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;}
         .container{max-width:1400px;margin:0 auto;padding:15px;}
         .header{display:flex;justify-content:space-between;align-items:center;padding:15px 0;margin-bottom:20px;flex-wrap:wrap;gap:15px;}
         .header h1{font-size:1.6rem;font-weight:800;}
-        .header h1 span{color:var(--accent);}
+        .header h1{font-family:var(--serif);font-weight:500;letter-spacing:.01em;} .header h1 span{color:var(--accent-dark);}
         .header-links{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-        .header-link{padding:10px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--dim);text-decoration:none;font-size:.85rem;transition:.2s;}
+        .header-link{padding:10px 18px;background:transparent;border:1px solid var(--border);border-radius:999px;color:var(--dim);text-decoration:none;font-size:.85rem;transition:.2s;}
         .header-link:hover{border-color:var(--accent);color:var(--text);}
-        .header-link.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:600;}
+        .header-link.active{background:var(--text);border-color:var(--text);color:var(--bg);font-weight:600;}
         .user-badge{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:20px;font-size:.85rem;font-weight:600;}
-        .login-box{max-width:400px;margin:100px auto;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;text-align:center;}
+        .login-box{max-width:400px;margin:100px auto;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:44px;text-align:center;}
         .login-box h2{margin-bottom:20px;}
         .login-box input{width:100%;padding:15px;margin-bottom:15px;border:1px solid var(--border);border-radius:10px;font-size:1rem;}
-        .login-box button{width:100%;padding:15px;background:var(--accent);border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;}
+        .login-box button{width:100%;padding:15px;background:var(--accent);border:none;border-radius:999px;font-size:1rem;font-weight:600;cursor:pointer;}
         .login-error{color:var(--red);margin-top:10px;font-size:.9rem;}
         .tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:15px;}
-        .tab{padding:12px 20px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--dim);font-size:.85rem;font-weight:600;cursor:pointer;transition:.2s;}
+        .tab{padding:11px 20px;background:transparent;border:1px solid var(--border);border-radius:999px;color:var(--dim);font-size:.84rem;font-weight:500;cursor:pointer;transition:.2s;letter-spacing:.02em;}
         .tab:hover{border-color:var(--accent);color:var(--text);}
-        .tab.active{background:var(--accent);border-color:var(--accent);color:#000;}
+        .tab.active{background:var(--text);border-color:var(--text);color:var(--bg);font-weight:600;}
         .tab-content{display:none;}
         .tab-content.active{display:block;}
         .action-bar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
-        .btn{padding:12px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:.85rem;transition:.2s;display:inline-flex;align-items:center;gap:6px;}
+        .btn{border-radius:999px;padding:12px 20px;border:none;font-weight:600;cursor:pointer;font-size:.85rem;transition:.2s;display:inline-flex;align-items:center;gap:6px;}
         .btn:hover{transform:translateY(-1px);}
-        .btn-primary{background:var(--accent);color:#000;}
+        .btn-primary{background:var(--accent);color:var(--text);} .btn-primary:hover{background:var(--accent-dark);}
         .btn-success{background:var(--green);color:#fff;}
         .btn-danger{background:var(--red);color:#fff;}
         .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
         .btn-small{padding:8px 12px;font-size:.75rem;}
         .btn-icon{width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:8px;}
         .search-input{flex:1;min-width:200px;padding:12px 16px;border:1px solid var(--border);border-radius:10px;font-size:.9rem;}
-        .section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px;}
+        .section{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:22px;margin-bottom:20px;}
         .table-wrapper{overflow-x:auto;}
         table{width:100%;border-collapse:collapse;min-width:700px;}
         th,td{padding:12px;text-align:left;border-bottom:1px solid var(--border);font-size:.85rem;}
@@ -54,7 +54,7 @@
         .tag-blue{background:rgba(59,130,246,.15);color:var(--blue);}
         .tag-yellow{background:rgba(255,193,7,.2);color:#b38600;}
         .tag-gray{background:rgba(102,102,102,.15);color:var(--dim);}
-        .amount{font-weight:700;color:var(--accent);}
+        .amount{font-weight:600;color:var(--accent-dark);}
         .actions-cell{display:flex;gap:5px;flex-wrap:wrap;}
         .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto;}
         .modal.visible{display:flex;}
@@ -100,9 +100,9 @@
     <div id="main-app" style="display:none;">
         <div class="container">
             <header class="header">
-                <h1>🏠 Insta <span>Immo</span></h1>
+                <h1>Insta <span>Immo</span></h1>
                 <div class="header-links">
-                    <span class="user-badge" id="user-badge">👤</span>
+                    <span class="user-badge" id="user-badge"></span>
                     <a href="./immo-dashboard.html" class="header-link">Dashboard</a>
                     <a href="./immo-biens.html" class="header-link">Biens publics</a>
                     <a href="#" class="header-link" onclick="logout()">Déconnexion</a>
@@ -110,13 +110,13 @@
             </header>
             
             <div class="tabs">
-                <button class="tab active" data-tab="biens">🏠 Biens</button>
-                <button class="tab" data-tab="clients">👥 Clients</button>
-                <button class="tab" data-tab="proprios">🔑 Propriétaires</button>
-                <button class="tab" data-tab="visites">📅 Visites</button>
-                <button class="tab" data-tab="offres">💰 Offres</button>
-                <button class="tab" data-tab="tasks">✅ Tâches</button>
-                <button class="tab" data-tab="confreres">🤝 Confrères</button>
+                <button class="tab active" data-tab="biens">Biens</button>
+                <button class="tab" data-tab="clients">Clients</button>
+                <button class="tab" data-tab="proprios">Propriétaires</button>
+                <button class="tab" data-tab="visites">Visites</button>
+                <button class="tab" data-tab="offres">Offres</button>
+                <button class="tab" data-tab="tasks">Tâches</button>
+                <button class="tab" data-tab="confreres">Confrères</button>
             </div>
             
             <!-- TAB BIENS -->
@@ -270,7 +270,7 @@ async function logout(){await db.auth.signOut();location.reload();}
 function showApp(){
     document.getElementById('login-screen').style.display='none';
     document.getElementById('main-app').style.display='block';
-    document.getElementById('user-badge').textContent='👤 '+currentUser.prenom;
+    document.getElementById('user-badge').textContent=currentUser.prenom;
     loadAllData();
 }
 // Restauration de session (token Supabase Auth, vérifié côté serveur)
@@ -1135,7 +1135,7 @@ function renderConfreres(){
         return`<div class="section" style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:15px;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
                 <div>
-                    <div style="font-weight:700;font-size:1.05rem;">🤝 ${escBO(c.prenom||'')} ${escBO(c.nom)}</div>
+                    <div style="font-weight:700;font-size:1.05rem;">${escBO(c.prenom||'')} ${escBO(c.nom)}</div>
                     <div style="font-size:.85rem;color:var(--dim);">${c.agence?'🏢 '+escBO(c.agence)+' · ':''}${c.telephone?'📞 <a href="tel:'+escBO(c.telephone)+'" style="color:inherit;">'+escBO(c.telephone)+'</a>':''}</div>
                     ${c.notes?`<div style="font-size:.82rem;color:var(--dim);margin-top:4px;">${escBO(c.notes)}</div>`:''}
                 </div>
