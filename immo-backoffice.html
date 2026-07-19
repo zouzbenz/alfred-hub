@@ -116,6 +116,7 @@
                 <button class="tab" data-tab="visites">📅 Visites</button>
                 <button class="tab" data-tab="offres">💰 Offres</button>
                 <button class="tab" data-tab="tasks">✅ Tâches</button>
+                <button class="tab" data-tab="confreres">🤝 Confrères</button>
             </div>
             
             <!-- TAB BIENS -->
@@ -190,6 +191,12 @@
         </div>
     </div>
     
+            <div class="tab-content" id="tab-confreres">
+                <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+                    <button class="btn btn-primary" onclick="openConfrereModal()">+ Nouveau confrère</button>
+                </div>
+                <div id="confreres-list"></div>
+            </div>
     <!-- MODALS PLACEHOLDER - sera rempli par JS -->
     <div id="modals-container"></div>
     <div class="toast" id="toast"></div>
@@ -203,6 +210,7 @@ const STORAGE_URL=SUPABASE_URL+'/storage/v1/object/public/immo-photos/';
 
 // ==================== DATA ====================
 let currentUser=null;
+let confreres=[],echanges=[];
 let biens=[],clients=[],proprietaires=[],visites=[],offres=[],tasks=[],photos=[];
 let customZones=[];
 
@@ -295,16 +303,18 @@ async function loadAllData(){
     const isAdmin=currentUser.role==='admin';
     const agent=currentUser.prenom.toLowerCase();
     
-    const[r1,r2,r3,r4,r5,r6]=await Promise.all([
+    const[r1,r2,r3,r4,r5,r6,r7,r8]=await Promise.all([
         db.from('immo_biens').select('*').order('created_at',{ascending:false}),
         db.from('immo_clients').select('*').order('created_at',{ascending:false}),
         db.from('immo_proprietaires').select('*').order('created_at',{ascending:false}),
         db.from('immo_visites').select('*,immo_biens(reference,titre),immo_clients(nom,prenom,code_acces)').order('date_visite',{ascending:false}),
         db.from('immo_offres').select('*,immo_biens(reference,titre,prix),immo_clients(nom,prenom)').order('date_offre',{ascending:false}),
-        db.from('immo_tasks').select('*').order('echeance',{ascending:true})
+        db.from('immo_tasks').select('*').order('echeance',{ascending:true}),
+        db.from('immo_confreres').select('*').order('created_at',{ascending:false}),
+        db.from('immo_confrere_echanges').select('*').order('date_echange',{ascending:false})
     ]);
     
-    const firstError=[r1,r2,r3,r4,r5,r6].find(r=>r.error)?.error;
+    const firstError=[r1,r2,r3,r4,r5,r6].find(r=>r.error)?.error; // r7/r8 tolérés (tables confrères récentes)
     if(firstError){
         console.error(firstError);
         showToast('⚠️ Erreur de chargement : '+firstError.message);
@@ -316,6 +326,8 @@ async function loadAllData(){
     visites=r4.data||[];
     offres=r5.data||[];
     tasks=r6.data||[];
+    confreres=r7.data||[];
+    echanges=r8.data||[];
     
     // Collect custom zones
     biens.forEach(b=>{if(b.zone&&!ZONE_LABELS[b.zone]){ZONE_LABELS[b.zone]=b.zone;customZones.push(b.zone);}});
@@ -335,6 +347,7 @@ function renderAll(){
     renderVisites();
     renderOffres();
     renderTasks();
+    renderConfreres();
 }
 
 // ==================== BIENS ====================
@@ -421,9 +434,10 @@ function renderVisites(){
     tbody.innerHTML=visites.map(v=>{
         const bien=v.immo_biens||{};
         const client=v.immo_clients||{};
+        const bienLabel=bien.reference||(v.bien_externe?'🌐 '+escBO(v.bien_externe):'-');
         return`<tr>
             <td>${formatDateTime(v.date_visite)}</td>
-            <td>${bien.reference||'-'}</td>
+            <td>${bienLabel}</td>
             <td>${client.nom||'-'} ${client.prenom||''}</td>
             <td>${v.type_visite||'-'}</td>
             <td>${intLabels[v.interet]||'-'}</td>
@@ -445,9 +459,10 @@ function renderOffres(){
     tbody.innerHTML=offres.map(o=>{
         const bien=o.immo_biens||{};
         const client=o.immo_clients||{};
+        const bienLabelO=bien.reference||(o.bien_externe?'🌐 '+escBO(o.bien_externe):'-');
         return`<tr>
             <td>${formatDate(o.date_offre)}</td>
-            <td>${bien.reference||'-'}</td>
+            <td>${bienLabelO}</td>
             <td>${client.nom||'-'}</td>
             <td class="amount">${formatMoney(o.montant)} MAD</td>
             <td><span class="tag ${statColors[o.statut]||'tag-gray'}">${o.statut}</span></td>
@@ -486,6 +501,7 @@ async function toggleTask(id,done){
     await db.from('immo_tasks').update({done}).eq('id',id);
     const t=tasks.find(x=>x.id===id);if(t)t.done=done;
     renderTasks();
+    renderConfreres();
 }
 
 // ==================== MODAL BIEN ====================
@@ -914,7 +930,11 @@ function openVisiteModal(editData=null){
         <div class="modal-header"><h3 class="modal-title">${v.id?'Modifier':'Nouvelle'} visite</h3><button class="modal-close" onclick="closeVisiteModal()">×</button></div>
         <div class="modal-body">
             <input type="hidden" id="visite-id" value="${v.id||''}">
-            <div class="form-group"><label>Bien *</label><select id="visite-bien">${getBienOptions()}</select></div>
+            <div class="form-group"><label>Bien *</label><select id="visite-bien" onchange="document.getElementById('visite-externe-wrap').style.display=this.value==='__externe__'?'block':'none'">${getBienOptions()}<option value="__externe__" ${v.bien_externe?'selected':''}>🌐 Bien externe (hors catalogue)…</option></select></div>
+            <div id="visite-externe-wrap" style="display:${v.bien_externe?'block':'none'};">
+                <div class="form-group"><label>Nom du bien externe *</label><input type="text" id="visite-bien-externe" value="${v.bien_externe?String(v.bien_externe).replace(/"/g,'&quot;'):''}" placeholder="Ex: Appart 3ch Racine — Agence X"></div>
+                <div class="form-group"><label>Confrère (optionnel)</label><select id="visite-confrere">${getConfrereOptions()}</select></div>
+            </div>
             <div class="form-group"><label>Client</label><select id="visite-client">${getClientOptions()}</select></div>
             <div class="form-row">
                 <div class="form-group"><label>Date/Heure *</label><input type="datetime-local" id="visite-date" value="${v.date_visite?v.date_visite.slice(0,16):''}"></div>
@@ -937,14 +957,20 @@ function openVisiteModal(editData=null){
     </div></div>`;
     document.getElementById('modals-container').innerHTML=html;
     if(v.bien_id)document.getElementById('visite-bien').value=v.bien_id;
+    if(v.bien_externe)document.getElementById('visite-bien').value='__externe__';
+    if(v.confrere_id)document.getElementById('visite-confrere').value=v.confrere_id;
     if(v.client_id)document.getElementById('visite-client').value=v.client_id;
 }
 function closeVisiteModal(){document.getElementById('modals-container').innerHTML='';}
 
 async function saveVisite(){
     const id=document.getElementById('visite-id').value;
+    const bienSel=document.getElementById('visite-bien').value;
+    const isExterne=bienSel==='__externe__';
     const data={
-        bien_id:document.getElementById('visite-bien').value||null,
+        bien_id:isExterne?null:(bienSel||null),
+        bien_externe:isExterne?(document.getElementById('visite-bien-externe').value.trim()||null):null,
+        confrere_id:isExterne?(parseInt(document.getElementById('visite-confrere').value)||null):null,
         client_id:document.getElementById('visite-client').value||null,
         date_visite:document.getElementById('visite-date').value||null,
         type_visite:document.getElementById('visite-type').value,
@@ -952,7 +978,7 @@ async function saveVisite(){
         commentaire:document.getElementById('visite-comm').value||null,
         agent:currentUser.prenom.toLowerCase()
     };
-    if(!data.bien_id||!data.date_visite){alert('Bien et date obligatoires');return;}
+    if((!data.bien_id&&!data.bien_externe)||!data.date_visite){alert('Bien (catalogue ou externe) et date obligatoires');return;}
     try{
         if(id){await db.from('immo_visites').update(data).eq('id',id);}
         else{await db.from('immo_visites').insert([data]);}
@@ -971,8 +997,12 @@ function openOffreModal(editData=null){
         <div class="modal-body">
             <input type="hidden" id="offre-id" value="${o.id||''}">
             <div class="form-row">
-                <div class="form-group"><label>Bien *</label><select id="offre-bien">${getBienOptions()}</select></div>
+                <div class="form-group"><label>Bien *</label><select id="offre-bien" onchange="document.getElementById('offre-externe-wrap').style.display=this.value==='__externe__'?'block':'none'">${getBienOptions()}<option value="__externe__" ${o.bien_externe?'selected':''}>🌐 Bien externe (hors catalogue)…</option></select></div>
                 <div class="form-group"><label>Client *</label><select id="offre-client">${getClientOptions()}</select></div>
+            </div>
+            <div id="offre-externe-wrap" style="display:${o.bien_externe?'block':'none'};">
+                <div class="form-group"><label>Nom du bien externe *</label><input type="text" id="offre-bien-externe" value="${o.bien_externe?String(o.bien_externe).replace(/"/g,'&quot;'):''}" placeholder="Ex: Villa Bouskoura — Agence X"></div>
+                <div class="form-group"><label>Confrère (optionnel)</label><select id="offre-confrere">${getConfrereOptions()}</select></div>
             </div>
             <div class="form-row">
                 <div class="form-group"><label>Montant (MAD) *</label><input type="number" id="offre-montant" value="${o.montant||''}"></div>
@@ -990,21 +1020,27 @@ function openOffreModal(editData=null){
     </div></div>`;
     document.getElementById('modals-container').innerHTML=html;
     if(o.bien_id)document.getElementById('offre-bien').value=o.bien_id;
+    if(o.bien_externe)document.getElementById('offre-bien').value='__externe__';
+    if(o.confrere_id)document.getElementById('offre-confrere').value=o.confrere_id;
     if(o.client_id)document.getElementById('offre-client').value=o.client_id;
 }
 function closeOffreModal(){document.getElementById('modals-container').innerHTML='';}
 
 async function saveOffre(){
     const id=document.getElementById('offre-id').value;
+    const bienSelO=document.getElementById('offre-bien').value;
+    const isExterneO=bienSelO==='__externe__';
     const data={
-        bien_id:document.getElementById('offre-bien').value||null,
+        bien_id:isExterneO?null:(bienSelO||null),
+        bien_externe:isExterneO?(document.getElementById('offre-bien-externe').value.trim()||null):null,
+        confrere_id:isExterneO?(parseInt(document.getElementById('offre-confrere').value)||null):null,
         client_id:document.getElementById('offre-client').value||null,
         montant:parseFloat(document.getElementById('offre-montant').value)||0,
         date_offre:document.getElementById('offre-date').value||null,
         statut:document.getElementById('offre-statut').value,
         conditions:document.getElementById('offre-cond').value||null
     };
-    if(!data.bien_id||!data.client_id||!data.montant){alert('Bien, client et montant obligatoires');return;}
+    if((!data.bien_id&&!data.bien_externe)||!data.client_id||!data.montant){alert('Bien (catalogue ou externe), client et montant obligatoires');return;}
     try{
         if(id){await db.from('immo_offres').update(data).eq('id',id);}
         else{await db.from('immo_offres').insert([data]);}
@@ -1025,7 +1061,8 @@ function openTaskModal(editData=null){
             <div class="form-group"><label>Titre *</label><input type="text" id="task-titre" value="${t.titre||''}"></div>
             <div class="form-group"><label>Description</label><textarea id="task-desc" rows="2">${t.description||''}</textarea></div>
             <div class="form-row">
-                <div class="form-group"><label>Bien</label><select id="task-bien">${getBienOptions()}</select></div>
+                <div class="form-group"><label>Bien</label><select id="task-bien" onchange="document.getElementById('task-externe-wrap').style.display=this.value==='__externe__'?'block':'none'">${getBienOptions()}<option value="__externe__" ${t.bien_externe?'selected':''}>🌐 Bien externe…</option></select></div>
+                <div id="task-externe-wrap" style="display:${t.bien_externe?'block':'none'};"><div class="form-group"><label>Nom du bien externe</label><input type="text" id="task-bien-externe" value="${t.bien_externe?String(t.bien_externe).replace(/"/g,'&quot;'):''}" placeholder="Ex: Appart Racine — Agence X"></div></div>
                 <div class="form-group"><label>Client</label><select id="task-client">${getClientOptions()}</select></div>
             </div>
             <div class="form-row">
@@ -1042,6 +1079,7 @@ function openTaskModal(editData=null){
     </div></div>`;
     document.getElementById('modals-container').innerHTML=html;
     if(t.bien_id)document.getElementById('task-bien').value=t.bien_id;
+    if(t.bien_externe)document.getElementById('task-bien').value='__externe__';
     if(t.client_id)document.getElementById('task-client').value=t.client_id;
 }
 function closeTaskModal(){document.getElementById('modals-container').innerHTML='';}
@@ -1051,7 +1089,8 @@ async function saveTask(){
     const data={
         titre:document.getElementById('task-titre').value,
         description:document.getElementById('task-desc').value||null,
-        bien_id:document.getElementById('task-bien').value||null,
+        bien_id:(document.getElementById('task-bien').value==='__externe__'?null:document.getElementById('task-bien').value)||null,
+        bien_externe:document.getElementById('task-bien').value==='__externe__'?(document.getElementById('task-bien-externe').value.trim()||null):null,
         client_id:document.getElementById('task-client').value||null,
         echeance:document.getElementById('task-ech').value||null,
         priorite:document.getElementById('task-prio').value,
@@ -1068,6 +1107,156 @@ function editTask(id){const t=tasks.find(x=>x.id===id);if(t)openTaskModal(t);}
 async function deleteTask(id){if(!confirm('Supprimer?'))return;await db.from('immo_tasks').delete().eq('id',id);showToast('Supprimé');await loadAllData();}
 
 // ==================== GENERATION MANDATS ====================
+// ==================== CONFRÈRES ====================
+const ECHANGE_TYPES={bien_propose:['🏠 Bien proposé','badge-yellow'],demande:['🔎 Demande','badge-blue'],transaction:['🤝 Transaction','badge-green']};
+const ECHANGE_STATUTS={en_cours:['En cours','badge-orange'],conclu:['Conclu','badge-green'],abandonne:['Abandonné','badge-red']};
+function escBO(v){if(v===null||v===undefined)return'';return String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
+
+function renderConfreres(){
+    const el=document.getElementById('confreres-list');
+    if(!el)return;
+    if(!confreres.length){el.innerHTML='<div class="empty-state">Aucun confrère enregistré. Ajoutez vos contacts inter-agences pour suivre biens proposés, demandes et transactions.</div>';return;}
+    el.innerHTML=confreres.map(c=>{
+        const cEch=echanges.filter(e=>e.confrere_id===c.id);
+        const nbTrans=cEch.filter(e=>e.type_echange==='transaction').length;
+        const echHtml=cEch.length?cEch.map(e=>{
+            const[tLabel,tBadge]=ECHANGE_TYPES[e.type_echange]||['Échange',''];
+            const[sLabel,sBadge]=ECHANGE_STATUTS[e.statut]||['',''];
+            return`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;flex-wrap:wrap;">
+                <span class="list-badge ${tBadge}">${tLabel}</span>
+                <div style="flex:1;min-width:150px;">
+                    <div style="font-size:.88rem;font-weight:600;">${escBO(e.titre)}${e.montant?' — '+formatMoney(e.montant)+' MAD':''}</div>
+                    ${e.details?`<div style="font-size:.78rem;color:var(--dim);">${escBO(e.details)}</div>`:''}
+                    <div style="font-size:.72rem;color:var(--dim);">${formatDate(e.date_echange)}</div>
+                </div>
+                <span class="list-badge ${sBadge}">${sLabel}</span>
+                <button class="btn btn-small btn-outline btn-icon" onclick="editEchange(${e.id})">✏️</button>
+                <button class="btn btn-small btn-danger btn-icon" onclick="deleteEchange(${e.id})">×</button>
+            </div>`;}).join(''):'<div style="font-size:.85rem;color:var(--dim);padding:6px 0;">Aucun échange enregistré</div>';
+        return`<div class="section" style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:15px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+                <div>
+                    <div style="font-weight:700;font-size:1.05rem;">🤝 ${escBO(c.prenom||'')} ${escBO(c.nom)}</div>
+                    <div style="font-size:.85rem;color:var(--dim);">${c.agence?'🏢 '+escBO(c.agence)+' · ':''}${c.telephone?'📞 <a href="tel:'+escBO(c.telephone)+'" style="color:inherit;">'+escBO(c.telephone)+'</a>':''}</div>
+                    ${c.notes?`<div style="font-size:.82rem;color:var(--dim);margin-top:4px;">${escBO(c.notes)}</div>`:''}
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <span class="list-badge badge-green">${nbTrans} transaction${nbTrans>1?'s':''}</span>
+                    ${c.telephone?`<a class="btn btn-small btn-outline btn-icon" href="https://wa.me/${escBO(c.telephone.replace(/[^0-9]/g,''))}" target="_blank" title="WhatsApp">💬</a>`:''}
+                    <button class="btn btn-small btn-outline" onclick="openEchangeModal(null,${c.id})">+ Échange</button>
+                    <button class="btn btn-small btn-outline btn-icon" onclick="editConfrere(${c.id})">✏️</button>
+                    <button class="btn btn-small btn-danger btn-icon" onclick="deleteConfrere(${c.id})">×</button>
+                </div>
+            </div>
+            ${echHtml}
+        </div>`;
+    }).join('');
+}
+
+function openConfrereModal(editData=null){
+    const c=editData||{};
+    document.getElementById('modals-container').innerHTML=`<div class="modal visible" onclick="if(event.target===this)closeConfrereModal()">
+    <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header"><h3 class="modal-title">${c.id?'Modifier':'Nouveau'} confrère</h3><button class="modal-close" onclick="closeConfrereModal()">×</button></div>
+        <div class="modal-body">
+            <input type="hidden" id="conf-id" value="${c.id||''}">
+            <div class="form-row">
+                <div class="form-group"><label>Nom *</label><input type="text" id="conf-nom" value="${escBO(c.nom||'')}"></div>
+                <div class="form-group"><label>Prénom</label><input type="text" id="conf-prenom" value="${escBO(c.prenom||'')}"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Téléphone</label><input type="text" id="conf-tel" value="${escBO(c.telephone||'')}" placeholder="+2126…"></div>
+                <div class="form-group"><label>Agence</label><input type="text" id="conf-agence" value="${escBO(c.agence||'')}"></div>
+            </div>
+            <div class="form-group"><label>Notes</label><textarea id="conf-notes" rows="2">${escBO(c.notes||'')}</textarea></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-outline" onclick="closeConfrereModal()">Annuler</button><button class="btn btn-primary" onclick="saveConfrere()">Enregistrer</button></div>
+    </div></div>`;
+}
+function closeConfrereModal(){document.getElementById('modals-container').innerHTML='';}
+async function saveConfrere(){
+    const id=document.getElementById('conf-id').value;
+    const data={
+        nom:document.getElementById('conf-nom').value.trim(),
+        prenom:document.getElementById('conf-prenom').value.trim()||null,
+        telephone:document.getElementById('conf-tel').value.trim()||null,
+        agence:document.getElementById('conf-agence').value.trim()||null,
+        notes:document.getElementById('conf-notes').value.trim()||null
+    };
+    if(!data.nom){alert('Le nom est obligatoire');return;}
+    try{
+        if(id){const{error}=await db.from('immo_confreres').update(data).eq('id',id);if(error)throw error;}
+        else{const{error}=await db.from('immo_confreres').insert([data]);if(error)throw error;}
+        showToast('Confrère enregistré !');closeConfrereModal();await loadAllData();
+    }catch(e){alert('Erreur: '+e.message);}
+}
+function editConfrere(id){const c=confreres.find(x=>x.id===id);if(c)openConfrereModal(c);}
+async function deleteConfrere(id){
+    if(!confirm('Supprimer ce confrère et tout son historique d\'échanges ?'))return;
+    const{error}=await db.from('immo_confreres').delete().eq('id',id);
+    if(error){alert('Erreur: '+error.message);return;}
+    showToast('Supprimé');await loadAllData();
+}
+
+function openEchangeModal(editData=null,confrereId=null){
+    const e=editData||{};
+    const cid=e.confrere_id||confrereId;
+    document.getElementById('modals-container').innerHTML=`<div class="modal visible" onclick="if(event.target===this)closeEchangeModal()">
+    <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header"><h3 class="modal-title">${e.id?'Modifier':'Nouvel'} échange</h3><button class="modal-close" onclick="closeEchangeModal()">×</button></div>
+        <div class="modal-body">
+            <input type="hidden" id="ech-id" value="${e.id||''}">
+            <input type="hidden" id="ech-confrere" value="${cid||''}">
+            <div class="form-row">
+                <div class="form-group"><label>Type</label><select id="ech-type">
+                    <option value="bien_propose" ${e.type_echange==='bien_propose'?'selected':''}>🏠 Bien proposé par le confrère</option>
+                    <option value="demande" ${e.type_echange==='demande'?'selected':''}>🔎 Demande du confrère</option>
+                    <option value="transaction" ${e.type_echange==='transaction'?'selected':''}>🤝 Transaction</option>
+                </select></div>
+                <div class="form-group"><label>Statut</label><select id="ech-statut">
+                    <option value="en_cours" ${e.statut==='en_cours'?'selected':''}>En cours</option>
+                    <option value="conclu" ${e.statut==='conclu'?'selected':''}>Conclu</option>
+                    <option value="abandonne" ${e.statut==='abandonne'?'selected':''}>Abandonné</option>
+                </select></div>
+            </div>
+            <div class="form-group"><label>Titre *</label><input type="text" id="ech-titre" value="${escBO(e.titre||'')}" placeholder="Ex: Appartement 3ch Gauthier / Cherche villa Bouskoura"></div>
+            <div class="form-group"><label>Détails</label><textarea id="ech-details" rows="2">${escBO(e.details||'')}</textarea></div>
+            <div class="form-row">
+                <div class="form-group"><label>Montant (MAD)</label><input type="number" id="ech-montant" value="${e.montant||''}"></div>
+                <div class="form-group"><label>Date</label><input type="date" id="ech-date" value="${e.date_echange||new Date().toISOString().slice(0,10)}"></div>
+            </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-outline" onclick="closeEchangeModal()">Annuler</button><button class="btn btn-primary" onclick="saveEchange()">Enregistrer</button></div>
+    </div></div>`;
+}
+function closeEchangeModal(){document.getElementById('modals-container').innerHTML='';}
+async function saveEchange(){
+    const id=document.getElementById('ech-id').value;
+    const data={
+        confrere_id:parseInt(document.getElementById('ech-confrere').value)||null,
+        type_echange:document.getElementById('ech-type').value,
+        statut:document.getElementById('ech-statut').value,
+        titre:document.getElementById('ech-titre').value.trim(),
+        details:document.getElementById('ech-details').value.trim()||null,
+        montant:parseFloat(document.getElementById('ech-montant').value)||null,
+        date_echange:document.getElementById('ech-date').value||null
+    };
+    if(!data.titre||!data.confrere_id){alert('Titre obligatoire');return;}
+    try{
+        if(id){const{error}=await db.from('immo_confrere_echanges').update(data).eq('id',id);if(error)throw error;}
+        else{const{error}=await db.from('immo_confrere_echanges').insert([data]);if(error)throw error;}
+        showToast('Échange enregistré !');closeEchangeModal();await loadAllData();
+    }catch(e){alert('Erreur: '+e.message);}
+}
+function editEchange(id){const e=echanges.find(x=>x.id===id);if(e)openEchangeModal(e);}
+async function deleteEchange(id){
+    if(!confirm('Supprimer cet échange ?'))return;
+    const{error}=await db.from('immo_confrere_echanges').delete().eq('id',id);
+    if(error){alert('Erreur: '+error.message);return;}
+    showToast('Supprimé');await loadAllData();
+}
+function getConfrereOptions(){return'<option value="">--</option>'+confreres.map(c=>`<option value="${c.id}">${escBO(c.prenom||'')} ${escBO(c.nom)}${c.agence?' ('+escBO(c.agence)+')':''}</option>`).join('');}
+
 function openMandatRechercheModal(){
     const html=`<div class="modal visible" onclick="if(event.target===this)closeMandatModal()">
     <div class="modal-content" style="max-width:500px;">
