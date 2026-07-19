@@ -85,6 +85,15 @@ function getYouTubeId(url) {
 }
 function photoUrl(storagePath) { return STORAGE_URL + String(storagePath).split('/').map(encodeURIComponent).join('/'); }
 
+/* ---- Icônes SVG traits fins (cartes biens) ---- */
+const ICO = {
+  surface: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8A8578" stroke-width="1.3"><rect x="2" y="2" width="12" height="12"/><path d="M2 14 L14 2"/></svg>',
+  chambre: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8A8578" stroke-width="1.3"><path d="M2 12 V7 H14 V12"/><path d="M2 12 H14"/><path d="M4 7 V4 H12 V7"/></svg>',
+  sdb: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8A8578" stroke-width="1.3"><path d="M2 8 H14 V10 A3 3 0 0 1 11 13 H5 A3 3 0 0 1 2 10 Z"/><path d="M4 8 V4 A2 2 0 0 1 8 4"/></svg>',
+  parking: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8A8578" stroke-width="1.3"><path d="M3 10 L4.2 6 H11.8 L13 10"/><rect x="2.5" y="10" width="11" height="3" rx="1"/><circle cx="5" cy="13.6" r="1"/><circle cx="11" cy="13.6" r="1"/></svg>',
+  terrasse: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8A8578" stroke-width="1.3"><circle cx="8" cy="5" r="2.6"/><path d="M8 7.6 V13"/><path d="M5 13 H11"/><path d="M3.5 5 H12.5" opacity=".5"/></svg>'
+};
+
 /* ---- États d'interface ---- */
 function uiLoading(target, message) {
   document.getElementById(target).innerHTML =
