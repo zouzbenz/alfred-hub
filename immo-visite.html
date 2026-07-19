@@ -6,7 +6,7 @@
     <title>Bon de visite — Insta Immo</title>
     <meta name="robots" content="noindex">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./immo-core.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <style>
@@ -46,10 +46,7 @@
 <body>
     <div class="container-narrow">
         <header class="brand-header">
-            <a class="brand" href="#" onclick="return false">
-                <span class="brand-mark" aria-hidden="true">🏠</span>
-                <span>Insta Immo<small>Agence immobilière · Casablanca</small></span>
-            </a>
+            <a class="brand" href="#" onclick="return false"><b>Insta Immo</b><small>Agence immobilière · Casablanca</small></a>
         </header>
 
         <main id="content" aria-live="polite">
@@ -99,12 +96,12 @@ function bienCardHTML() {
         <span class="ref-plate">${esc(b.reference || '—')}</span>
         <h3 style="font-size:1.1rem;margin-top:10px">${esc(b.titre || 'Bien')}</h3>
         <div class="bien-details">
-            <div>📍 ${esc(ZONE_LABELS[b.zone] || b.zone || '—')}${b.quartier ? ' · ' + esc(b.quartier) : ''}</div>
-            <div>🏠 ${esc(TYPE_LABELS[b.type_bien] || b.type_bien || '—')}</div>
-            <div>📐 ${b.surface_m2 ? esc(b.surface_m2) + ' m²' : '—'}</div>
-            <div>💰 ${formatMoney(b.prix)} MAD</div>
-            ${(b.etage !== null && b.etage !== undefined) ? `<div>🏢 Étage ${esc(b.etage)}</div>` : ''}
-            ${b.chambres ? `<div>🛏️ ${esc(b.chambres)} chambres</div>` : ''}
+            <div>${esc(ZONE_LABELS[b.zone] || b.zone || '—')}${b.quartier ? ' · ' + esc(b.quartier) : ''}</div>
+            <div>${esc(TYPE_LABELS[b.type_bien] || b.type_bien || '—')}</div>
+            <div>${b.surface_m2 ? esc(b.surface_m2) + ' m²' : '—'}</div>
+            <div>${formatMoney(b.prix)} MAD</div>
+            ${(b.etage !== null && b.etage !== undefined) ? `<div>Étage ${esc(b.etage)}</div>` : ''}
+            ${b.chambres ? `<div>${esc(b.chambres)} chambres</div>` : ''}
         </div>
     </div>`;
 }
@@ -130,17 +127,17 @@ function renderToSign() {
         <h1 class="doc-title">Bon de visite<small>Document contractuel — Insta Immo</small></h1>
 
         <section class="section">
-            <div class="section-title">👤 Informations du visiteur</div>
+            <div class="section-title">Informations du visiteur</div>
             ${visitorGridHTML(false)}
         </section>
 
         <section class="section">
-            <div class="section-title">🏠 Bien visité</div>
+            <div class="section-title">Bien visité</div>
             ${bienCardHTML()}
         </section>
 
         <div class="clause">
-            <div class="clause-title">⚖️ Clause de protection</div>
+            <div class="clause-title">Clause de protection</div>
             <p class="clause-text">
                 Le(a) soussigné(e) reconnaît avoir visité le bien désigné ci-dessus par l'intermédiaire exclusif d'<strong>INSTA IMMO</strong>.
                 Toute transaction conclue directement avec le propriétaire ou par un autre intermédiaire, dans un délai de <strong>24 mois</strong>
@@ -150,7 +147,7 @@ function renderToSign() {
         </div>
 
         <section class="section">
-            <div class="section-title">✍️ Signature du visiteur</div>
+            <div class="section-title">Signature du visiteur</div>
             <div class="signature-box">
                 <p style="font-size:.9rem;color:var(--dim);margin-bottom:14px">Signez au doigt ou à la souris dans le cadre ci-dessous</p>
                 <canvas id="signature-canvas" class="signature-canvas" aria-label="Zone de signature"></canvas>
@@ -175,24 +172,24 @@ function renderSigned() {
         <h1 class="doc-title">Bon de visite<small>Document contractuel — Insta Immo</small></h1>
 
         <div class="success-message">
-            <div class="success-icon" aria-hidden="true">✅</div>
+            
             <div class="success-title">Bon de visite signé</div>
             <div class="success-text">Document signé et enregistré le ${formatDateTime(v.updated_at || v.created_at)}</div>
         </div>
 
         <section class="section">
-            <div class="section-title">👤 Visiteur</div>
+            <div class="section-title">Visiteur</div>
             ${visitorGridHTML(true)}
         </section>
 
         <section class="section">
-            <div class="section-title">🏠 Bien visité</div>
+            <div class="section-title">Bien visité</div>
             ${bienCardHTML()}
         </section>
 
         ${v.signature_data && String(v.signature_data).startsWith('data:image/png;base64,') ? `
         <section class="section">
-            <div class="section-title">✍️ Signature</div>
+            <div class="section-title">Signature</div>
             <div class="card" style="text-align:center">
                 <img src="${escAttr(v.signature_data)}" alt="Signature du visiteur"
                     style="max-width:300px;margin:0 auto;border:1px solid var(--border);border-radius:10px">
@@ -200,7 +197,7 @@ function renderSigned() {
         </section>` : ''}
 
         <div class="signature-actions no-print" style="margin-top:26px">
-            <button class="btn btn-outline" onclick="window.print()">🖨️ Imprimer / PDF</button>
+            <button class="btn btn-outline" onclick="window.print()">Imprimer / PDF</button>
         </div>`;
 }
 

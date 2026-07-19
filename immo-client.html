@@ -7,7 +7,7 @@
     <meta name="description" content="Espace client Insta Immo : vos critères de recherche, biens correspondants, visites et offres.">
     <meta name="robots" content="noindex">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./immo-core.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <style>
@@ -38,17 +38,14 @@
 <body>
     <div class="container">
         <header class="brand-header">
-            <a class="brand" href="#" onclick="return false">
-                <span class="brand-mark" aria-hidden="true">🏠</span>
-                <span>Insta Immo<small>Espace client</small></span>
-            </a>
+            <a class="brand" href="#" onclick="return false"><b>Insta Immo</b><small>Espace client</small></a>
             <button class="logout-link" id="logout-btn" onclick="logout()" hidden>Se déconnecter</button>
         </header>
 
         <div id="login-screen">
             <div class="login-wrap">
                 <form class="login-box" onsubmit="event.preventDefault();login();">
-                    <div class="login-icon" aria-hidden="true">🔑</div>
+                    <div class="login-icon" aria-hidden="true" id="login-ico"></div>
                     <h2>Accès client</h2>
                     <p class="login-sub">Entrez le code d'accès transmis par votre agent</p>
                     <label for="login-code" class="sr-only" style="position:absolute;left:-9999px">Code d'accès</label>
@@ -69,6 +66,7 @@
 
     <script src="./immo-core.js"></script>
     <script>
+document.getElementById('login-ico').innerHTML = ICO.cle;
 let portal = null; // { client, visites:[{visite,bien}], offres:[{offre,bien}], biens_disponibles:[] }
 let currentCode = null;
 
@@ -148,12 +146,12 @@ function bienCardHTML(bien, extra) {
         <div class="bien-body">
             <span class="ref-plate">${esc(bien.reference)}</span>
             <div class="bien-title">${esc(bien.titre)}</div>
-            <div class="bien-location">📍 ${esc(ZONE_LABELS[bien.zone] || bien.zone)}${bien.quartier ? ' · ' + esc(bien.quartier) : ''}</div>
+            <div class="bien-location">${esc(ZONE_LABELS[bien.zone] || bien.zone)}${bien.quartier ? ' · ' + esc(bien.quartier) : ''}</div>
             <div class="bien-price">${formatMoney(bien.prix)} <small>MAD</small></div>
             <div class="bien-features">
-                ${bien.surface_m2 ? `<span>📐 ${esc(bien.surface_m2)} m²</span>` : ''}
-                ${bien.chambres ? `<span>🛏️ ${esc(bien.chambres)} ch.</span>` : ''}
-                ${bien.ascenseur ? `<span>✓ Ascenseur</span>` : ''}
+                ${bien.surface_m2 ? `<span>${ICO.surface}${esc(bien.surface_m2)} m²</span>` : ''}
+                ${bien.chambres ? `<span>${ICO.chambre}${esc(bien.chambres)} ch.</span>` : ''}
+                ${bien.sdb ? `<span>${ICO.sdb}${esc(bien.sdb)} sdb</span>` : ''}
             </div>
         </div>
     </a>`;
@@ -218,20 +216,20 @@ function render() {
 
     document.getElementById('main-app').innerHTML = `
         <div class="welcome">
-            <h2>Bonjour ${esc(client.prenom || client.nom)} 👋</h2>
+            <h2 class="display">Bonjour ${esc(client.prenom || client.nom)}</h2>
             <p>Vos critères, vos visites et vos offres — mis à jour en temps réel</p>
         </div>
 
         <section class="section card">
-            <h3 class="section-title">🎯 Vos critères de recherche</h3>
+            <h3 class="section-title">Vos critères de recherche</h3>
             <div class="criteres-grid">
-                <div class="critere-box"><div class="critere-title">🏠 Types recherchés</div>
+                <div class="critere-box"><div class="critere-title">Types recherchés</div>
                     <div class="critere-list">${tags((client.types_souhaites || []).map(t => TYPE_LABELS[t] || t), '', 'Tous types')}</div></div>
-                <div class="critere-box"><div class="critere-title">📍 Zones</div>
+                <div class="critere-box"><div class="critere-title">Zones</div>
                     <div class="critere-list">${tags((client.zones_souhaitees || []).map(z => ZONE_LABELS[z] || z), '', 'Toutes zones')}</div></div>
-                <div class="critere-box"><div class="critere-title">✅ Indispensables</div>
+                <div class="critere-box"><div class="critere-title">Indispensables</div>
                     <div class="critere-list">${tags(critOblig, 'badge-green', 'Aucun')}</div></div>
-                <div class="critere-box"><div class="critere-title">❌ À éviter</div>
+                <div class="critere-box"><div class="critere-title">À éviter</div>
                     <div class="critere-list">${tags(critElim, 'badge-red', 'Aucun')}</div></div>
             </div>
             <div class="budget-display">
@@ -242,19 +240,19 @@ function render() {
         </section>
 
         <section class="section">
-            <h3 class="section-title">💡 Biens correspondants <span class="badge">${matching.length}</span></h3>
+            <h3 class="section-title">Biens correspondants <span class="badge">${matching.length}</span></h3>
             ${matching.length
                 ? `<div class="biens-grid">${matching.slice(0, 6).map(m => bienCardHTML(m.bien, { match: true, score: m.score })).join('')}</div>`
                 : '<div class="empty">Aucun bien ne correspond à vos critères pour le moment. Nous vous alertons dès qu\'une opportunité arrive.</div>'}
         </section>
 
         <section class="section">
-            <h3 class="section-title">📅 Vos visites <span class="badge">${visites.length}</span></h3>
+            <h3 class="section-title">Vos visites <span class="badge">${visites.length}</span></h3>
             ${visitesHTML}
         </section>
 
         <section class="section">
-            <h3 class="section-title">💰 Vos offres <span class="badge">${offres.length}</span></h3>
+            <h3 class="section-title">Vos offres <span class="badge">${offres.length}</span></h3>
             ${offresHTML}
         </section>
 
@@ -262,8 +260,8 @@ function render() {
             <h3>Besoin d'aide ?</h3>
             <p>Votre agent vous répond rapidement, 7j/7</p>
             <div class="contact-actions">
-                <a href="${AGENCE.whatsapp}" class="btn btn-primary" rel="noopener">💬 WhatsApp</a>
-                <a href="tel:${AGENCE.tel}" class="btn btn-outline" style="border-color:rgba(255,255,255,.3);color:#fff">📞 Appeler</a>
+                <a href="${AGENCE.whatsapp}" class="btn btn-primary" rel="noopener">Écrire sur WhatsApp</a>
+                <a href="tel:${AGENCE.tel}" class="btn btn-outline">${esc(AGENCE.tel)}</a>
             </div>
         </div>`;
 }

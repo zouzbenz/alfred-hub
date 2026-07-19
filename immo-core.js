@@ -52,7 +52,7 @@ function formatDateTime(d) {
 const TYPE_LABELS = { studio: 'Studio', appartement: 'Appartement', villa: 'Villa', terrain: 'Terrain', local_commercial: 'Local commercial', bureau: 'Bureau' };
 const ZONE_LABELS = { anfa: 'Anfa', ain_diab: 'Ain Diab', cfc: 'CFC', bourgogne: 'Bourgogne', bouskoura: 'Bouskoura' };
 const ETAT_LABELS = { neuf: 'Neuf', bon_etat: 'Bon état', a_renover: 'À rénover' };
-const INTERET_LABELS = { tres_interesse: '🔥 Très intéressé', interesse: '👍 Intéressé', bof: '😐 Mitigé', pas_interesse: '👎 Pas intéressé' };
+const INTERET_LABELS = { tres_interesse: 'Très intéressé', interesse: 'Intéressé', bof: 'Mitigé', pas_interesse: 'Pas intéressé' };
 const STATUT_OFFRE = { en_attente: ['En attente', 'orange'], acceptee: ['Acceptée', 'green'], refusee: ['Refusée', 'red'], contre_offre: ['Contre-offre', 'blue'] };
 const ETAPE_LABELS = {
   prise_contact: 'Prise de contact', premiere_visite: 'Première visite du bien',
@@ -91,7 +91,20 @@ const ICO = {
   chambre: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8A8578" stroke-width="1.3"><path d="M2 12 V7 H14 V12"/><path d="M2 12 H14"/><path d="M4 7 V4 H12 V7"/></svg>',
   sdb: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8A8578" stroke-width="1.3"><path d="M2 8 H14 V10 A3 3 0 0 1 11 13 H5 A3 3 0 0 1 2 10 Z"/><path d="M4 8 V4 A2 2 0 0 1 8 4"/></svg>',
   parking: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8A8578" stroke-width="1.3"><path d="M3 10 L4.2 6 H11.8 L13 10"/><rect x="2.5" y="10" width="11" height="3" rx="1"/><circle cx="5" cy="13.6" r="1"/><circle cx="11" cy="13.6" r="1"/></svg>',
-  terrasse: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8A8578" stroke-width="1.3"><circle cx="8" cy="5" r="2.6"/><path d="M8 7.6 V13"/><path d="M5 13 H11"/><path d="M3.5 5 H12.5" opacity=".5"/></svg>'
+  terrasse: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8A8578" stroke-width="1.3"><circle cx="8" cy="5" r="2.6"/><path d="M8 7.6 V13"/><path d="M5 13 H11"/><path d="M3.5 5 H12.5" opacity=".5"/></svg>',
+  cle: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="5.5" cy="5.5" r="3"/><path d="M7.8 7.8 L13.5 13.5"/><path d="M11 11 L13 9"/><path d="M12.5 12.5 L14 11"/></svg>',
+  cadenas: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7 V5 A3 3 0 0 1 11 5 V7"/><circle cx="8" cy="10.5" r="1"/></svg>',
+  graphique: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 14 H14"/><path d="M4 14 V9"/><path d="M8 14 V5"/><path d="M12 14 V7"/></svg>',
+  calendrier: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="3.5" width="12" height="10.5" rx="1"/><path d="M2 7 H14"/><path d="M5.5 2 V5"/><path d="M10.5 2 V5"/></svg>',
+  piece: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5.6"/><path d="M8 5 V11 M6.2 6.5 C6.2 5.6 9.8 5.6 9.8 7 C9.8 8.5 6.2 7.6 6.2 9 C6.2 10.4 9.8 10.4 9.8 9.5"/></svg>',
+  cible: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5.6"/><circle cx="8" cy="8" r="2.8"/><circle cx="8" cy="8" r=".5" fill="currentColor"/></svg>',
+  etincelle: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 2 L9.4 6.6 L14 8 L9.4 9.4 L8 14 L6.6 9.4 L2 8 L6.6 6.6 Z"/></svg>',
+  maison: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2.5 7.5 L8 2.5 L13.5 7.5"/><path d="M4 6.5 V13.5 H12 V6.5"/><path d="M6.8 13.5 V9.5 H9.2 V13.5"/></svg>',
+  personne: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="2.6"/><path d="M2.8 14 C2.8 10.8 13.2 10.8 13.2 14"/></svg>',
+  document: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M4 1.8 H9.5 L12.5 4.8 V14.2 H4 Z"/><path d="M9.5 1.8 V4.8 H12.5"/><path d="M6 8 H10.5 M6 10.5 H10.5"/></svg>',
+  coche: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 8.5 L6.5 12 L13 4.5"/></svg>',
+  plume: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 13 C3 8 7 3.5 13 3 C12.5 9 8 13 3 13 Z"/><path d="M3 13 L9 7"/></svg>',
+  poignee: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 9 L5.5 5.5 L8 8 M8 8 L10.5 5.5 L14 9 M8 8 L5.8 10.2 M8 8 L10.2 10.2"/></svg>'
 };
 
 /* ---- États d'interface ---- */

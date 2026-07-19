@@ -7,7 +7,7 @@
     <meta name="description" content="Espace propriétaire Insta Immo : suivez l'avancement de la vente de vos biens, visites et offres en temps réel.">
     <meta name="robots" content="noindex">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./immo-core.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <style>
@@ -49,17 +49,14 @@
 <body>
     <div class="container">
         <header class="brand-header">
-            <a class="brand" href="#" onclick="return false">
-                <span class="brand-mark" aria-hidden="true">🏠</span>
-                <span>Insta Immo<small>Espace propriétaire</small></span>
-            </a>
+            <a class="brand" href="#" onclick="return false"><b>Insta Immo</b><small>Espace propriétaire</small></a>
             <button class="logout-link" id="logout-btn" onclick="logout()" hidden>Se déconnecter</button>
         </header>
 
         <div id="login-screen">
             <div class="login-wrap">
                 <form class="login-box" onsubmit="event.preventDefault();login();">
-                    <div class="login-icon" aria-hidden="true">🔐</div>
+                    <div class="login-icon" aria-hidden="true" id="login-ico"></div>
                     <h2>Accès propriétaire</h2>
                     <p class="login-sub">Entrez le code d'accès transmis par votre agent</p>
                     <input type="text" id="login-code" class="input" placeholder="Votre code d'accès"
@@ -79,6 +76,7 @@
 
     <script src="./immo-core.js"></script>
     <script>
+document.getElementById('login-ico').innerHTML = ICO.cadenas;
 let portal = null; // { proprio, biens, visites:[{visite,client,bien_reference}], offres:[...], etapes:[{etape,bien_reference}] }
 
 async function login(codeParam) {
@@ -151,8 +149,8 @@ function render() {
             <div class="bien-head">
                 <div>
                     <span class="ref-plate">${esc(b.reference)}</span>
-                    <h3>${esc(b.titre)}</h3>
-                    <p style="color:var(--dim);font-size:.9rem;margin-top:3px">📍 ${esc(ZONE_LABELS[b.zone] || b.zone)}${b.quartier ? ' · ' + esc(b.quartier) : ''}</p>
+                    <h3 class="display" style="font-weight:500">${esc(b.titre)}</h3>
+                    <p style="color:var(--dim);font-size:.76rem;letter-spacing:.14em;text-transform:uppercase;margin-top:4px">${esc(ZONE_LABELS[b.zone] || b.zone)}${b.quartier ? ' · ' + esc(b.quartier) : ''}</p>
                 </div>
                 <div class="price">${formatMoney(b.prix)} <small style="font-size:.65em;color:var(--dim)">MAD</small></div>
             </div>
@@ -164,7 +162,7 @@ function render() {
             <div class="progress-track" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Avancement de la vente">
                 <div class="progress-fill" style="width:${pct}%"></div>
             </div>
-            <h4 class="section-title" style="margin-top:26px;font-size:1rem">📈 Avancement de la vente</h4>
+            <h4 class="section-title" style="margin-top:28px;font-size:1.05rem">Avancement de la vente</h4>
             <div class="timeline">${timelineHTML}</div>
         </section>`;
     }).join('');
@@ -193,19 +191,19 @@ function render() {
 
     document.getElementById('main-app').innerHTML = `
         <div class="welcome">
-            <h2>Bonjour ${esc(proprio.prenom || proprio.nom)} 👋</h2>
+            <h2 class="display">Bonjour ${esc(proprio.prenom || proprio.nom)}</h2>
             <p>Suivez la vente de ${biens.length > 1 ? 'vos biens' : 'votre bien'} en toute transparence</p>
         </div>
 
         ${biensHTML || '<section class="section"><div class="empty">Aucun bien enregistré pour le moment.</div></section>'}
 
         <section class="section">
-            <h3 class="section-title">📅 Dernières visites <span class="badge">${visites.length}</span></h3>
+            <h3 class="section-title">Dernières visites <span class="badge">${visites.length}</span></h3>
             ${visitesHTML}
         </section>
 
         <section class="section">
-            <h3 class="section-title">💰 Offres reçues <span class="badge">${offres.length}</span></h3>
+            <h3 class="section-title">Offres reçues <span class="badge">${offres.length}</span></h3>
             ${offresHTML}
         </section>
 
@@ -213,8 +211,8 @@ function render() {
             <h3>Une question sur la vente ?</h3>
             <p>Votre agent est disponible 7j/7</p>
             <div class="contact-actions">
-                <a href="${AGENCE.whatsapp}" class="btn btn-primary" rel="noopener">💬 WhatsApp</a>
-                <a href="tel:${AGENCE.tel}" class="btn btn-outline" style="border-color:rgba(255,255,255,.3);color:#fff">📞 Appeler</a>
+                <a href="${AGENCE.whatsapp}" class="btn btn-primary" rel="noopener">Écrire sur WhatsApp</a>
+                <a href="tel:${AGENCE.tel}" class="btn btn-outline">${esc(AGENCE.tel)}</a>
             </div>
         </div>`;
 }
